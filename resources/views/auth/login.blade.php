@@ -238,29 +238,47 @@
                     this.successMessage = '';
 
                     try {
-                        const response = await fetch('/api/login', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Accept': 'application/json'
-                            },
-                            body: JSON.stringify(this.form)
-                        });
+                // Obtener cookie CSRF-XSRF (sanctum/csrf-cookie) para la sesión stateful
+                const csrfHandle = await fetch('/sanctum/csrf-cookie', {
+                    method: 'GET',
+                    credentials: 'same-origin'
+                });
 
-                        const data = await response.json();
+                if (!csrfHandle.ok) {
+                    throw new Error('No se pudo inicializar la sesión segura.');
+                }
 
-                        if (!response.ok) {
-                            throw new Error(data.message || 'Error al autenticar credenciales.');
-                        }
+                const xsrfToken = document.cookie
+                    .split('; ')
+                    .find(row => row.startsWith('XSRF-TOKEN='))
+                    ?.split('=')[1];
 
-                        localStorage.setItem('auth_token', data.token);
-                        localStorage.setItem('user_info', JSON.stringify(data.usuario));
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-XSRF-TOKEN': decodeURIComponent(xsrfToken || '')
+                    },
+                    body: JSON.stringify(this.form)
+                });
 
-                        this.successMessage = `¡Bienvenido(a), ${data.usuario.nombre}! (Rol: ${data.usuario.rol})`;
-                        
-                        setTimeout(() => {
-                            window.location.href = '/expediente-demo';
-                        }, 1200);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || 'Error al autenticar credenciales.');
+                }
+
+                // Autenticación stateful: la sesión la maneja la cookie HttpOnly.
+                // No se almacena el token en localStorage (mitiga riesgo XSS).
+                this.successMessage = `¡Bienvenido(a), ${data.usuario.nombre}! (Rol: ${data.usuario.rol})`;
+
+                const destino = data.usuario.rol === 'ENCARGADA' ? '/bandeja/sorteo' : '/expedientes';
+
+                setTimeout(() => {
+                    window.location.href = destino;
+                }, 800);
 
                     } catch (error) {
                         this.errorMessage = error.message;

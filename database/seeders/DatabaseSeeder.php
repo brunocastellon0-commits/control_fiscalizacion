@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             FeriadoSeeder::class,
             UsuarioSeeder::class,
             CatalogoActuadoSeeder::class,
+            ExpedienteDemoSeeder::class,
         ]);
     }
 }

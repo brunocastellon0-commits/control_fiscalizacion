@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use App\Models\CatalogoActuado;
 use App\Models\Expediente;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreActuadoRequest extends FormRequest
 {
@@ -25,11 +26,18 @@ class StoreActuadoRequest extends FormRequest
      */
     public function rules(): array
     {
+        $catalogoActuado = CatalogoActuado::find((int) $this->input('catalogo_actuado_id'));
+
         return [
             'catalogo_actuado_id' => ['required', 'integer', 'exists:catalogo_actuados,id'],
             'descripcion' => ['required', 'string', 'min:5', 'max:10000'],
             'usuario_destino_id' => ['nullable', 'integer', 'exists:usuarios,id'],
-            'adjunto' => ['nullable', 'file', 'mimes:pdf', 'max:20480'],
+            'adjunto' => [
+                Rule::requiredIf($catalogoActuado?->requiere_adjunto ?? false),
+                'file',
+                'mimes:pdf',
+                'max:20480',
+            ],
         ];
     }
 

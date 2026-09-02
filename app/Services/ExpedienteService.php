@@ -7,6 +7,7 @@ use App\Models\CatalogoEstado;
 use App\Models\Expediente;
 use App\Models\Parte;
 use App\Models\Usuario;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 
 class ExpedienteService
@@ -31,9 +32,13 @@ class ExpedienteService
      *
      * @param  array{via: string, reglamento_id: int, resumen_hechos?: string|null, partes?: array<int, array{tipo: string, nombre_completo: string, documento_identidad?: string|null, cargo_institucion?: string|null}>}  $datos
      */
-    public function aperturaCausa(array $datos, Usuario $tecnico, ?string $ipOrigen = null): Expediente
-    {
-        return DB::transaction(function () use ($datos, $tecnico, $ipOrigen) {
+    public function aperturaCausa(
+        array $datos,
+        Usuario $tecnico,
+        ?string $ipOrigen = null,
+        ?UploadedFile $adjunto = null,
+    ): Expediente {
+        return DB::transaction(function () use ($datos, $tecnico, $ipOrigen, $adjunto) {
             $nurejCode = $this->generadorNurej->generarPadre();
 
             $estadoPendiente = CatalogoEstado::where('codigo', 'PENDIENTE_SORTEO')->firstOrFail();
@@ -58,6 +63,7 @@ class ExpedienteService
                 usuarioDestinoId: null,
                 metadatos: ['tipo' => 'APERTURA'],
                 ipOrigen: $ipOrigen,
+                adjunto: $adjunto,
             );
 
             foreach ($datos['partes'] ?? [] as $parte) {

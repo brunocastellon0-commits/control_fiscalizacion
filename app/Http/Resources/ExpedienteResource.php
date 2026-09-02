@@ -13,7 +13,6 @@ class ExpedienteResource extends JsonResource
      * Transforma un expediente a su representacion del workstation,
      * incluyendo el semaforo del plazo vigente mas urgente.
      *
-     * @param  Request  $request
      * @return array<string, mixed>
      */
     public function toArray(Request $request): array
@@ -58,6 +57,7 @@ class ExpedienteResource extends JsonResource
             ] : null),
             'partes_vigentes' => ParteResource::collection($this->whenLoaded('partesVigentes')),
             'plazos' => PlazoResource::collection($this->whenLoaded('plazos')),
+            'actuados' => ActuadoResource::collection($this->whenLoaded('actuados')),
             'sem_plazo' => $this->semPlazoMasUrgente($expediente),
         ];
     }

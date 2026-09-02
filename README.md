@@ -1,58 +1,91 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Sistema de Control y Fiscalización
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Sistema **gubernamental** del Consejo de la Magistratura para el control y la fiscalización
+de expedientes. La seguridad e integridad de los datos están por encima de la velocidad.
+Ante cualquier duda entre *rápido* y *seguro/verificado*, se elige lo segundo.
 
-## About Laravel
+## Stack
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- **Backend:** Laravel (ver `composer.json`) + **MySQL** (InnoDB, `utf8mb4`/`utf8mb4_unicode_ci`).
+  NO PostgreSQL/SQLite, ni sintaxis/tipos exclusivos de esos motores.
+- **Autenticación:** Laravel Sanctum.
+- **Frontend:** Blade + Alpine.js 3.x + Tailwind CSS vía CDN + Font Awesome (sin build de assets).
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Documentación de referencia
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- Reglas duras de desarrollo: `.opencode/rules/` (`laravel-skills.md`, `restricciones.md`).
+- Plan maestro backend: `.opencode/PLAN_WORKSTATION_EXPEDIENTES.md`.
+- Plan de vistas/frontend (Paso 10): `.opencode/PLAN_VISTAS.md`.
 
-## Learning Laravel
+---
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## Decisiones técnicas y de seguridad
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### 1. Autenticación stateful con cookies (NO localStorage)
+El sistema maneja datos de fiscalización de alto valor (RF-03 compartimentos estancos,
+cadena de custodia, inmutabilidad). Por eso:
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+- **NO se almacenan tokens Bearer en `localStorage`** (riesgo de exfiltración por XSS).
+- Se usa **autenticación stateful con cookies `HttpOnly` + `SameSite` + CSRF**, habilitando el
+  modo SPA stateful de Sanctum (`EnsureFrontendRequestsAreStateful`).
+- El frontend (Alpine.js) envía las credenciales con `credentials: 'same-origin'` y el header
+  `X-XSRF-TOKEN` (leído de la cookie `XSRF-TOKEN`).
+- El cierre de sesión es stateful (destruye la sesión/cookie), no revoca un token Bearer.
 
-## Agentic Development
+### 2. Reutilización del backend al 100%
+La workstation **no duplica lógica de negocio**: consume los endpoints `/api/*` existentes,
+los FormRequests y las Policies. Cualquier regla (apertura de causa, sorteo, emisión de
+actuados, RF-03) se valida en el backend; el frontend solo presenta y envía datos.
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+### 3. Autorización y compartimentos estancos (RF-03)
+- Un expediente es visible/operable solo para quien tiene **asignación activa** o es la
+  **Encargada** (jerarquía). Cualquier otro (incluido ADMIN) recibe `403`.
+- Toda acción que modifica datos pasa por la **Policy** correspondiente
+  (`ExpedientePolicy::crearActuado`, `ExpedientePolicy::view`, `bandejaSorteo`), nunca por
+  chequeos dispersos de rol en los controladores.
+
+### 4. Cadena de custodia e inmutabilidad
+- Los `actuados` registran `hash_anterior`/`hash_actuado` (SHA-256) encadenados por la base
+  de datos (triggers MySQL).
+- **Los actuados son inmutables**: cualquier `UPDATE`/`DELETE` directo es bloqueado por
+  trigger (`SIGNAL SQLSTATE '45000'`). La corrección de un error se hace con un **Actuado
+  de Enmienda**, nunca editando el registro.
+
+### 5. Semáforo de plazos
+- El semáforo (VERDE/AMARILLO/ROJO/FUERA_DE_PLAZO) se calcula con **días hábiles reales**
+  (fines de semana, feriados y suspensiones) mediante `PlazoCalculatorService` +
+  `SemaforoPlazoService`. El frontend pinta el color, pero el cómputo vive en el backend.
+
+### 6. Auditoría
+- Los accesos se auditan en `sesiones_acceso` (login exitoso/fallido, IP, `logout_at`).
+- Cambios sobre datos sensibles se registran sin exponer contraseñas ni tokens.
+
+---
+
+## Estado del proyecto
+
+- **Backend (Paso 0–9):** completado y testeado. Suite verde:
+  `php artisan test --compact` → **92 passed / 310 assertions**.
+- **Frontend / Workstation (Paso 10):** en desarrollo, base stateful (ver `.opencode/PLAN_VISTAS.md`).
+
+## Instalación rápida
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+composer install
+cp .env.example .env        # configurar MySQL
+php artisan key:generate
+php artisan migrate:fresh --seed
+php artisan serve           # http://localhost:8000
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Usuarios demo (ver `database/seeders/UsuarioSeeder.php`): `encargada`, `tecnico`,
+`aud_juridico`, `aud_financiero`, `admin` (password según seeder).
 
-## Contributing
+## Pruebas
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+```bash
+php artisan test --compact
+```
 
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Las pruebas usan una base MySQL real (`control_fiscalizacion_test`) para validar triggers y
+comportamiento fiel (no SQLite).

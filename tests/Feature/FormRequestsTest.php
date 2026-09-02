@@ -11,6 +11,7 @@ use App\Models\Expediente;
 use App\Models\Reglamento;
 use App\Models\Rol;
 use App\Models\Usuario;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 
@@ -100,7 +101,10 @@ describe('StoreExpedienteRequest (apertura de causa, rol TECNICO)', function () 
 
     test('un tecnico puede abrir una causa con payload valido', function () {
         $this->actingAs($this->semilla['tecnico'])
-            ->postJson('/_test/expedientes', paso4PayloadExpedienteValido($this->reglamento->id))
+            ->post('/_test/expedientes', array_merge(
+                paso4PayloadExpedienteValido($this->reglamento->id),
+                ['adjunto' => UploadedFile::fake()->create('denuncia.pdf', 100, 'application/pdf')],
+            ))
             ->assertOk()
             ->assertJson(['ok' => true]);
     });

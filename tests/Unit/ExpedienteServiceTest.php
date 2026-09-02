@@ -15,6 +15,8 @@ use App\Services\ExpedienteService;
 use App\Services\NurejGeneratorService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 uses(TestCase::class, RefreshDatabase::class);
@@ -41,9 +43,12 @@ function setupDatosAperturaCausa(): array
 
 it('abre una causa registrando expediente, actuado y partes sin asignar bandeja', function () {
     Carbon::setTestNow('2026-08-28 10:00:00');
+    Storage::fake('local');
 
     try {
         [, $tecnico, $estado, $catalogoActuado, $reglamento] = setupDatosAperturaCausa();
+
+        $adjunto = UploadedFile::fake()->create('denuncia.pdf', 100, 'application/pdf');
 
         $expediente = app(ExpedienteService::class)->aperturaCausa([
             'via' => 'TECNICO',
@@ -53,7 +58,7 @@ it('abre una causa registrando expediente, actuado y partes sin asignar bandeja'
                 ['tipo' => 'DENUNCIANTE', 'nombre_completo' => 'Juan Pérez', 'documento_identidad' => '1234567'],
                 ['tipo' => 'DENUNCIADO', 'nombre_completo' => 'Autoridad Municipal'],
             ],
-        ], $tecnico);
+        ], $tecnico, adjunto: $adjunto);
 
         expect($expediente->nurej_code)->toMatch('/^2026-\d{5}$/')
             ->and($expediente->estado_actual_id)->toBe($estado->id)
@@ -76,6 +81,12 @@ it('abre una causa registrando expediente, actuado y partes sin asignar bandeja'
 
         expect(Parte::where('expediente_id', $expediente->id)->count())->toBe(2)
             ->and(Parte::where('expediente_id', $expediente->id)->where('actuado_origen_id', $actuado->id)->count())->toBe(2);
+
+        $adjuntoRegistrado = $actuado->adjuntos()->first();
+        expect($adjuntoRegistrado)->not->toBeNull()
+            ->and($adjuntoRegistrado->nombre_original)->toBe('denuncia.pdf')
+            ->and($adjuntoRegistrado->subido_por)->toBe($tecnico->id)
+            ->and($adjuntoRegistrado->hash_sha256)->toMatch('/^[0-9a-f]{64}$/');
     } finally {
         Carbon::setTestNow();
     }

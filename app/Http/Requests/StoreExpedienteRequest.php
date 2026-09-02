@@ -27,7 +27,7 @@ class StoreExpedienteRequest extends FormRequest
             'partes.*.nombre_completo' => ['required', 'string', 'max:200'],
             'partes.*.documento_identidad' => ['nullable', 'string', 'max:30'],
             'partes.*.cargo_institucion' => ['nullable', 'string', 'max:150'],
-            'adjunto' => ['nullable', 'file', 'mimes:pdf', 'max:20480'],
+            'adjunto' => ['required', 'file', 'mimes:pdf', 'max:20480'],
         ];
     }
 }

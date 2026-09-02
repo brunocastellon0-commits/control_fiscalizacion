@@ -171,37 +171,84 @@ Lineamientos:
   de cobertura HTTP va en el Paso 9.
 - Cierre: `vendor/bin/pint <archivos>` + `php artisan test --compact`.
 
-### ⏭ Paso 7 — Controladores + rutas Sanctum + throttle (SIGUIENTE)
-- Rutas en `routes/api.php` (hoy solo `login`/`me`/`logout`) con `auth:sanctum` +
-  `throttle:`. Consumir los 3 Form Requests del Paso 4 y las Policies del Paso 5.
-- Endpoints nucleares de la workstation: apertura de causa (`StoreExpedienteRequest`),
-  sorteo/enrutamiento (`SortearExpedienteRequest` → emitir `ACT_SORTEO_INICIAL` con
-  `usuarioDestinoId` y abrir la bandeja destino), emisión de actuados
-  (`StoreActuadoRequest` → `ActuadoService::registerActuado`).
-- Sorteo: validar estado `PENDIENTE_SORTEO` (decisión §3.1) SIEMPRE dentro del flujo
-  autorizado por la policy; `ActuadoService` ya crea asignación + plazo + transición.
-- Controladores delgados: toda lógica en services; respuestas con los Resources del Paso 6.
+### ✅ Paso 7 — Controladores + rutas Sanctum + throttle
+- `routes/api.php` reescrito: `POST /login` con `throttle:login`; grupo
+  `auth:sanctum` + `throttle:api` con `me`, `logout`, `GET /bandeja/sorteo`,
+  `GET /bandeja`, `POST /expedientes`, `GET /expedientes/{expediente}`,
+  `POST /expedientes/{expediente}/sortear`, `POST /expedientes/{expediente}/actuados`.
+- `AppServiceProvider::boot()`: `RateLimiter::for('login')` (5/min) y `::for('api')`
+  (60/min), ambos con `Request $request`.
+- `app/Services/AdjuntoService.php` (NUEVO): `guardarParaActuado()` — hash_sha256 del
+  contenido ORIGINAL antes de guardar, `storeAs('adjuntos/{expediente_id}/{hash}.ext')`,
+  dentro de la transacción del caller. **Auto-limpia el archivo físico si `Adjunto::create`
+  falla** (limpieza localizada donde se escribe el archivo). `subido_at` se resuelve con
+  `useCurrent()` en BD → `->refresh()`.
+- `ActuadoService::registerActuado()` recibe `?UploadedFile $adjunto`; valida
+  `requiere_adjunto && $adjunto === null` → `ValidationException` (422) ANTES de crear el
+  actuado (nunca un actuado inmutable sin su adjunto obligatorio). Inyecta `AdjuntoService`.
+- `ExpedienteService::aperturaCausa(..., ?UploadedFile $adjunto)` pasa `adjunto:` a
+  `registerActuado` (NO acopla `AdjuntoService`).
+- `ExpedienteController` (NUEVO): `store` (201), `bandejaSorteo` (policy `bandejaSorteo`,
+  filtra `PENDIENTE_SORTEO`, paginado 15), `bandejaOperador` (asignación activa del usuario),
+  `show` (policy `view`, RF-03), `sortear` (valida `PENDIENTE_SORTEO` → 422 si no; emite
+  `ACT_SORTEO_INICIAL`). Helper `relacionesDetalle()` anti-N+1.
+- `ActuadoController` (NUEVO): `store` (policy vía `StoreActuadoRequest`, 201 + `ActuadoResource`).
+- `ExpedientePolicy`: agregadas `bandejaSorteo(Usuario)` y `view(Usuario, Expediente)` (RF-03).
+- `StoreExpedienteRequest.adjunto` ahora `required`; `StoreActuadoRequest.adjunto` condicional
+  con `Rule::requiredIf($catalogoActuado?->requiere_adjunto ?? false)`.
+- **`App\Http\Controllers\Controller` base ahora usa el trait `AuthorizesRequests`** (no lo
+  traía por defecto; sin él, `$this->authorize()` lanzaba `Call to undefined method`).
+- **Resources single devueltos directos** (`new XResource(...)`, envueltos en `{"data":...}`)
+  en vez de `->resolve($request)` (JSON plano sin envoltura); consistente con
+  `XResource::collection`.
+- Tests: `AdjuntoServiceTest` (hashing/nombrado por hash/limpieza en rollback),
+  `ActuadoServiceTest` (feliz, sin adjunto no requerido, 422 sin persistir, hash custodia),
+  `ExpedienteControllerTest` (10: apertura 201/422/403, RF-03 detalle/bandeja, sorteo ± estado),
+  `ActuadoControllerTest` (3: actuado con asignación, RF-03 403, adjunto requerido 422).
+- Cierre: `vendor/bin/pint <archivos>` + `php artisan test --compact` (todo verde).
 
-### ⬜ Paso 8 — ExpedienteDemoSeeder
-- Seeder de BANDAJAS/demo (`ExpedienteDemoSeeder`) para desarrollo de la workstation:
-  crear expedientes de ejemplo vía **service** (no inserts sueltos) para respetar NUREJ,
-  cadena de custodia y estados: varios PENDIENTE_SORTEO (bandeja de sorteo de Encargada),
-  uno en EN_EVALUACION asignado a un auditor (bandeja operador), uno con actuados
-  encadenados (actuado-adjuntos opcional).
-- Seeds solo para dev (nunca en test); verificar que `db:seed --class=ExpedienteDemoSeeder`
-  sea idempotente o use `Refresher` controlado. Los tests NUNCA dependen de seeders (§6).
+### ✅ Paso 8 — ExpedienteDemoSeeder
+- `database/seeders/ExpedienteDemoSeeder.php` (NUEVO): seeder de datos demo vía
+  **service** (no inserts sueltos) para respetar NUREJ, cadena de custodia y estados.
+- 5 expedientes creados: 3 en `PENDIENTE_SORTEO` (bandeja de sorteo de Encargada),
+  1 en `EN_EVALUACION` con plazo `EVALUACION` abierto y asignación a `aud_juridico`
+  (bandeja operador), 1 en `OBSERVADO` con cadena de custodia completa (3 actuados:
+  registro→sorteo→observación, hashes encadenados).
+- **Adjuntos dummy reales:** PDF mínimo creado vía `UploadedFile` desde archivo temporal
+  (`tempnam` + `file_put_contents`), no `fake()`; el `AdjuntoService` guarda el archivo
+  real en `storage/app/adjuntos/` y calcula SHA-256 real.
+- **Idempotencia:** guard-clause con `[DEMO]` en `resumen_hechos`; si ya existen
+  expedientes con ese tag, se salta sin borrar nada (no-destructivo, sobrevive a
+  `migrate:fresh`).
+- **Auto-dependencias:** si faltan seeders base (roles/usuarios/catálogos/reglamentos/
+  parámetros de plazo), los llama automáticamente antes de crear los expedientes.
+- `DatabaseSeeder` actualizado: `ExpedienteDemoSeeder` al final de la cadena.
+- Verificado: `migrate:fresh --seed` crea los 5 expedientes sin errores;
+  re-ejecución standalone del seeder se salta correctamente (guard-clause).
+- No hay tests nuevos (§8: seeds solo para dev, los tests NUNCA dependen de seeders).
 
-### ⬜ Paso 9 — Feature Tests (Auth, Security, Chain, Semaforo)
-- **Auth:** sesiones `sesiones_acceso`, login/logout, throttle en login.
-- **Security (RF-03):** operador recibe 403 ante expedientes ajenos o sin asignación activa
-  (ampliar `FormRequestsTest`).
-- **Chain/custodia:** `hash_anterior`/`hash_actuado` encadenados e inmutabilidad de
-  `actuados` (UPDATE/DELETE → el test DEBE esperar fallo por trigger).
-- **Semáforo:** plazos con días hábiles reales (feriados), ROJO/AMARILLO/VERDE/FUERA_DE_PLAZO.
-- Endpoints de Pasos 6-7 ya con rutas reales (sustituir rutas temporales `/ _test/...`).
-- Cobertura con `RefreshDatabase` y factories; sin red, sin hora local.
+### ✅ Paso 9 — Feature Tests (Auth, Security, Chain, Semaforo)
+- 4 archivos nuevos de test, cubriendo Auth, RF-03, cadena de custodia y semáforo:
+  - `AuthFeatureTest` (10): login exitoso/fallido/inexistente/inactivo, auditoría en
+    `sesiones_acceso` (exitoso/falido, logout_at), `/me` autenticado y sin token,
+    logout (revoca token + `logout_at`), token revocado deja de servir, **rate limit
+    login 5/min → 429**, aislamiento con `RateLimiter::clear('login')` en `beforeEach`.
+  - `SecurityCompartimentosTest` (9): RF-03 estanco — operador sin asignación → 403
+    (ver/actuar), asignación en otro expediente no da acceso al ajeno, **ADMIN sin
+    missión → 403 (SIN bypass indebido)**, ENCARGADA ve todo por jerarquía, usuario
+    inactivo → 403, petición sin token → 401.
+  - `CadenaCustodiaTest` (7): primer `hash_anterior`=null, encadenado 1→2→3,
+    **reproducción fiel del SHA-256** del trigger (contrato exacto), UPDATE directo
+    → excepción `QueryException` (trigger inmutable), DELETE directo → excepción.
+  - `SemaforoPlazosFeatureTest` (6): API expone `sem_plazo` VERDE/AMARILLO/ROJO/
+    FUERA_DE_PLAZO vía `Carbon::setTestNow()`, feriado excluido del cómputo, sin
+    plazo → `sem_plazo=null`.
+- Todas las semillas con factories aisladas (patrón Paso 6/7), nunca seeders (regla §6/§8).
+- Inmutabilidad testada contra **MySQL real** (triggers activos en el test DB).
+- Verificado: suite completa **92 passed / 310 assertions** (61→92, +31 tests).
+- Base de línea actualizada en §5/§6.
 
-### ⬜ Paso 10 — Workstation `/expedientes` (Blade + Alpine + Tailwind CDN)
+### ⏭ Paso 10 — Workstation `/expedientes` (Blade + Alpine + Tailwind CDN) (SIGUIENTE)
 - Frontend recién **al final** (backend-first). Blade + Alpine.js + Tailwind vía CDN
   (ver skill tailwindcss-development si se usa).
 - Sesión web (no solo API), vistas de: bandeja de sorteo (Encargada), bandeja operador
@@ -220,18 +267,18 @@ Lineamientos:
 | 4 | ✅ | `FormRequestsTest` | `Rule::mimes` no existe; `nurej_code`<=30; `actuado_origen_id` NOT NULL. |
 | 5 | ✅ | (`FormRequestsTest`) | Auto-descubrimiento de policy; ADMIN sin excepción. |
 | 6 | ✅ | 4 resources + 4 test files (10 tests) | `->resolve(request())`, NO `->toArray(request())` (toArray retiene `MissingValue` crudo); `$parte->refresh()` tras `Parte::create()` por `useCurrent()`. No `SELECT *`; anti-N+1 con `with()`. |
-| 7 | ⬜ | — | `throttle:` en login y endpoints públicos; CSRF en formularios web. |
-| 8 | ⬜ | — | Seeders solo dev; tests nunca dependen de seeds. |
-| 9 | ⬜ | — | Tests de triggers deben esperar fallo; RF-03 = 403. |
+| 7 | ✅ | `AdjuntoServiceTest` (3) + `ActuadoServiceTest` (3) + `ExpedienteControllerTest` (10) + `ActuadoControllerTest` (3); ver nota 6.1 | `AuthorizesRequests` faltaba en `Controller` base; resources single devueltos directos (envoltura `data`, no `->resolve()`); `AdjuntoService` auto-limpia archivo en rollback; rate limiting login 5/min + api 60/min; capturar `estado_anterior` antes de mutar la instancia en tests de `registerActuado`. |
+| 8 | ✅ | — (sin tests nuevos) | Idempotencia por `[DEMO]` en `resumen_hechos` (no-destructivo); auto-dependencia de seeders base; adjuntos dummy reales con `UploadedFile` + `tempnam`; `DatabaseSeeder` incluye `ExpedienteDemoSeeder` al final. |
+| 9 | ✅ | `AuthFeatureTest` (10) + `SecurityCompartimentosTest` (9) + `CadenaCustodiaTest` (7) + `SemaforoPlazosFeatureTest` (6); ver nota 6.1 | Tests por archivo en MySQL real con factories aisladas, no seeders. Gotchas: (a) las helpers de semilla de otro archivo de test NO se cargan al correr un archivo suelto → helpers locales por archivo; (b) reproducción del hash: MySQL guarda JSON/CAST con formato propio (`{"k": v}` con espacio tras `:`) y timestamp con precisión de segundos → leer la fila cruda con `DB::table`, no `json_encode` del modelo; (c) el guard de Sanctum cachea `$user` entre requests del mismo test → `$this->app['auth']->forgetGuards()` entre llamadas para validar token revocado; (d) `withToken($realToken)` en vez de `Sanctum::actingAs` para logout real. |
 | 10 | ⬜ | — | Tailwind CDN; verificar build para ver cambios. |
 
-**Baseline actual de la suite:** `php artisan test --compact` → **42 passed / 161 assertions**
-(32 previos + 10 de Resources). Partir SIEMPRE de verde.
+**Baseline actual de la suite:** `php artisan test --compact` → **92 passed / 310 assertions**
+(baseline previo 61/238 + 31 nuevos del Paso 9 en verde). Partir SIEMPRE de verde.
 
 ## 6. Cómo reanudar desde cualquier punto
 
 1. Leer este documento (siempre).
-2. `php artisan test --compact` → confirmar **42 passed / 161 assertions** (o mayor, siempre verde).
+2. `php artisan test --compact` → confirmar **92 passed / 310 assertions** (o mayor, siempre verde).
 3. Ir a la fila de su paso en la tabla §5 / secciones §4:
    - si `⏭ NEXT` → tiene plan/lineamientos en §4; ejecutar.
    - si `⬜ PENDING` → leer lineamientos; avanzar en orden (no saltar pasos).
@@ -264,17 +311,58 @@ Lineamientos:
   - Causa: `Parte::create()` sin `vigente_desde` usa `useCurrent()` en BD (migración `partes`), pero el
     atributo en memoria queda `null` hasta `->refresh()` (mismo caso que `hash_actuado` en actuados).
   - Fix aplicado: `$parte->refresh()` tras cada `Parte::create()` en los 2 tests antes de serializar.
+- **Paso 7 — BLOQ.1 `Controller` base sin `AuthorizesRequests` (RESUELTO):**
+  - Síntoma: `ExpedienteController::show/bandejaSorteo` lanzaban
+    `Call to undefined method App\Http\Controllers\ExpedienteController::authorize()` (500).
+  - Causa: `app/Http/Controllers/Controller.php` (base) NO usaba el trait `AuthorizesRequests`,
+    así que `$this->authorize()` no existía.
+  - Fix: `use AuthorizesRequests;` en el `Controller` base (patrón Laravel estándar).
+- **Paso 7 — BLOQ.2 resources single sin envoltura `data` (RESUELTO):**
+  - Síntoma: los feature tests de controller obtenían `data.nurej_code` = `null` en `store/show/sortear`.
+  - Causa: los endpoints usaban `response()->json((new XResource(...))->resolve($request))`, que
+    devuelve el array plano SIN la clave `data`; en cambio `XResource::collection` sí la envuelve.
+  - Fix: devolver los resources single **directos** (`new XResource(...)->response()->setStatusCode(201)`
+    o `new XResource(...)`) en `ExpedienteController` y `ActuadoController`, que Laravel envuelve en `data`.
+    Consistente con la serialización HTTP real (camino `resolve()`).
+- **Paso 7 — BLOQ.3 limpieza de archivo huérfano (RESUELTO):**
+  - El `catch` original en `ActuadoService` solo limpiaba si `guardarParaActuado` RETORNABA con éxito;
+    si el propio `Adjunto::create` fallaba a mitad de método, el archivo quedaba huérfano.
+  - Fix: la limpieza vive en `AdjuntoService::guardarParaActuado` (try/catch alrededor de `Adjunto::create`,
+    borra el archivo físico antes de relanzar). `ActuadoService` quedó sin try/catch (ya no aplica código muerto).
+- **Paso 8 — Adjuntos dummy reales (aprobado):** el seeder genera PDFs mínimos con
+  `tempnam()` + `file_put_contents('%PDF-1.4...')` y construye `UploadedFile` real. El
+  `AdjuntoService` guarda en `storage/app/adjuntos/` y calcula SHA-256. No usa `fake()`.
+- **Paso 8 — Idempotencia:** guard-clause con `resumen_hechos LIKE '%[DEMO]%'`. No usa
+  archivo flag (que sobrevive a `migrate:fresh` y puede quedar huérfano). No-destructivo.
+- **Paso 8 — Auto-dependencia:** `ExpedienteDemoSeeder` llama a seeders base si las tablas
+  están vacías (`Rol::count()===0` → `RolSeeder`, etc.), para poder correrse standalone
+  con `db:seed --class=ExpedienteDemoSeeder` sin necesidad del `DatabaseSeeder` completo.
+- **Paso 9 — Reproducción fiel del hash del trigger:** MySQL almacena JSON y `CAST(... AS CHAR)`
+  con formato propio — el JSON lleva un espacio tras los dos puntos (`{"descripcion": "..."}`) y el
+  `timestamp` se guarda con precisión de segundos. Para reproducir el SHA-256 hay que **leer la fila
+  cruda con `DB::table(...)`** (`expediente_id`, `catalogo_actuado_id`, `usuario_id`, `fecha_hora`
+  como string, `contenido` como string cruda), NO `json_encode()` del modelo ni `format()` del Carbon.
+- **Paso 9 — Helpers de semilla por archivo:** al correr un archivo de test suelto, Pest NO carga las
+  helpers (`paso7SemillaController`, etc.) definidas en otro archivo de test. Cada archivo nuevo define
+  sus propios helpers locales (`paso9Semilla*`), incluso si repiten lógica.
+- **Paso 9 — Logout real con token:** usar `$this->withToken($realPlainTextToken)` (no `Sanctum::actingAs`)
+  para que `currentAccessToken()` apunte al registro real y `->delete()` lo revoque de verdad.
+- **Paso 9 — Cache del guard de Sanctum en un mismo test:** el guard (singleton del contenedor) cachea
+  `$user` entre requests del mismo test. Para validar que un token revocado ya NO autentica, llamar
+  `$this->app['auth']->forgetGuards()` entre la petición de logout y la de verificación.
+- **Paso 7 — nota de tests `registerActuado`:** capturar `$estadoAnteriorEsperado = $expediente->estado_actual_id`
+  ANTES de llamar al servicio, porque `registerActuado` muta `estado_actual_id` sobre la misma instancia.
 - **Esquema (§2) — pendiente de verificar e incorporar:** durante la revisión del Paso 6 se detectaron
   columnas/tablas que el plan §2 no documenta (p.ej. campos de `usuarios` y `plazos`, y tablas completas
   no listadas). Queda **PENDIENTE** ampliar §2 como tarea aparte, verificando contra las **migraciones
-  reales** del proyecto al momento en que se necesiten (Paso 7 o más adelante), no contra un SQL de
+  reales** del proyecto al momento en que se necesiten (Paso 8 o más adelante), no contra un SQL de
   referencia que puede diferir de lo aplicado en BD.
 - **ADMIN** en `ExpedientePolicy::crearActuado` no tiene excepción (decidido); si más
   adelante se quiere superpoder, tratarlo aparte.
 - **Catálogo de `partes.tipo`**: solo se validan `DENUNCIANTE`/`DENUNCIADO` (evidencia del
   SRS RF-02). Si el SRS define más valores, ajustar `StoreExpedienteRequest` con permiso.
 - **`via`**: solo `TECNICO/JURIDICO/FINANCIERO` aprobados (Acuerdos 022, 54, 55).
-- **Esquema a reverificar antes de Pasos 6-10**: `reglamentos`, `usuarios`,
+- **Esquema a reverificar antes de Pasos 8-10**: `reglamentos`, `usuarios`,
   `catalogo_estados`, `parametros_plazo`, `plazos`, `sesiones_acceso` y cualquier columna
   lista solo parcialmente en §2.
 - **Feridos/días hábiles**: `PlazoCalculatorService` usa un calendario; el Paso 9 debe

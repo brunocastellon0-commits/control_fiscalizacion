@@ -9,12 +9,15 @@ use App\Models\Expediente;
 use App\Models\ParametroPlazo;
 use App\Models\Plazo;
 use App\Models\Usuario;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class ActuadoService
 {
     public function __construct(
         protected PlazoCalculatorService $calculadoraPlazo,
+        protected AdjuntoService $adjuntoService,
     ) {}
 
     /**
@@ -41,6 +44,7 @@ class ActuadoService
         ?int $usuarioDestinoId = null,
         array $metadatos = [],
         ?string $ipOrigen = null,
+        ?UploadedFile $adjunto = null,
     ): Actuado {
         return DB::transaction(function () use (
             $expediente,
@@ -50,7 +54,14 @@ class ActuadoService
             $usuarioDestinoId,
             $metadatos,
             $ipOrigen,
+            $adjunto,
         ) {
+            if ($catalogoActuado->requiere_adjunto && $adjunto === null) {
+                throw ValidationException::withMessages([
+                    'adjunto' => 'Este actuado exige adjuntar un documento.',
+                ]);
+            }
+
             $estadoAnteriorId = $expediente->estado_actual_id;
             $estadoNuevoId = $catalogoActuado->estado_destino_id;
 
@@ -90,6 +101,10 @@ class ActuadoService
             }
 
             $this->abrirPlazoSiAplica($expediente, $catalogoActuado, $actuado);
+
+            if ($adjunto !== null) {
+                $this->adjuntoService->guardarParaActuado($actuado, $adjunto, $emisor);
+            }
 
             return $actuado;
         });
