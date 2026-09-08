@@ -3,7 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class CatalogoActuado extends Model
@@ -33,6 +34,41 @@ class CatalogoActuado extends Model
     public function rol(): BelongsTo
     {
         return $this->belongsTo(Rol::class, 'rol_id');
+    }
+
+    /**
+     * Roles habilitados para emitir este actuado (pivote multi-perfil).
+     */
+    public function roles(): BelongsToMany
+    {
+        return $this->belongsToMany(Rol::class, 'catalogo_actuado_roles', 'catalogo_actuado_id', 'rol_id')
+            ->withPivot('reglamento_id');
+    }
+
+    /**
+     * Indica si el actuado está habilitado para un rol y un reglamento.
+     *
+     * Cuando el catálogo ya tiene filas en la tabla pivote, la pertenencia se
+     * resuelve exclusivamente ahí (reglamento explícito o NULL = cualquier
+     * acuerdo). Si aún no tiene filas pivote, cae al `rol_id` histórico para
+     * no romper datos legacy.
+     */
+    public function perteneceAlRolConReglamento(int $rolId, ?int $reglamentoId = null): bool
+    {
+        if ($this->roles()->exists()) {
+            return $this->roles()
+                ->wherePivot('rol_id', $rolId)
+                ->where(function ($query) use ($reglamentoId) {
+                    $query->whereNull('catalogo_actuado_roles.reglamento_id');
+
+                    if ($reglamentoId !== null) {
+                        $query->orWhere('catalogo_actuado_roles.reglamento_id', $reglamentoId);
+                    }
+                })
+                ->exists();
+        }
+
+        return $this->rol_id === $rolId;
     }
 
     public function reglamento(): BelongsTo

@@ -22,6 +22,13 @@ class CatalogoEstadoSeeder extends Seeder
             ['codigo' => 'EN_DESCARGOS', 'nombre' => 'En Descargos', 'padre' => null, 'es_final' => false],
             ['codigo' => 'CONCLUIDO', 'nombre' => 'Concluido', 'padre' => null, 'es_final' => true],
             ['codigo' => 'ARCHIVO_DEFINITIVO', 'nombre' => 'Archivo Definitivo', 'padre' => null, 'es_final' => true],
+            ['codigo' => 'EN_SUBSANACION', 'nombre' => 'En Subsanación', 'padre' => null, 'es_final' => false],
+            ['codigo' => 'EN_PLANIFICACION', 'nombre' => 'En Planificación', 'padre' => null, 'es_final' => false],
+            ['codigo' => 'EN_EJECUCION', 'nombre' => 'En Ejecución', 'padre' => null, 'es_final' => false],
+            ['codigo' => 'EN_VISTO_BUENO_FINAL', 'nombre' => 'En Visto Bueno Final', 'padre' => null, 'es_final' => false],
+            ['codigo' => 'CONCLUIDO_REMITIDO', 'nombre' => 'Concluido y Remitido', 'padre' => null, 'es_final' => true],
+            ['codigo' => 'DERIVADO_TRANSPARENCIA', 'nombre' => 'Derivado a Transparencia', 'padre' => null, 'es_final' => true],
+            ['codigo' => 'ARCHIVO_POR_ABANDONO', 'nombre' => 'Archivo por Abandono', 'padre' => null, 'es_final' => true],
         ];
 
         foreach ($estados as $e) {

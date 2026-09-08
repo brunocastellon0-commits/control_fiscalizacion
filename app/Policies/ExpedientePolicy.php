@@ -15,13 +15,29 @@ class ExpedientePolicy
             return false;
         }
 
-        $esRolDelCatalogo = $catalogoActuado->rol_id === $user->rol_id;
+        $esRolDelCatalogo = $catalogoActuado->perteneceAlRolConReglamento(
+            rolId: $user->rol_id,
+            reglamentoId: $expediente->reglamento_id,
+        );
 
         if (($user->rol?->codigo ?? null) === Rol::CODIGO_ENCARGADA) {
             return $esRolDelCatalogo;
         }
 
         return $esRolDelCatalogo && $expediente->asignacionActiva?->usuario_id === $user->id;
+    }
+
+    /**
+     * Evaluación de admisibilidad (RF-04): solo el operador que tiene el
+     * expediente asignado en su bandeja. Sin excepciones para jerarquías.
+     */
+    public function evaluarAdmisibilidad(Usuario $user, Expediente $expediente): bool
+    {
+        if (! $user->activo) {
+            return false;
+        }
+
+        return $expediente->asignacionActiva?->usuario_id === $user->id;
     }
 
     public function bandejaSorteo(Usuario $user): bool

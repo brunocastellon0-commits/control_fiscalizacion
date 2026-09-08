@@ -15,6 +15,7 @@ class EvaluacionAdmisibilidad extends Model
         'expediente_id',
         'requisito_id',
         'cumple',
+        'operador_id',
         'actuado_id',
         'fecha',
     ];
@@ -32,6 +33,11 @@ class EvaluacionAdmisibilidad extends Model
     public function requisito(): BelongsTo
     {
         return $this->belongsTo(CatalogoRequisito::class, 'requisito_id');
+    }
+
+    public function operador(): BelongsTo
+    {
+        return $this->belongsTo(Usuario::class, 'operador_id');
     }
 
     public function actuado(): BelongsTo

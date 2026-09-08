@@ -5,6 +5,7 @@ use App\Http\Controllers\AdjuntoController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CatalogoActuadoController;
 use App\Http\Controllers\CatalogoEstadoController;
+use App\Http\Controllers\EvaluacionAdmisibilidadController;
 use App\Http\Controllers\ExpedienteController;
 use App\Http\Controllers\ReglamentoController;
 use App\Http\Controllers\UsuarioController;
@@ -41,4 +42,6 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::get('/expedientes/{expediente}', [ExpedienteController::class, 'show']);
     Route::post('/expedientes/{expediente}/sortear', [ExpedienteController::class, 'sortear']);
     Route::post('/expedientes/{expediente}/actuados', [ActuadoController::class, 'store']);
+    Route::get('/expedientes/{expediente}/requisitos', [EvaluacionAdmisibilidadController::class, 'requisitos']);
+    Route::post('/expedientes/{expediente}/evaluacion', [EvaluacionAdmisibilidadController::class, 'store']);
 });
