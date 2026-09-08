@@ -10,6 +10,9 @@ use App\Http\Controllers\ReglamentoController;
 use App\Http\Controllers\UsuarioController;
 use Illuminate\Support\Facades\Route;
 
+
+use App\Http\Controllers\Administrador\AdminDashboardController;
+
 // Ruta pública para iniciar sesión (con rate limiting anti fuerza bruta)
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
 
@@ -41,4 +44,8 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::get('/expedientes/{expediente}', [ExpedienteController::class, 'show']);
     Route::post('/expedientes/{expediente}/sortear', [ExpedienteController::class, 'sortear']);
     Route::post('/expedientes/{expediente}/actuados', [ActuadoController::class, 'store']);
+    // -------------------------------------
+    //* ADMINISTRADOR
+    // -------------------------------------
+    Route::get('/admin/dashboard', [AdminDashboardController::class, 'index']);
 });
