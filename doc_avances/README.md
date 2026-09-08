@@ -172,7 +172,8 @@ inventados**. Se reescribió completo alineado al script SQL real.
 - **Mapeo plazo** (constante `MAPA_TIPO_PLAZO`, sin tocar esquema):
   - `ACT_SORTEO_INICIAL` → EVALUACION
   - `ACT_OBSERVACION` → SUBSANACION
-  - `ACT_ADMISION` → EJECUCION (subtipo JURISDICCIONAL si `via=JURIDICO`, si no ADMINISTRATIVA; fallback a `subtipo=NULL`)
+  - `ACT_ADMISION` → PLANIFICACION (Técnico: 2 días para cargar el Cronograma)
+  - `ACT_VISTO_BUENO_PLANIFICACION` → EJECUCION (subtipo JURISDICCIONAL si `via=JURIDICO`, si no ADMINISTRATIVA; fallback a `subtipo=NULL`)
   - resto → null (no abre plazo). Estructura lista para ampliar.
 
 ### Referencia técnica (nuevo)

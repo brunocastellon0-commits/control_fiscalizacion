@@ -19,8 +19,11 @@ class DatabaseSeeder extends Seeder
             ParametroPlazoSeeder::class,
             FeriadoSeeder::class,
             UsuarioSeeder::class,
+            UsuariosExtraSeeder::class,
             CatalogoActuadoSeeder::class,
             ExpedienteDemoSeeder::class,
+            ExpedienteDemoSorteoSeeder::class,
+            ExpedienteMasaSorteoSeeder::class,
         ]);
     }
 }

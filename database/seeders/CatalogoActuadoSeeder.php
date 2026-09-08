@@ -23,6 +23,7 @@ class CatalogoActuadoSeeder extends Seeder
         $observado = CatalogoEstado::where('codigo', 'OBSERVADO')->firstOrFail();
         $admitido = CatalogoEstado::where('codigo', 'ADMITIDO')->firstOrFail();
         $rechazado = CatalogoEstado::where('codigo', 'RECHAZADO')->firstOrFail();
+        $investigacion = CatalogoEstado::where('codigo', 'EN_INVESTIGACION')->firstOrFail();
 
         $actuados = [
             ['codigo' => 'ACT_REGISTRO_DIGITALIZACION', 'nombre' => 'Registro y Digitalización', 'fase' => 'REGISTRO', 'rol_id' => $tecnico->id, 'estado_origen_id' => null, 'estado_destino_id' => $pendiente->id, 'es_automatico' => false, 'requiere_adjunto' => true, 'descripcion' => 'Registro y digitalización del expediente'],
@@ -30,6 +31,7 @@ class CatalogoActuadoSeeder extends Seeder
             ['codigo' => 'ACT_OBSERVACION', 'nombre' => 'Observación', 'fase' => 'ADMISIBILIDAD', 'rol_id' => $audJuridico->id, 'estado_origen_id' => $evaluacion->id, 'estado_destino_id' => $observado->id, 'es_automatico' => false, 'requiere_adjunto' => false, 'descripcion' => 'Observación de requisitos'],
             ['codigo' => 'ACT_ADMISION', 'nombre' => 'Admisión', 'fase' => 'ADMISIBILIDAD', 'rol_id' => $audJuridico->id, 'estado_origen_id' => $evaluacion->id, 'estado_destino_id' => $admitido->id, 'es_automatico' => false, 'requiere_adjunto' => false, 'descripcion' => 'Admisión del expediente'],
             ['codigo' => 'ACT_RECHAZO', 'nombre' => 'Rechazo', 'fase' => 'ADMISIBILIDAD', 'rol_id' => $audJuridico->id, 'estado_origen_id' => $evaluacion->id, 'estado_destino_id' => $rechazado->id, 'es_automatico' => false, 'requiere_adjunto' => false, 'descripcion' => 'Rechazo del expediente'],
+            ['codigo' => 'ACT_VISTO_BUENO_PLANIFICACION', 'nombre' => 'Visto Bueno a Planificación', 'fase' => 'PLANIFICACION', 'rol_id' => $encargada->id, 'estado_origen_id' => $admitido->id, 'estado_destino_id' => $investigacion->id, 'es_automatico' => false, 'requiere_adjunto' => false, 'descripcion' => 'Aprueba el Cronograma/MPA; inicia la investigación y su plazo (RN-04/RN-05)'],
             ['codigo' => 'ACT_INFORME_FINAL', 'nombre' => 'Informe Final', 'fase' => 'INVESTIGACION', 'rol_id' => $audJuridico->id, 'estado_origen_id' => $admitido->id, 'estado_destino_id' => null, 'es_automatico' => false, 'requiere_adjunto' => true, 'descripcion' => 'Informe final de la investigación'],
         ];
 

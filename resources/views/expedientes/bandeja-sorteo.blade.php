@@ -7,13 +7,25 @@
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
             <div>
                 <h1 class="text-xl font-bold text-grafito">Sorteo de expedientes</h1>
-                <p class="text-sm text-gris">Asigne cada expediente pendiente a un operador.</p>
+                <p class="text-sm text-gris">El sistema asigna cada causa al funcionario de menor carga del rol según la vía.</p>
             </div>
-            <div class="text-sm text-gris">
-                <span x-show="cargando" class="inline-flex items-center gap-2">
-                    <i class="fa-solid fa-spinner fa-spin"></i> Actualizando...
+            <div class="flex items-center justify-end gap-3">
+                <span class="text-sm text-gris">
+                    <span x-show="cargando" class="inline-flex items-center gap-2">
+                        <i class="fa-solid fa-spinner fa-spin"></i> Actualizando...
+                    </span>
+                    <span x-show="!cargando && meta.total" x-text="meta.total + ' pendiente(s)'"></span>
                 </span>
-                <span x-show="!cargando && meta.total" x-text="meta.total + ' pendiente(s)'"></span>
+                <button @click="sortearTodos"
+                        x-show="!cargando && meta.total > 0 && !sortearTodosEnviando"
+                        class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-verde-profundo text-white text-sm font-medium hover:bg-verde-institucional transition">
+                    <i class="fa-solid fa-shuffle"></i> Sortear todo
+                </button>
+                <button disabled
+                        x-show="sortearTodosEnviando"
+                        class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-verde-profundo text-white text-sm font-medium opacity-60 cursor-not-allowed">
+                    <i class="fa-solid fa-spinner fa-spin"></i> Sorteando todo...
+                </button>
             </div>
         </div>
 
@@ -96,30 +108,29 @@
                 <div class="flex items-start justify-between mb-4">
                     <div>
                         <h3 class="text-lg font-bold text-grafito">Sortear expediente</h3>
-                        <p class="text-sm text-gris" x-text="seleccionado?.nurej_code"></p>
+                        <p class="text-sm text-gris">
+                            <span x-text="seleccionado?.nurej_code"></span> · Reglamento
+                            <span x-text="seleccionado?.reglamento ? seleccionado.reglamento.codigo : '—'"></span>
+                        </p>
                     </div>
                     <button @click="seleccionado = null" class="text-gris hover:text-grafito">
                         <i class="fa-solid fa-xmark"></i>
                     </button>
                 </div>
 
-                <label class="block text-sm font-medium text-grafito mb-1">Operador destino <span class="text-[#B53F12]">*</span></label>
-                <select x-model="operativoId"
-                        class="w-full rounded-lg border border-gris-claro px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-verde-institucional">
-                    <option value="">Seleccione un operador...</option>
-                    <template x-for="op in operativos" :key="op.id">
-                        <option :value="op.id"
-                                x-text="op.apellidos + ', ' + op.nombres + ' (' + op.rol.nombre + ') · CI ' + op.ci"></option>
-                    </template>
-                </select>
-                <p x-show="cargandoOperativos && operativos.length === 0" class="text-xs text-gris mt-1">
-                    <i class="fa-solid fa-spinner fa-spin mr-1"></i>Cargando operadores...
-                </p>
+                <div class="rounded-lg bg-gris-claro/50 border border-gris-claro p-4 text-sm text-grafito space-y-2">
+                    <p>
+                        <i class="fa-solid fa-shuffle mr-2 text-verde-institucional"></i>
+                        Sorteo probabilístico a ciegas: el sistema asigna este expediente
+                        al funcionario de menor carga del rol según la vía
+                        (<span x-text="seleccionado?.via"></span>), sin selección manual.
+                    </p>
+                </div>
 
                 <label class="block text-sm font-medium text-grafito mt-4 mb-1">Descripción (opcional)</label>
                 <textarea x-model="descripcion" rows="2"
                           class="w-full rounded-lg border border-gris-claro px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-verde-institucional"
-                          maxlength="1000" placeholder="Observaciones del sorteo"></textarea>
+                          maxlength="1000" placeholder="Observaciones del proveído"></textarea>
 
                 <p x-show="errorSorteo" class="mt-3 text-sm text-[#B53F12]">
                     <i class="fa-solid fa-circle-exclamation mr-1"></i><span x-text="errorSorteo"></span>
@@ -131,10 +142,10 @@
                         Cancelar
                     </button>
                     <button @click="confirmarSorteo"
-                            :disabled="!operativoId || sortearEnviando"
+                            :disabled="sortearEnviando"
                             class="px-4 py-2 rounded-lg bg-verde-profundo text-white text-sm font-medium hover:bg-verde-institucional transition disabled:opacity-50 disabled:cursor-not-allowed">
                         <i class="fa-solid fa-shuffle mr-1"></i>
-                        <span x-text="sortearEnviando ? 'Asignando...' : 'Confirmar sorteo'"></span>
+                        <span x-text="sortearEnviando ? 'Sorteando...' : 'Ejecutar Sorteo Probabilístico'"></span>
                     </button>
                 </div>
             </div>
@@ -150,13 +161,11 @@
                 error: null,
 
                 seleccionado: null,
-                operativos: [],
-                cargandoOperativos: false,
-                operativoId: '',
                 descripcion: '',
                 errorSorteo: null,
                 sortearEnviando: false,
                 sorteandoId: null,
+                sortearTodosEnviando: false,
 
                 async cargar(pagina) {
                     this.cargando = true;
@@ -185,31 +194,11 @@
 
                 async abrirSorteo(exp) {
                     this.seleccionado = exp;
-                    this.operativoId = '';
                     this.descripcion = '';
                     this.errorSorteo = null;
-                    await this.cargarOperativos();
-                },
-
-                async cargarOperativos() {
-                    if (this.operativos.length > 0) return;
-                    this.cargandoOperativos = true;
-                    try {
-                        const { ok, data } = await window.apiFetch('/api/usuarios?rol=operativo');
-                        if (ok) {
-                            this.operativos = data.data;
-                        } else {
-                            this.errorSorteo = 'No se pudieron cargar los operadores.';
-                        }
-                    } catch (e) {
-                        this.errorSorteo = e.message;
-                    } finally {
-                        this.cargandoOperativos = false;
-                    }
                 },
 
                 async confirmarSorteo() {
-                    if (!this.operativoId) return;
                     this.sortearEnviando = true;
                     this.errorSorteo = null;
                     this.sorteandoId = this.seleccionado.id;
@@ -217,12 +206,15 @@
                         const { ok, data } = await window.apiFetch(`/api/expedientes/${this.seleccionado.id}/sortear`, {
                             method: 'POST',
                             body: {
-                                usuario_destino_id: this.operativoId,
                                 descripcion: this.descripcion || null,
                             },
                         });
                         if (ok) {
-                            window.apiToast('exito', 'Expediente sorteado correctamente.');
+                            const ganador = data?.data?.asignacion_activa?.usuario;
+                            const nombre = ganador
+                                ? ganador.apellidos + ', ' + ganador.nombres
+                                : 'funcionario asignado';
+                            window.apiToast('exito', 'Sorteo completado. Asignado a: ' + nombre + '.');
                             this.seleccionado = null;
                             await this.cargar(this.meta.current_page);
                         } else {
@@ -243,6 +235,28 @@
                     if (!fecha) return '';
                     const d = new Date(fecha);
                     return d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
+                },
+
+                async sortearTodos() {
+                    if (!window.confirm('¿Sortear todas las causas pendientes de una sola vez?')) return;
+                    this.sortearTodosEnviando = true;
+                    this.error = null;
+                    try {
+                        const { ok, data } = await window.apiFetch('/api/bandeja/sorteo/todos', { method: 'POST' });
+                        if (ok) {
+                            window.apiToast('exito', (data?.total ?? 0) + ' causa(s) sorteada(s) correctamente.');
+                            await this.cargar(1);
+                        } else {
+                            const errores = data?.errors;
+                            this.error = errores
+                                ? Object.values(errores).flat().join(' ')
+                                : (data?.message || 'No se pudo realizar el sorteo en lote.');
+                        }
+                    } catch (e) {
+                        this.error = e.message;
+                    } finally {
+                        this.sortearTodosEnviando = false;
+                    }
                 },
             };
         }

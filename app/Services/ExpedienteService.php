@@ -9,12 +9,14 @@ use App\Models\Parte;
 use App\Models\Usuario;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class ExpedienteService
 {
     public function __construct(
         protected NurejGeneratorService $generadorNurej,
         protected ActuadoService $actuadoService,
+        protected SorteoAlgorithmService $sorteoService,
     ) {}
 
     /**
@@ -82,6 +84,97 @@ class ExpedienteService
             $expediente->refresh();
 
             return $expediente;
+        });
+    }
+
+    /**
+     * Sorteo ciego del expediente (rol ENCARGADA).
+     *
+     * En una única transacción: valida que la causa esté en PENDIENTE_SORTEO,
+     * ejecuta el algoritmo probabilístico (que incrementa el peso del ganador
+     * en `sorteo_pesos`) y emite ACT_SORTEO_INICIAL hacia el ganador, lo que
+     * transiciona a EN_EVALUACION y abre el plazo natural. Si cualquiera de
+     * los dos pasos falla, se revierte también el incremento de peso.
+     *
+     * @return Usuario El funcionario ganador del sorteo.
+     */
+    public function ejecutarSorteo(
+        Expediente $expediente,
+        Usuario $encargada,
+        ?string $descripcion = null,
+        ?string $ipOrigen = null,
+    ): Usuario {
+        return DB::transaction(function () use ($expediente, $encargada, $descripcion, $ipOrigen) {
+            $estadoPendiente = CatalogoEstado::where('codigo', 'PENDIENTE_SORTEO')->firstOrFail();
+
+            if ($expediente->estado_actual_id !== $estadoPendiente->id) {
+                throw ValidationException::withMessages([
+                    'expediente' => 'El expediente no está pendiente de sorteo.',
+                ]);
+            }
+
+            $catalogoActuado = CatalogoActuado::where('codigo', 'ACT_SORTEO_INICIAL')->firstOrFail();
+            $ganador = $this->sorteoService->sortear($expediente);
+
+            $this->actuadoService->registerActuado(
+                expediente: $expediente,
+                catalogoActuado: $catalogoActuado,
+                emisor: $encargada,
+                descripcion: $descripcion ?? 'Sorteo probabilístico inicial',
+                usuarioDestinoId: $ganador->id,
+                metadatos: ['tipo' => 'SORTEO_INICIAL', 'via' => $expediente->via],
+                ipOrigen: $ipOrigen,
+            );
+
+            return $ganador;
+        });
+    }
+
+    /**
+     * Sorteo en lote de todas las causas en PENDIENTE_SORTEO (rol ENCARGADA).
+     *
+     * Todo-o-nada: dentro de una única transacción ejecuta `ejecutarSorteo`
+     * por cada causa (internamente son savepoints), de modo que si una vía no
+     * tiene candidatos o cualquier causa falla, todo el lote se revierte y no
+     * quedan sorteos ni incrementos de peso parciales.
+     *
+     * @return array<int, array{expediente: Expediente, ganador: Usuario}>
+     */
+    public function sortearTodas(
+        Usuario $encargada,
+        ?string $ipOrigen = null,
+    ): array {
+        return DB::transaction(function () use ($encargada, $ipOrigen) {
+            $estadoPendiente = CatalogoEstado::where('codigo', 'PENDIENTE_SORTEO')->firstOrFail();
+
+            $pendientes = Expediente::where('estado_actual_id', $estadoPendiente->id)
+                ->orderBy('fecha_ingreso')
+                ->orderBy('id')
+                ->get();
+
+            if ($pendientes->isEmpty()) {
+                throw ValidationException::withMessages([
+                    'expediente' => 'No hay causas pendientes de sorteo.',
+                ]);
+            }
+
+            $resultados = [];
+
+            foreach ($pendientes as $expediente) {
+                $ganador = $this->ejecutarSorteo(
+                    expediente: $expediente,
+                    encargada: $encargada,
+                    descripcion: 'Sorteo probabilístico masivo',
+                    ipOrigen: $ipOrigen,
+                );
+
+                $resultados[] = [
+                    'expediente' => $expediente,
+                    'ganador' => $ganador,
+                ];
+            }
+
+            return $resultados;
         });
     }
 }

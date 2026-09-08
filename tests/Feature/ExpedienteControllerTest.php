@@ -247,10 +247,10 @@ it('devuelve la bandeja del operador solo con expedientes asignados', function (
         ->and($nurejs)->not->toContain($ajeno->nurej_code);
 });
 
-it('sortea un expediente pendiente y lo asigna al operador destino', function () {
+it('sortea un expediente pendiente: lo asigna al ganador del algoritmo y avanza a EN_EVALUACION', function () {
     [
         'encargada' => $encargada,
-        'operador' => $operador,
+        'tecnico' => $tecnico,
         'pendiente' => $pendiente,
     ] = paso7SemillaController();
 
@@ -259,22 +259,21 @@ it('sortea un expediente pendiente y lo asigna al operador destino', function ()
     Sanctum::actingAs($encargada, ['*']);
 
     $this->postJson('/api/expedientes/'.$expediente->id.'/sortear', [
-        'usuario_destino_id' => $operador->id,
         'descripcion' => 'Sorteo inicial',
-    ])->assertStatus(201);
+    ])->assertStatus(201)
+        ->assertJsonPath('data.asignacion_activa.usuario.id', $tecnico->id);
 
     $expediente->refresh();
     expect($expediente->estado_actual_id)->toBe(
         CatalogoEstado::where('codigo', 'EN_EVALUACION')->value('id'),
     )
         ->and($expediente->asignacionActiva)->not->toBeNull()
-        ->and($expediente->asignacionActiva->usuario_id)->toBe($operador->id);
+        ->and($expediente->asignacionActiva->usuario_id)->toBe($tecnico->id);
 });
 
 it('rechaza sortear un expediente que no esta pendiente de sorteo', function () {
     [
         'encargada' => $encargada,
-        'operador' => $operador,
         'evaluacion' => $evaluacion,
     ] = paso7SemillaController();
 
@@ -283,6 +282,6 @@ it('rechaza sortear un expediente que no esta pendiente de sorteo', function () 
     Sanctum::actingAs($encargada, ['*']);
 
     $this->postJson('/api/expedientes/'.$expediente->id.'/sortear', [
-        'usuario_destino_id' => $operador->id,
+        'descripcion' => 'Intento sobre causa ya evaluada',
     ])->assertStatus(422);
 });

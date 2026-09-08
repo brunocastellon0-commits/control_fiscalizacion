@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\LoginRequest;
 use App\Models\SesionAcceso;
 use App\Models\Usuario;
+use App\Services\SeguridadSesionesService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -13,6 +14,10 @@ use Laravel\Sanctum\PersonalAccessToken;
 
 class AuthController extends Controller
 {
+    public function __construct(
+        protected SeguridadSesionesService $seguridadSesiones,
+    ) {}
+
     public function login(LoginRequest $request): JsonResponse
     {
         // El login es exclusivo de la workstation (SPA stateful). Se rechaza a
@@ -110,6 +115,10 @@ class AuthController extends Controller
             $request->session()->invalidate();
             $request->session()->regenerateToken();
         }
+
+        // Revocación central: expulsa al usuario de TODAS sus sesiones activas
+        // (otros navegadores/dispositivos), sin esperar al GC de Laravel.
+        $this->seguridadSesiones->purgeSesiones($request->user());
 
         return response()->json([
             'message' => 'Sesión cerrada exitosamente',

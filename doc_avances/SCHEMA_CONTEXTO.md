@@ -113,7 +113,8 @@ hash_actuado = SHA2(concat(hash_anterior, expediente_id, catalogo_actuado_id, us
 |---|---|---|
 | ACT_SORTEO_INICIAL | EVALUACION | - |
 | ACT_OBSERVACION | SUBSANACION | - |
-| ACT_ADMISION | EJECUCION | JURIDICO→JURISDICCIONAL, otro→ADMINISTRATIVA |
+| ACT_ADMISION | PLANIFICACION | - |
+| ACT_VISTO_BUENO_PLANIFICACION | EJECUCION | JURIDICO→JURISDICCIONAL, otro→ADMINISTRATIVA |
 
 Si no está en el mapa → no abre plazo. Fallback a `subtipo=NULL` si no hay coincidencia por subtipo.
 

@@ -3,24 +3,21 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\SortearExpedienteRequest;
+use App\Http\Requests\SortearTodosRequest;
 use App\Http\Requests\StoreExpedienteRequest;
 use App\Http\Resources\ExpedienteResource;
-use App\Models\CatalogoActuado;
 use App\Models\CatalogoEstado;
 use App\Models\Expediente;
-use App\Services\ActuadoService;
 use App\Services\ExpedienteService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Illuminate\Validation\ValidationException;
 
 class ExpedienteController extends Controller
 {
     public function __construct(
         protected ExpedienteService $expedienteService,
-        protected ActuadoService $actuadoService,
     ) {}
 
     /**
@@ -88,34 +85,55 @@ class ExpedienteController extends Controller
     }
 
     /**
-     * Sorteo/enrutamiento (rol ENCARGADA). Emite ACT_SORTEO_INICIAL hacia el
-     * usuario destino si el expediente está en PENDIENTE_SORTEO.
+     * Sorteo/enrutamiento ciego (rol ENCARGADA). Ejecuta el algoritmo
+     * probabilístico y asigna al ganador emitiendo ACT_SORTEO_INICIAL.
+     * La respuesta incluye `asignacion_activa.usuario` = funcionario ganador.
      */
     public function sortear(SortearExpedienteRequest $request, Expediente $expediente): JsonResponse
     {
-        $estadoPendiente = CatalogoEstado::where('codigo', 'PENDIENTE_SORTEO')->firstOrFail();
-
-        if ($expediente->estado_actual_id !== $estadoPendiente->id) {
-            throw ValidationException::withMessages([
-                'expediente' => 'El expediente no está pendiente de sorteo.',
-            ]);
-        }
-
-        $catalogoActuado = CatalogoActuado::where('codigo', 'ACT_SORTEO_INICIAL')->firstOrFail();
-
-        $this->actuadoService->registerActuado(
+        $this->expedienteService->ejecutarSorteo(
             expediente: $expediente,
-            catalogoActuado: $catalogoActuado,
-            emisor: $request->user(),
-            descripcion: $request->input('descripcion') ?? 'Sorteo inicial',
-            usuarioDestinoId: (int) $request->input('usuario_destino_id'),
-            metadatos: ['tipo' => 'SORTEO_INICIAL'],
+            encargada: $request->user(),
+            descripcion: $request->input('descripcion'),
             ipOrigen: $request->ip(),
         );
 
         return (new ExpedienteResource($expediente->fresh($this->relacionesDetalle())))
             ->response()
             ->setStatusCode(201);
+    }
+
+    /**
+     * Sorteo en lote de todas las causas pendientes (rol ENCARGADA). Ejecuta
+     * el sorteo probabilístico de forma transaccional e indivisible: o se
+     * sortean todas o ninguna. Devuelve un resumen ligero con el ganador por
+     * causa, sin cargar los recursos completos.
+     */
+    public function sortearTodos(SortearTodosRequest $request): JsonResponse
+    {
+        $resultados = $this->expedienteService->sortearTodas(
+            encargada: $request->user(),
+            ipOrigen: $request->ip(),
+        );
+
+        $resumen = array_map(function (array $resultado) {
+            return [
+                'expediente_id' => $resultado['expediente']->id,
+                'nurej_code' => $resultado['expediente']->nurej_code,
+                'via' => $resultado['expediente']->via,
+                'ganador' => [
+                    'id' => $resultado['ganador']->id,
+                    'nombres' => $resultado['ganador']->nombres,
+                    'apellidos' => $resultado['ganador']->apellidos,
+                ],
+            ];
+        }, $resultados);
+
+        return response()->json([
+            'message' => count($resultados).' causa(s) sorteada(s) correctamente.',
+            'total' => count($resultados),
+            'resultados' => $resumen,
+        ]);
     }
 
     /**

@@ -136,26 +136,26 @@ describe('SortearExpedienteRequest (sorteo, rol ENCARGADA)', function () {
         $this->semilla = paso4SemillaRolesUsuarios();
     });
 
-    test('la encargada puede sortear hacia un operador activo', function () {
+    test('la encargada puede sortear un expediente (sorteo a ciegas, solo descripcion opcional)', function () {
         $this->actingAs($this->semilla['encargada'])
-            ->postJson('/_test/sortear', ['usuario_destino_id' => $this->semilla['auditor']->id, 'descripcion' => 'Pase a auditoría'])
+            ->postJson('/_test/sortear', ['descripcion' => 'Pase a auditoria'])
             ->assertOk()
             ->assertJson(['ok' => true]);
     });
 
     test('un usuario sin rol ENCARGADA recibe 403', function () {
         $this->actingAs($this->semilla['tecnico'])
-            ->postJson('/_test/sortear', ['usuario_destino_id' => $this->semilla['auditor']->id])
+            ->postJson('/_test/sortear', ['descripcion' => 'Intento no autorizado'])
             ->assertForbidden();
     });
 
-    test('el destino debe estar activo y pertenecer a un rol operativo', function () {
+    test('la descripcion es opcional pero acotada a 1000 caracteres', function () {
         $this->actingAs($this->semilla['encargada'])
-            ->postJson('/_test/sortear', ['usuario_destino_id' => $this->semilla['tecnicoInactivo']->id])
-            ->assertUnprocessable();
+            ->postJson('/_test/sortear', [])
+            ->assertOk();
 
         $this->actingAs($this->semilla['encargada'])
-            ->postJson('/_test/sortear', ['usuario_destino_id' => $this->semilla['admin']->id])
+            ->postJson('/_test/sortear', ['descripcion' => str_repeat('x', 1001)])
             ->assertUnprocessable();
     });
 });

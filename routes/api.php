@@ -19,9 +19,11 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
 
     Route::get('/bandeja/sorteo', [ExpedienteController::class, 'bandejaSorteo']);
+    Route::post('/bandeja/sorteo/todos', [ExpedienteController::class, 'sortearTodos']);
     Route::get('/bandeja', [ExpedienteController::class, 'bandejaOperador']);
 
     Route::get('/usuarios', [UsuarioController::class, 'indexOperativos']);
+    Route::post('/usuarios/{usuario}/inactivar', [UsuarioController::class, 'inactivar']);
 
     // Catálogo de reglamentos (lectura para el select)
     Route::get('/reglamentos', [ReglamentoController::class, 'index']);

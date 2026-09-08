@@ -13,6 +13,7 @@ use App\Models\Usuario;
 use App\Services\ActuadoService;
 use App\Services\ExpedienteService;
 use App\Services\NurejGeneratorService;
+use App\Services\SorteoAlgorithmService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -100,7 +101,7 @@ it('revierte toda la apertura si falla el registro del actuado', function () {
         ->once()
         ->andThrow(new RuntimeException('Falla simulada de registro'));
 
-    $service = new ExpedienteService(new NurejGeneratorService, $actuadoService);
+    $service = new ExpedienteService(new NurejGeneratorService, $actuadoService, new SorteoAlgorithmService);
 
     expect(fn () => $service->aperturaCausa([
         'via' => 'TECNICO',

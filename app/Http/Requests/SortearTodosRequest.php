@@ -5,7 +5,7 @@ namespace App\Http\Requests;
 use App\Models\Rol;
 use Illuminate\Foundation\Http\FormRequest;
 
-class SortearExpedienteRequest extends FormRequest
+class SortearTodosRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -17,8 +17,6 @@ class SortearExpedienteRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
-            'descripcion' => ['nullable', 'string', 'max:1000'],
-        ];
+        return [];
     }
 }
