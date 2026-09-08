@@ -84,7 +84,7 @@ class ExpedienteService
             $expediente->refresh();
 
             return $expediente;
-        });
+        }, 3);
     }
 
     /**
@@ -127,7 +127,7 @@ class ExpedienteService
             );
 
             return $ganador;
-        });
+        }, 3);
     }
 
     /**
@@ -175,6 +175,6 @@ class ExpedienteService
             }
 
             return $resultados;
-        });
+        }, 3);
     }
 }

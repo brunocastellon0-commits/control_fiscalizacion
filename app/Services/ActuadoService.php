@@ -113,7 +113,7 @@ class ActuadoService
             }
 
             return $actuado;
-        });
+        }, 3);
     }
 
     /**
