@@ -64,8 +64,8 @@ function relojProcesualSemilla(): array
     ParametroPlazo::create([
         'reglamento_id' => $reglamento->id,
         'tipo_plazo' => 'EJECUCION',
-        'subtipo' => 'ADMINISTRATIVA',
-        'dias_habiles' => 15,
+        'subtipo' => 'JURISDICCIONAL',
+        'dias_habiles' => 10,
         'base_legal' => 'AC_022_2018',
         'activo' => true,
     ]);
@@ -166,11 +166,11 @@ it('el Visto Bueno a Planificacion arranca el reloj EJECUCION y pasa a EN_INVEST
         ->first();
 
     expect($plazoEjecucion)->not->toBeNull()
-        ->and($plazoEjecucion->dias_habiles_otorgados)->toBe(15)
+        ->and($plazoEjecucion->dias_habiles_otorgados)->toBe(10)
         ->and($plazoEjecucion->estado)->toBe('VIGENTE')
         ->and($plazoEjecucion->actuado_disparador_id)->not->toBeNull();
 
-    $esperado = app(PlazoCalculatorService::class)->calculateDueDate(now(), 15);
+    $esperado = app(PlazoCalculatorService::class)->calculateDueDate(now(), 10);
     expect($plazoEjecucion->fecha_limite->toDateString())->toBe($esperado->toDateString());
 });
 

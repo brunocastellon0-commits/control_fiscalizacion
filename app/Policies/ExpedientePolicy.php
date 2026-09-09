@@ -6,6 +6,7 @@ use App\Models\CatalogoActuado;
 use App\Models\Expediente;
 use App\Models\Rol;
 use App\Models\Usuario;
+use App\Services\PlanificacionService;
 
 class ExpedientePolicy
 {
@@ -150,5 +151,55 @@ class ExpedientePolicy
         return $user->activo
             && ($user->rol?->codigo ?? null) === Rol::CODIGO_ENCARGADA
             && $expediente->estadoActual?->codigo === 'EN_IMPUGNACION';
+    }
+
+    /**
+     * US-2.4: carga de planificación. Solo el operador con la bandeja activa
+     * de un expediente en EN_PLANIFICACION, cuyo rol corresponda al tipo de
+     * planificación de su reglamento (Técnico-AC022 → Cronograma; Auditor
+     * AC054/055 → MPA), resuelto contra la tabla pivote del catálogo.
+     */
+    public function cargarPlanificacion(Usuario $user, Expediente $expediente): bool
+    {
+        if (! $user->activo) {
+            return false;
+        }
+
+        if ($expediente->estadoActual?->codigo !== PlanificacionService::ESTADO_PLANIFICACION) {
+            return false;
+        }
+
+        if ($expediente->asignacionActiva?->usuario_id !== $user->id) {
+            return false;
+        }
+
+        $codigoCatalogo = match ($expediente->reglamento?->codigo) {
+            PlanificacionService::REGLAMENTO_AC022 => PlanificacionService::CODIGO_ACT_CRONOGRAMA,
+            PlanificacionService::REGLAMENTO_AC054,
+            PlanificacionService::REGLAMENTO_AC055 => PlanificacionService::CODIGO_ACT_MPA,
+            default => null,
+        };
+
+        if ($codigoCatalogo === null) {
+            return false;
+        }
+
+        $catalogo = CatalogoActuado::where('codigo', $codigoCatalogo)->first();
+
+        return $catalogo?->perteneceAlRolConReglamento(
+            rolId: $user->rol_id,
+            reglamentoId: $expediente->reglamento_id,
+        ) ?? false;
+    }
+
+    /**
+     * US-2.4: Visto Bueno a la Planificación. Solo la Encargada activa sobre
+     * un expediente en PENDIENTE_VISTO_BUENO.
+     */
+    public function aprobarPlanificacion(Usuario $user, Expediente $expediente): bool
+    {
+        return $user->activo
+            && ($user->rol?->codigo ?? null) === Rol::CODIGO_ENCARGADA
+            && $expediente->estadoActual?->codigo === PlanificacionService::ESTADO_PENDIENTE_VISTO_BUENO;
     }
 }

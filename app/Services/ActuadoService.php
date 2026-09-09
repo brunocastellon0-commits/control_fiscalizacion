@@ -9,6 +9,7 @@ use App\Models\Expediente;
 use App\Models\ParametroPlazo;
 use App\Models\Plazo;
 use App\Models\Usuario;
+use Carbon\Carbon;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -45,6 +46,10 @@ class ActuadoService
      * estado del expediente, actualiza la bandeja y abre plazos si aplica.
      *
      * El `hash_anterior` y `hash_actuado` los calcula el trigger de MySQL.
+     *
+     * @param  Carbon|null  $fechaLimiteExplicita  Fecha límite calendario para
+     *                                             plazos de límite fijo (ej. MPA de AC054/055): anula el cálculo
+     *                                             por días hábiles. `null` conserva el cálculo normativo estándar.
      */
     public function registerActuado(
         Expediente $expediente,
@@ -55,6 +60,7 @@ class ActuadoService
         array $metadatos = [],
         ?string $ipOrigen = null,
         ?UploadedFile $adjunto = null,
+        ?Carbon $fechaLimiteExplicita = null,
     ): Actuado {
         return DB::transaction(function () use (
             $expediente,
@@ -65,6 +71,7 @@ class ActuadoService
             $metadatos,
             $ipOrigen,
             $adjunto,
+            $fechaLimiteExplicita,
         ) {
             if ($catalogoActuado->requiere_adjunto && $adjunto === null) {
                 throw ValidationException::withMessages([
@@ -110,7 +117,7 @@ class ActuadoService
                 $this->reasignarBandeja($expediente, $usuarioDestinoId, $actuado);
             }
 
-            $this->abrirPlazoSiAplica($expediente, $catalogoActuado, $actuado);
+            $this->abrirPlazoSiAplica($expediente, $catalogoActuado, $actuado, $fechaLimiteExplicita);
 
             if ($adjunto !== null) {
                 $this->adjuntoService->guardarParaActuado($actuado, $adjunto, $emisor);
@@ -144,9 +151,17 @@ class ActuadoService
 
     /**
      * Abre un plazo cuando el actuado tiene un tipo de plazo asociado.
+     *
+     * Cuando se recibe una fecha límite explícita (MPA de AC054/055) esta
+     * prevalece sobre el cálculo por días hábiles: el plazo pasa a límite
+     * fijo, sin parámetro y con dias_habiles_otorgados 0 (informativo, RN-05).
      */
-    protected function abrirPlazoSiAplica(Expediente $expediente, CatalogoActuado $catalogoActuado, Actuado $actuado): void
-    {
+    protected function abrirPlazoSiAplica(
+        Expediente $expediente,
+        CatalogoActuado $catalogoActuado,
+        Actuado $actuado,
+        ?Carbon $fechaLimiteExplicita = null,
+    ): void {
         $tipoPlazo = $this->resolveTipoPlazo($catalogoActuado);
 
         if ($tipoPlazo === null) {
@@ -169,17 +184,23 @@ class ActuadoService
                 ->first();
         }
 
-        if ($parametro === null) {
+        if ($parametro === null && $fechaLimiteExplicita === null) {
             return;
         }
 
-        $fechaLimite = $this->calculadoraPlazo->calculateDueDate(now(), $parametro->dias_habiles);
+        if ($fechaLimiteExplicita !== null) {
+            $fechaLimite = $fechaLimiteExplicita->copy()->endOfDay();
+            $diasOtorgados = $parametro?->dias_habiles ?? 0;
+        } else {
+            $fechaLimite = $this->calculadoraPlazo->calculateDueDate(now(), $parametro->dias_habiles);
+            $diasOtorgados = $parametro->dias_habiles;
+        }
 
         Plazo::create([
             'expediente_id' => $expediente->id,
             'tipo_plazo' => $tipoPlazo,
-            'parametro_plazo_id' => $parametro->id,
-            'dias_habiles_otorgados' => $parametro->dias_habiles,
+            'parametro_plazo_id' => $parametro?->id,
+            'dias_habiles_otorgados' => $diasOtorgados,
             'fecha_inicio' => now(),
             'fecha_limite' => $fechaLimite,
             'estado' => 'VIGENTE',
@@ -196,13 +217,12 @@ class ActuadoService
     }
 
     /**
-     * Resuelve el subtipo del plazo de ejecución según la vía del expediente:
-     * JURIDICO → JURISDICCIONAL, el resto → ADMINISTRATIVA.
+     * Resuelve el subtipo base del plazo de ejecución: JURISDICCIONAL (10 días
+     * hábiles) para todos los acuerdos. La ampliación de plazo (ADMINISTRATIVA,
+     * 15 días) es una historia futura y no se aplica en este reloj.
      */
     protected function resolveSubtipoEjecucion(Expediente $expediente): string
     {
-        return $expediente->via === 'JURIDICO'
-            ? 'JURISDICCIONAL'
-            : 'ADMINISTRATIVA';
+        return 'JURISDICCIONAL';
     }
 }

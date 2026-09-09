@@ -32,6 +32,7 @@ class CatalogoActuadoSeeder extends Seeder
         $rechazado = CatalogoEstado::where('codigo', 'RECHAZADO')->firstOrFail();
         $subsanacion = CatalogoEstado::where('codigo', 'EN_SUBSANACION')->firstOrFail();
         $planificacion = CatalogoEstado::where('codigo', 'EN_PLANIFICACION')->firstOrFail();
+        $pendienteVistoBueno = CatalogoEstado::where('codigo', 'PENDIENTE_VISTO_BUENO')->firstOrFail();
         $ejecucion = CatalogoEstado::where('codigo', 'EN_EJECUCION')->firstOrFail();
         $archivoAbandono = CatalogoEstado::where('codigo', 'ARCHIVO_POR_ABANDONO')->firstOrFail();
         $enImpugnacion = CatalogoEstado::where('codigo', 'EN_IMPUGNACION')->firstOrFail();
@@ -48,7 +49,9 @@ class CatalogoActuadoSeeder extends Seeder
             ['codigo' => 'ACT_OBSERVACION', 'nombre' => 'Observación', 'fase' => 'ADMISIBILIDAD', 'rol_id' => $audJuridico->id, 'reglamento_id' => null, 'estado_origen_id' => $evaluacion->id, 'estado_destino_id' => $subsanacion->id, 'es_automatico' => false, 'requiere_adjunto' => false, 'descripcion' => 'Observación de requisitos no críticos; abre subsanación'],
             ['codigo' => 'ACT_ADMISION', 'nombre' => 'Admisión', 'fase' => 'ADMISIBILIDAD', 'rol_id' => $audJuridico->id, 'reglamento_id' => null, 'estado_origen_id' => $evaluacion->id, 'estado_destino_id' => $planificacion->id, 'es_automatico' => false, 'requiere_adjunto' => false, 'descripcion' => 'Admisión del expediente; habilita la planificación'],
             ['codigo' => 'ACT_RECHAZO', 'nombre' => 'Rechazo', 'fase' => 'ADMISIBILIDAD', 'rol_id' => $audJuridico->id, 'reglamento_id' => null, 'estado_origen_id' => $evaluacion->id, 'estado_destino_id' => $rechazado->id, 'es_automatico' => false, 'requiere_adjunto' => false, 'descripcion' => 'Rechazo por requisito crítico ausente; desactiva relojes'],
-            ['codigo' => 'ACT_VISTO_BUENO_PLANIFICACION', 'nombre' => 'Visto Bueno a Planificación', 'fase' => 'PLANIFICACION', 'rol_id' => $encargada->id, 'reglamento_id' => null, 'estado_origen_id' => $planificacion->id, 'estado_destino_id' => $ejecucion->id, 'es_automatico' => false, 'requiere_adjunto' => false, 'descripcion' => 'Aprueba el Cronograma/MPA; inicia la investigación y su plazo (RN-04/RN-05)'],
+            ['codigo' => 'ACT_VISTO_BUENO_PLANIFICACION', 'nombre' => 'Visto Bueno a Planificación', 'fase' => 'PLANIFICACION', 'rol_id' => $encargada->id, 'reglamento_id' => null, 'estado_origen_id' => $pendienteVistoBueno->id, 'estado_destino_id' => $ejecucion->id, 'es_automatico' => false, 'requiere_adjunto' => false, 'descripcion' => 'Aprueba el Cronograma/MPA; inicia la investigación y su plazo (RN-04/RN-05)'],
+            ['codigo' => 'ACT_CRONOGRAMA_TRABAJO', 'nombre' => 'Cronograma de Trabajo', 'fase' => 'PLANIFICACION', 'rol_id' => $tecnico->id, 'reglamento_id' => null, 'estado_origen_id' => $planificacion->id, 'estado_destino_id' => $pendienteVistoBueno->id, 'es_automatico' => false, 'requiere_adjunto' => true, 'descripcion' => 'Carga del cronograma de trabajo por el Técnico (AC022)'],
+            ['codigo' => 'ACT_MPA', 'nombre' => 'MPA (Programa de Auditoría)', 'fase' => 'PLANIFICACION', 'rol_id' => $audJuridico->id, 'reglamento_id' => null, 'estado_origen_id' => $planificacion->id, 'estado_destino_id' => $pendienteVistoBueno->id, 'es_automatico' => false, 'requiere_adjunto' => true, 'descripcion' => 'Carga del MPA con fecha límite propuesta (AC054/AC055)'],
             ['codigo' => 'ACT_INFORME_FINAL', 'nombre' => 'Informe Final', 'fase' => 'INVESTIGACION', 'rol_id' => $audJuridico->id, 'reglamento_id' => null, 'estado_origen_id' => $ejecucion->id, 'estado_destino_id' => null, 'es_automatico' => false, 'requiere_adjunto' => true, 'descripcion' => 'Informe final de la investigación'],
             ['codigo' => 'ACT_ARCHIVO_POR_ABANDONO', 'nombre' => 'Archivo por Abandono', 'fase' => 'ADMISIBILIDAD', 'rol_id' => $admin->id, 'reglamento_id' => null, 'estado_origen_id' => $subsanacion->id, 'estado_destino_id' => $archivoAbandono->id, 'es_automatico' => true, 'requiere_adjunto' => false, 'descripcion' => 'Evento automático del sistema: archiva el expediente por caducidad del plazo de subsanación sin respuesta (RN-03)'],
             // Impugnaciones (RN-08)
@@ -73,6 +76,13 @@ class CatalogoActuadoSeeder extends Seeder
             'ACT_RECHAZO' => $this->perfilesEvaluacion($tecnico, $audJuridico, $audFinanciero, $ac022, $ac054, $ac055),
             'ACT_VISTO_BUENO_PLANIFICACION' => [
                 ['rol_id' => $encargada->id, 'reglamento_id' => null],
+            ],
+            'ACT_CRONOGRAMA_TRABAJO' => [
+                ['rol_id' => $tecnico->id, 'reglamento_id' => $ac022->id],
+            ],
+            'ACT_MPA' => [
+                ['rol_id' => $audJuridico->id, 'reglamento_id' => $ac054->id],
+                ['rol_id' => $audFinanciero->id, 'reglamento_id' => $ac055->id],
             ],
             'ACT_INFORME_FINAL' => [
                 ['rol_id' => $audJuridico->id, 'reglamento_id' => null],

@@ -8,6 +8,7 @@ use App\Http\Controllers\CatalogoEstadoController;
 use App\Http\Controllers\EvaluacionAdmisibilidadController;
 use App\Http\Controllers\ExpedienteController;
 use App\Http\Controllers\ImpugnacionController;
+use App\Http\Controllers\PlanificacionController;
 use App\Http\Controllers\ReglamentoController;
 use App\Http\Controllers\UsuarioController;
 use Illuminate\Support\Facades\Route;
@@ -49,4 +50,8 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     // Impugnaciones de rechazo (RN-08)
     Route::post('/expedientes/{expediente}/impugnacion/remitir', [ImpugnacionController::class, 'remitir']);
     Route::post('/expedientes/{expediente}/impugnacion/resolver', [ImpugnacionController::class, 'resolver']);
+
+    // Planificación y Visto Bueno (US-2.4)
+    Route::post('/expedientes/{expediente}/planificacion', [PlanificacionController::class, 'store']);
+    Route::post('/expedientes/{expediente}/planificacion/visto-bueno', [PlanificacionController::class, 'vistoBueno']);
 });
