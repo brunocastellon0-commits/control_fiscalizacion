@@ -11,13 +11,28 @@ class UsuarioPolicy
      * Catálogo de usuarios operativos para el sorteo.
      * Solo la Encargada activa puede consultarlo (least privilege).
      */
-    public function viewOperativos(Usuario $user): bool
+    //* codigo 1
+    // public function viewOperativos(Usuario $user): bool
+    // {
+    //     if (!$user->activo) {
+    //         return false;
+    //     }
+
+    //     return ($user->rol?->codigo ?? null) === Rol::CODIGO_ENCARGADA;
+    // }
+    //* nuevo codigo
+    public function viewOperativos(Usuario $usuario): bool
     {
-        if (! $user->activo) {
+        if (!$usuario->activo) {
             return false;
         }
 
-        return ($user->rol?->codigo ?? null) === Rol::CODIGO_ENCARGADA;
+        $rol = $usuario->rol?->codigo;
+
+        return in_array($rol, [
+            Rol::CODIGO_ENCARGADA,
+            Rol::CODIGO_ADMIN,
+        ], true);
     }
 
     /**

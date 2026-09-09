@@ -2,8 +2,10 @@
 
 use App\Http\Controllers\WorkstationController;
 use Illuminate\Support\Facades\Route;
+
 use App\Http\Controllers\Administrador\DashboardController;
 use App\Http\Middleware\EnsureAdmin;
+use App\Http\Controllers\Administrador\UsuariosController;
 
 Route::get('/login', function () {
     return view('auth.login');
@@ -37,27 +39,31 @@ Route::middleware(['auth', EnsureAdmin::class])
         Route::get('/dashboard', [DashboardController::class, 'index'])
             ->name('dashboard');
 
+        Route::get('/usuarios', [UsuariosController::class, 'index'])
+            ->name('usuarios');
     });
-Route::middleware(['auth'])->prefix('administrador')->group(function () {
 
-    Route::get('/dashboard', function () {
-        return view('administrador.dashboard');
-    })->name('administrador.dashboard');
 
-    Route::get('/usuarios', function () {
-        return view('administrador.usuarios');
-    })->name('administrador.usuarios');
+// Route::middleware(['auth'])->prefix('administrador')->group(function () {
 
-    Route::get('/feriados', function () {
-        return view('administrador.feriados');
-    })->name('administrador.feriados');
+//     Route::get('/dashboard', function () {
+//         return view('administrador.dashboard');
+//     })->name('administrador.dashboard');
 
-    Route::get('/parametros', function () {
-        return view('administrador.parametros');
-    })->name('administrador.parametros');
+//     Route::get('/usuarios', function () {
+//         return view('administrador.usuarios');
+//     })->name('administrador.usuarios');
 
-    Route::get('/monitoreo', function () {
-        return view('administrador.monitoreo');
-    })->name('administrador.monitoreo');
+//     Route::get('/feriados', function () {
+//         return view('administrador.feriados');
+//     })->name('administrador.feriados');
 
-});
+//     Route::get('/parametros', function () {
+//         return view('administrador.parametros');
+//     })->name('administrador.parametros');
+
+//     Route::get('/monitoreo', function () {
+//         return view('administrador.monitoreo');
+//     })->name('administrador.monitoreo');
+
+// });

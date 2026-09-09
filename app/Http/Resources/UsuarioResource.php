@@ -22,7 +22,10 @@ class UsuarioResource extends JsonResource
             'id' => $usuario->id,
             'nombres' => $usuario->nombres,
             'apellidos' => $usuario->apellidos,
+            'username' => $usuario->username,
+            'cargo' => $usuario->cargo,
             'ci' => $usuario->ci,
+            'activo' => $usuario->activo,
             'rol' => $usuario->rol ? [
                 'codigo' => $usuario->rol->codigo,
                 'nombre' => $usuario->rol->nombre,

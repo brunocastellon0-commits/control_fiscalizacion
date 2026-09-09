@@ -151,7 +151,7 @@
                             <span>Apertura de causa</span>
                         </a>
                     </template>
-                    <template x-if="usuario?.rol === 'ADMINISTRADOR'">
+                    <template x-if="usuario?.rol === 'ADMIN'">
 
                         <div class="space-y-1">
 

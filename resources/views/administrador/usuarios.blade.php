@@ -3,322 +3,218 @@
 @section('titulo', 'Gestión de Usuarios')
 
 @section('contenido')
-<div class="p-6" x-data="gestionUsuarios()" x-init="cargar()">
 
-    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-5">
+    <div x-data="usuariosAdmin()" x-init="cargarUsuarios()" class="space-y-6">
 
-        <div>
-            <h1 class="text-xl font-bold text-grafito">
-                Gestión de usuarios
-            </h1>
-            <p class="text-sm text-gris">
-                Administración de los usuarios y sus roles dentro del sistema.
-            </p>
-        </div>
-
-        <button
-            @click="abrirCrear()"
-            class="bg-verde-profundo hover:bg-verde-profundo/90 text-white
-                   px-4 py-2.5 rounded-lg text-sm font-medium transition">
-            <i class="fa-solid fa-user-plus mr-2"></i>
-            Nuevo usuario
-        </button>
-
-    </div>
-
-    <!-- FILTROS -->
-    <div class="bg-white rounded-xl border border-gris-claro shadow-sm p-4 mb-5">
-
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-
-            <div class="md:col-span-2">
-                <label class="block text-xs font-medium text-grafito mb-1">
-                    Buscar
-                </label>
-
-                <div class="relative">
-                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-gris"></i>
-
-                    <input
-                        type="text"
-                        x-model="filtros.buscar"
-                        @input.debounce.400ms="cargar()"
-                        placeholder="Nombre, apellido o usuario..."
-                        class="w-full pl-9 border-gris-claro rounded-lg text-sm
-                               focus:border-verde-institucional focus:ring-verde-institucional">
-                </div>
-            </div>
+        {{-- ENCABEZADO --}}
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
 
             <div>
-                <label class="block text-xs font-medium text-grafito mb-1">
-                    Rol
-                </label>
+                <h1 class="text-2xl font-bold text-gray-800">
+                    Gestión de Usuarios
+                </h1>
 
-                <select
-                    x-model="filtros.rol"
-                    @change="cargar()"
-                    class="w-full border-gris-claro rounded-lg text-sm
-                           focus:border-verde-institucional focus:ring-verde-institucional">
-
-                    <option value="">Todos</option>
-                    <option value="ADMINISTRADOR">Administrador</option>
-                    <option value="ENCARGADA">Encargada</option>
-                    <option value="TECNICO">Técnico</option>
-                    <option value="AUDITOR">Auditor</option>
-
-                </select>
+                <p class="text-sm text-gray-500 mt-1">
+                    Administración de usuarios y sus roles dentro del sistema.
+                </p>
             </div>
 
-            <div>
-                <label class="block text-xs font-medium text-grafito mb-1">
-                    Estado
-                </label>
-
-                <select
-                    x-model="filtros.estado"
-                    @change="cargar()"
-                    class="w-full border-gris-claro rounded-lg text-sm">
-
-                    <option value="">Todos</option>
-                    <option value="ACTIVO">Activo</option>
-                    <option value="INACTIVO">Inactivo</option>
-
-                </select>
-            </div>
+            <button @click="cargarUsuarios()" class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700">
+                Actualizar
+            </button>
 
         </div>
 
-    </div>
 
-    <!-- TABLA -->
-    <div class="bg-white rounded-xl border border-gris-claro shadow-sm overflow-hidden">
-
-        <div class="overflow-x-auto">
-
-            <table class="w-full text-sm">
-
-                <thead class="bg-gris-claro/60 border-b border-gris-claro">
-
-                    <tr>
-                        <th class="text-left px-5 py-3 text-xs font-semibold text-grafito">
-                            Usuario
-                        </th>
-
-                        <th class="text-left px-5 py-3 text-xs font-semibold text-grafito">
-                            Rol
-                        </th>
-
-                        <th class="text-left px-5 py-3 text-xs font-semibold text-grafito">
-                            Estado
-                        </th>
-
-                        <th class="text-left px-5 py-3 text-xs font-semibold text-grafito">
-                            Último acceso
-                        </th>
-
-                        <th class="text-right px-5 py-3 text-xs font-semibold text-grafito">
-                            Acciones
-                        </th>
-                    </tr>
-
-                </thead>
-
-                <tbody class="divide-y divide-gris-claro">
-
-                    <template x-for="usuario in usuarios" :key="usuario.id">
-
-                        <tr class="hover:bg-gris-claro/30">
-
-                            <td class="px-5 py-4">
-
-                                <div class="flex items-center gap-3">
-
-                                    <div class="w-9 h-9 rounded-full bg-verde-institucional/20
-                                                flex items-center justify-center">
-                                        <i class="fa-solid fa-user text-verde-profundo"></i>
-                                    </div>
-
-                                    <div>
-                                        <p class="font-semibold text-grafito"
-                                           x-text="usuario.nombre"></p>
-
-                                        <p class="text-xs text-gris"
-                                           x-text="usuario.username"></p>
-                                    </div>
-
-                                </div>
-
-                            </td>
-
-                            <td class="px-5 py-4">
-                                <span
-                                    class="px-2.5 py-1 rounded-full bg-azul-petroleo/10
-                                           text-azul-petroleo text-[10px] font-semibold"
-                                    x-text="usuario.rol">
-                                </span>
-                            </td>
-
-                            <td class="px-5 py-4">
-
-                                <span
-                                    class="px-2.5 py-1 rounded-full text-[10px] font-semibold"
-                                    :class="usuario.activo
-                                        ? 'bg-[#8CC63F]/20 text-[#3F5E1B]'
-                                        : 'bg-red-100 text-red-700'">
-
-                                    <span x-text="usuario.activo ? 'Activo' : 'Inactivo'"></span>
-
-                                </span>
-
-                            </td>
-
-                            <td class="px-5 py-4 text-xs text-gris"
-                                x-text="usuario.ultimo_acceso || 'Nunca'">
-                            </td>
-
-                            <td class="px-5 py-4">
-
-                                <div class="flex justify-end gap-2">
-
-                                    <button
-                                        @click="editar(usuario)"
-                                        class="w-8 h-8 rounded-lg border border-gris-claro
-                                               hover:bg-gris-claro text-grafito">
-                                        <i class="fa-solid fa-pen text-xs"></i>
-                                    </button>
-
-                                    <button
-                                        @click="cambiarEstado(usuario)"
-                                        class="w-8 h-8 rounded-lg border border-gris-claro
-                                               hover:bg-gris-claro"
-                                        :class="usuario.activo ? 'text-red-600' : 'text-verde-profundo'">
-
-                                        <i
-                                            :class="usuario.activo
-                                                ? 'fa-solid fa-user-slash'
-                                                : 'fa-solid fa-user-check'"
-                                            class="text-xs">
-                                        </i>
-
-                                    </button>
-
-                                </div>
-
-                            </td>
-
-                        </tr>
-
-                    </template>
-
-                </tbody>
-
-            </table>
-
-        </div>
-
-        <div x-show="usuarios.length === 0"
-             class="p-10 text-center text-gris">
-            <i class="fa-solid fa-users-slash text-3xl mb-2"></i>
-            <p>No se encontraron usuarios.</p>
-        </div>
-
-    </div>
-
-    <!-- MODAL -->
-    <div
-        x-show="modal"
-        x-cloak
-        class="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-
-        <div
-            @click.outside="modal = false"
-            class="bg-white rounded-xl shadow-xl w-full max-w-lg">
-
-            <div class="p-5 border-b border-gris-claro flex justify-between">
-
-                <div>
-                    <h2 class="font-bold text-grafito"
-                        x-text="modo === 'crear' ? 'Nuevo usuario' : 'Editar usuario'">
-                    </h2>
-
-                    <p class="text-xs text-gris mt-1">
-                        Complete la información del usuario.
-                    </p>
-                </div>
-
-                <button @click="modal = false"
-                        class="text-gris hover:text-grafito">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-
+        {{-- MENSAJE DE ERROR --}}
+        <template x-if="error">
+            <div class="p-4 rounded-lg bg-red-100 text-red-700">
+                <span x-text="error"></span>
             </div>
+        </template>
 
-            <div class="p-5 space-y-4">
 
-                <div class="grid grid-cols-2 gap-3">
+        {{-- BUSCADOR --}}
+        <div class="bg-white rounded-xl shadow p-5">
 
-                    <div>
-                        <label class="text-xs font-medium text-grafito">
-                            Nombres
-                        </label>
-                        <input
-                            x-model="form.nombres"
-                            class="w-full mt-1 border-gris-claro rounded-lg text-sm">
-                    </div>
+            <div class="flex flex-col md:flex-row gap-4">
 
-                    <div>
-                        <label class="text-xs font-medium text-grafito">
-                            Apellidos
-                        </label>
-                        <input
-                            x-model="form.apellidos"
-                            class="w-full mt-1 border-gris-claro rounded-lg text-sm">
-                    </div>
+                <div class="flex-1">
 
-                </div>
-
-                <div>
-                    <label class="text-xs font-medium text-grafito">
-                        Usuario
-                    </label>
-                    <input
-                        x-model="form.username"
-                        class="w-full mt-1 border-gris-claro rounded-lg text-sm">
-                </div>
-
-                <div>
-                    <label class="text-xs font-medium text-grafito">
-                        Rol
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        Buscar usuario
                     </label>
 
-                    <select
-                        x-model="form.rol"
-                        class="w-full mt-1 border-gris-claro rounded-lg text-sm">
+                    <input type="text" x-model="busqueda" placeholder="Buscar por CI, nombre, apellido o usuario..."
+                        class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none">
 
-                        <option value="TECNICO">Técnico</option>
-                        <option value="AUDITOR">Auditor</option>
-                        <option value="ENCARGADA">Encargada</option>
-                        <option value="ADMINISTRADOR">Administrador</option>
+                </div>
 
+                <div class="md:w-56">
+
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        Estado
+                    </label>
+
+                    <select x-model="filtroEstado" class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                        <option value="TODOS">Todos</option>
+                        <option value="ACTIVOS">Activos</option>
+                        <option value="INACTIVOS">Inactivos</option>
                     </select>
 
                 </div>
 
             </div>
 
-            <div class="p-5 border-t border-gris-claro flex justify-end gap-2">
+        </div>
 
-                <button
-                    @click="modal = false"
-                    class="px-4 py-2 rounded-lg border border-gris-claro text-sm">
-                    Cancelar
-                </button>
 
-                <button
-                    @click="guardar()"
-                    class="px-4 py-2 rounded-lg bg-verde-profundo text-white text-sm">
-                    Guardar
-                </button>
+        {{-- TABLA --}}
+        <div class="bg-white rounded-xl shadow overflow-hidden">
+
+            <div class="overflow-x-auto">
+
+                <table class="w-full text-sm">
+
+                    <thead class="bg-gray-100">
+
+                        <tr>
+
+                            <th class="px-4 py-3 text-left">
+                                CI
+                            </th>
+
+                            <th class="px-4 py-3 text-left">
+                                Nombre
+                            </th>
+                            <th class="px-4 py-3 text-left">
+                                Apellidos
+                            </th>
+
+                            <th class="px-4 py-3 text-left">
+                                Usuario
+                            </th>
+
+                            <th class="px-4 py-3 text-left">
+                                Cargo
+                            </th>
+
+                            <th class="px-4 py-3 text-left">
+                                Rol
+                            </th>
+
+                            <th class="px-4 py-3 text-center">
+                                Estado
+                            </th>
+
+                            <th class="px-4 py-3 text-center">
+                                Acciones
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                        {{-- CARGANDO --}}
+                        <template x-if="cargando">
+
+                            <tr>
+
+                                <td colspan="7" class="px-4 py-8 text-center text-gray-500">
+                                    Cargando usuarios...
+                                </td>
+
+                            </tr>
+
+                        </template>
+
+
+                        {{-- USUARIOS --}}
+                        <template x-for="usuario in usuariosFiltrados" :key="usuario.id">
+
+                            <tr class="border-t hover:bg-gray-50">
+
+                                <td class="px-4 py-3" x-text="usuario.ci ?? '-'"></td>
+
+
+                                <!-- <td class="px-4 py-3">
+
+                                    <div class="font-medium text-gray-800"
+                                        x-text="`${usuario.nombres ?? ''} ${usuario.apellidos ?? ''}`">
+                                    </div>
+
+                                </td> -->
+
+
+                                <td class="px-4 py-3" x-text="usuario.nombres ?? '-'"></td>
+
+                                <td class="px-4 py-3" x-text="usuario.apellidos ?? '-'"></td>
+                                
+                                <td class="px-4 py-3" x-text="usuario.username ?? '-'"></td>
+
+                                <td class="px-4 py-3" x-text="usuario.cargo ?? '-'"></td>
+
+
+                                <td class="px-4 py-3">
+
+                                    <span class="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700"
+                                        x-text="usuario.rol?.nombre ?? usuario.rol?.codigo ?? '-'"></span>
+
+                                </td>
+
+
+                                <td class="px-4 py-3 text-center">
+
+                                    <span x-show="usuario.activo"
+                                        class="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                                        Activo
+                                    </span>
+
+                                    <span x-show="!usuario.activo"
+                                        class="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                                        Inactivo
+                                    </span>
+
+                                </td>
+
+
+                                <td class="px-4 py-3 text-center">
+
+                                    <button x-show="usuario.activo" @click="inactivarUsuario(usuario)"
+                                        class="px-3 py-1 rounded-lg bg-red-600 text-white text-xs hover:bg-red-700">
+                                        Inactivar
+                                    </button>
+
+                                    <span x-show="!usuario.activo" class="text-xs text-gray-400">
+                                        Sin acciones
+                                    </span>
+
+                                </td>
+
+                            </tr>
+
+                        </template>
+
+
+                        {{-- SIN RESULTADOS --}}
+                        <template x-if="!cargando && usuariosFiltrados.length === 0">
+
+                            <tr>
+
+                                <td colspan="7" class="px-4 py-8 text-center text-gray-500">
+                                    No se encontraron usuarios.
+                                </td>
+
+                            </tr>
+
+                        </template>
+
+                    </tbody>
+
+                </table>
 
             </div>
 
@@ -326,113 +222,198 @@
 
     </div>
 
-</div>
 
-<script>
-function gestionUsuarios() {
-    return {
+    <script>
 
-        usuarios: [],
+        function usuariosAdmin() {
 
-        filtros: {
-            buscar: '',
-            rol: '',
-            estado: ''
-        },
+            return {
 
-        modal: false,
-        modo: 'crear',
+                usuarios: [],
 
-        form: {
-            id: null,
-            nombres: '',
-            apellidos: '',
-            username: '',
-            rol: 'TECNICO'
-        },
+                busqueda: '',
 
-        async cargar() {
+                filtroEstado: 'TODOS',
 
-            /*
-             * Posteriormente:
-             * GET /api/administrador/usuarios
-             */
+                cargando: true,
 
-            this.usuarios = [
-                {
-                    id: 1,
-                    nombre: 'Juan Pérez',
-                    username: 'jperez',
-                    rol: 'TECNICO',
-                    activo: true,
-                    ultimo_acceso: '08/09/2026 09:32'
+                error: '',
+
+
+                async cargarUsuarios() {
+
+                    this.cargando = true;
+                    this.error = '';
+
+                    try {
+
+                        const respuesta = await window.apiFetch(
+                            '/api/usuarios'
+                        );
+
+                        console.log(
+                            'RESPUESTA USUARIOS:',
+                            respuesta
+                        );
+
+                        if (!respuesta.ok) {
+
+                            throw new Error(
+                                respuesta.data?.message ||
+                                'No se pudieron cargar los usuarios.'
+                            );
+
+                        }
+
+                        /*
+                         * Laravel puede devolver los datos
+                         * directamente o dentro de "data".
+                         */
+                        const resultado = respuesta.data;
+
+                        this.usuarios =
+                            resultado.data ??
+                            resultado.usuarios ??
+                            resultado ??
+                            [];
+
+                    } catch (error) {
+
+                        console.error(
+                            'ERROR USUARIOS:',
+                            error
+                        );
+
+                        this.error = error.message;
+
+                    } finally {
+
+                        this.cargando = false;
+
+                    }
+
                 },
-                {
-                    id: 2,
-                    nombre: 'María López',
-                    username: 'mlopez',
-                    rol: 'AUDITOR',
-                    activo: true,
-                    ultimo_acceso: '08/09/2026 10:15'
+
+
+                get usuariosFiltrados() {
+
+                    const texto =
+                        this.busqueda
+                            .toLowerCase()
+                            .trim();
+
+
+                    return this.usuarios.filter(usuario => {
+
+                        const nombreCompleto =
+                            `${usuario.nombres ?? ''} ${usuario.apellidos ?? ''}`
+                                .toLowerCase();
+
+                        const coincideBusqueda =
+                            !texto ||
+                            String(usuario.ci ?? '')
+                                .toLowerCase()
+                                .includes(texto) ||
+
+                            nombreCompleto.includes(texto) ||
+
+                            String(usuario.username ?? '')
+                                .toLowerCase()
+                                .includes(texto);
+
+
+                        let coincideEstado = true;
+
+
+                        if (this.filtroEstado === 'ACTIVOS') {
+
+                            coincideEstado = usuario.activo === true;
+
+                        }
+
+                        if (this.filtroEstado === 'INACTIVOS') {
+
+                            coincideEstado = usuario.activo === false;
+
+                        }
+
+
+                        return coincideBusqueda && coincideEstado;
+
+                    });
+
                 },
-                {
-                    id: 3,
-                    nombre: 'Carlos Rodríguez',
-                    username: 'crodriguez',
-                    rol: 'TECNICO',
-                    activo: false,
-                    ultimo_acceso: '05/09/2026 15:21'
+
+
+                async inactivarUsuario(usuario) {
+
+                    const nombre =
+                        `${usuario.nombres ?? ''} ${usuario.apellidos ?? ''}`;
+
+
+                    const confirmar =
+                        window.confirm(
+                            `¿Está seguro de inactivar al usuario ${nombre}?`
+                        );
+
+
+                    if (!confirmar) {
+                        return;
+                    }
+
+
+                    try {
+
+                        const respuesta = await window.apiFetch(
+                            `/api/usuarios/${usuario.id}/inactivar`,
+                            {
+                                method: 'POST'
+                            }
+                        );
+
+
+                        console.log(
+                            'RESPUESTA INACTIVAR:',
+                            respuesta
+                        );
+
+
+                        if (!respuesta.ok) {
+
+                            throw new Error(
+                                respuesta.data?.message ||
+                                'No se pudo inactivar el usuario.'
+                            );
+
+                        }
+
+
+                        alert(
+                            respuesta.data?.message ||
+                            'Usuario inactivado correctamente.'
+                        );
+
+
+                        await this.cargarUsuarios();
+
+
+                    } catch (error) {
+
+                        console.error(
+                            'ERROR INACTIVAR:',
+                            error
+                        );
+
+                        alert(error.message);
+
+                    }
+
                 }
-            ];
-        },
 
-        abrirCrear() {
-            this.modo = 'crear';
-            this.form = {
-                id: null,
-                nombres: '',
-                apellidos: '',
-                username: '',
-                rol: 'TECNICO'
             };
-            this.modal = true;
-        },
 
-        editar(usuario) {
-            this.modo = 'editar';
-            this.form = {
-                id: usuario.id,
-                nombres: usuario.nombre.split(' ')[0],
-                apellidos: usuario.nombre.split(' ').slice(1).join(' '),
-                username: usuario.username,
-                rol: usuario.rol
-            };
-            this.modal = true;
-        },
-
-        async guardar() {
-            this.modal = false;
-            this.$dispatch('toast', {
-                tipo: 'exito',
-                mensaje: 'Usuario guardado correctamente.'
-            });
-            await this.cargar();
-        },
-
-        async cambiarEstado(usuario) {
-
-            const accion = usuario.activo ? 'inactivar' : 'activar';
-
-            if (!confirm(`¿Desea ${accion} este usuario?`)) return;
-
-            usuario.activo = !usuario.activo;
-
-            this.$dispatch('toast', {
-                tipo: 'exito',
-                mensaje: `Usuario ${usuario.activo ? 'activado' : 'inactivado'}.`
-            });
         }
-    }
-}
-</script>
+
+    </script>
+
 @endsection

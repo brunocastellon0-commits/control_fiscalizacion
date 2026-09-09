@@ -48,4 +48,13 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     //* ADMINISTRADOR
     // -------------------------------------
     Route::get('/admin/dashboard', [AdminDashboardController::class, 'index']);
+    
+    // Gestión de usuarios (RF Administrador): listado completo sin las
+    // restricciones de /usuarios (que es solo para el sorteo de la
+    // Encargada), creación, edición y activación/inactivación.
+    Route::get('/admin/usuarios', [AdminUsuariosController::class, 'index']);
+    Route::post('/admin/usuarios', [AdminUsuariosController::class, 'store']);
+    Route::put('/admin/usuarios/{usuario}', [AdminUsuariosController::class, 'update']);
+    Route::post('/admin/usuarios/{usuario}/activar', [AdminUsuariosController::class, 'activar']);
+    Route::post('/admin/usuarios/{usuario}/inactivar', [UsuarioController::class, 'inactivar']);
 });
