@@ -34,6 +34,10 @@ class ActuadoService
         'ACT_OBSERVACION' => 'SUBSANACION',
         'ACT_ADMISION' => 'PLANIFICACION',
         'ACT_VISTO_BUENO_PLANIFICACION' => 'EJECUCION',
+        // Impugnaciones (RN-08)
+        'ACT_RECHAZO' => 'IMPUGNACION_REMITIR',           // 1 día: el operador remite a la Encargada
+        'ACT_REMITIR_IMPUGNACION' => 'IMPUGNACION_RESOLVER', // 3 días: la Encargada resuelve
+        'ACT_RESOLUCION_REVOCA_RECHAZO' => 'PLANIFICACION',  // Revocación: retorna a planificación del operador
     ];
 
     /**

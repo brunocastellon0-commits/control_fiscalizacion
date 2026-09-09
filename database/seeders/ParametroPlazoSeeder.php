@@ -26,6 +26,13 @@ class ParametroPlazoSeeder extends Seeder
             ['reglamento_id' => $ac054->id, 'tipo_plazo' => 'EVALUACION', 'subtipo' => null, 'dias_habiles' => 5, 'base_legal' => 'AC_054_2018', 'activo' => true],
             ['reglamento_id' => $ac055->id, 'tipo_plazo' => 'EVALUACION', 'subtipo' => null, 'dias_habiles' => 5, 'base_legal' => 'AC_055_2018', 'activo' => true],
             ['reglamento_id' => $ac055->id, 'tipo_plazo' => 'DESCARGOS', 'subtipo' => null, 'dias_habiles' => 5, 'base_legal' => 'AC_055_2018', 'activo' => true],
+            // Impugnaciones (RN-08)
+            ['reglamento_id' => $ac022->id, 'tipo_plazo' => 'IMPUGNACION_REMITIR', 'subtipo' => null, 'dias_habiles' => 1, 'base_legal' => 'RN-08', 'activo' => true],
+            ['reglamento_id' => $ac022->id, 'tipo_plazo' => 'IMPUGNACION_RESOLVER', 'subtipo' => null, 'dias_habiles' => 3, 'base_legal' => 'RN-08', 'activo' => true],
+            ['reglamento_id' => $ac054->id, 'tipo_plazo' => 'IMPUGNACION_REMITIR', 'subtipo' => null, 'dias_habiles' => 1, 'base_legal' => 'RN-08', 'activo' => true],
+            ['reglamento_id' => $ac054->id, 'tipo_plazo' => 'IMPUGNACION_RESOLVER', 'subtipo' => null, 'dias_habiles' => 3, 'base_legal' => 'RN-08', 'activo' => true],
+            ['reglamento_id' => $ac055->id, 'tipo_plazo' => 'IMPUGNACION_REMITIR', 'subtipo' => null, 'dias_habiles' => 1, 'base_legal' => 'RN-08', 'activo' => true],
+            ['reglamento_id' => $ac055->id, 'tipo_plazo' => 'IMPUGNACION_RESOLVER', 'subtipo' => null, 'dias_habiles' => 3, 'base_legal' => 'RN-08', 'activo' => true],
         ];
 
         foreach ($plazos as $p) {

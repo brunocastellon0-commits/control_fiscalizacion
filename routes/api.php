@@ -7,6 +7,7 @@ use App\Http\Controllers\CatalogoActuadoController;
 use App\Http\Controllers\CatalogoEstadoController;
 use App\Http\Controllers\EvaluacionAdmisibilidadController;
 use App\Http\Controllers\ExpedienteController;
+use App\Http\Controllers\ImpugnacionController;
 use App\Http\Controllers\ReglamentoController;
 use App\Http\Controllers\UsuarioController;
 use Illuminate\Support\Facades\Route;
@@ -44,4 +45,8 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::post('/expedientes/{expediente}/actuados', [ActuadoController::class, 'store']);
     Route::get('/expedientes/{expediente}/requisitos', [EvaluacionAdmisibilidadController::class, 'requisitos']);
     Route::post('/expedientes/{expediente}/evaluacion', [EvaluacionAdmisibilidadController::class, 'store']);
+
+    // Impugnaciones de rechazo (RN-08)
+    Route::post('/expedientes/{expediente}/impugnacion/remitir', [ImpugnacionController::class, 'remitir']);
+    Route::post('/expedientes/{expediente}/impugnacion/resolver', [ImpugnacionController::class, 'resolver']);
 });

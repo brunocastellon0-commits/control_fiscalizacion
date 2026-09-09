@@ -119,4 +119,36 @@ class ExpedientePolicy
             Rol::CODIGO_ADMIN,
         ], true);
     }
+
+    /**
+     * RN-08 (Remisión): solo el operador operativo con asignación activa
+     * puede remitir a la Encargada un expediente en estado RECHAZADO.
+     */
+    public function remitirImpugnacion(Usuario $user, Expediente $expediente): bool
+    {
+        if (! $user->activo) {
+            return false;
+        }
+
+        $esOperativo = in_array($user->rol?->codigo ?? null, [
+            Rol::CODIGO_TECNICO,
+            Rol::CODIGO_AUD_JURIDICO,
+            Rol::CODIGO_AUD_FINANCIERO,
+        ], true);
+
+        return $esOperativo
+            && $expediente->asignacionActiva?->usuario_id === $user->id
+            && $expediente->estadoActual?->codigo === 'RECHAZADO';
+    }
+
+    /**
+     * RN-08 (Resolución): solo la Encargada activa puede resolver la
+     * impugnación de un expediente en estado EN_IMPUGNACION.
+     */
+    public function resolverImpugnacion(Usuario $user, Expediente $expediente): bool
+    {
+        return $user->activo
+            && ($user->rol?->codigo ?? null) === Rol::CODIGO_ENCARGADA
+            && $expediente->estadoActual?->codigo === 'EN_IMPUGNACION';
+    }
 }

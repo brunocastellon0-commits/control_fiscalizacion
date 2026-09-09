@@ -34,6 +34,9 @@ class CatalogoActuadoSeeder extends Seeder
         $planificacion = CatalogoEstado::where('codigo', 'EN_PLANIFICACION')->firstOrFail();
         $ejecucion = CatalogoEstado::where('codigo', 'EN_EJECUCION')->firstOrFail();
         $archivoAbandono = CatalogoEstado::where('codigo', 'ARCHIVO_POR_ABANDONO')->firstOrFail();
+        $enImpugnacion = CatalogoEstado::where('codigo', 'EN_IMPUGNACION')->firstOrFail();
+        $archivoDefinitivo = CatalogoEstado::where('codigo', 'ARCHIVO_DEFINITIVO')->firstOrFail();
+        $admitido = CatalogoEstado::where('codigo', 'ADMITIDO')->firstOrFail();
 
         $ac022 = Reglamento::where('codigo', 'AC_022_2018')->firstOrFail();
         $ac054 = Reglamento::where('codigo', 'AC_054_2018')->firstOrFail();
@@ -48,6 +51,10 @@ class CatalogoActuadoSeeder extends Seeder
             ['codigo' => 'ACT_VISTO_BUENO_PLANIFICACION', 'nombre' => 'Visto Bueno a Planificación', 'fase' => 'PLANIFICACION', 'rol_id' => $encargada->id, 'reglamento_id' => null, 'estado_origen_id' => $planificacion->id, 'estado_destino_id' => $ejecucion->id, 'es_automatico' => false, 'requiere_adjunto' => false, 'descripcion' => 'Aprueba el Cronograma/MPA; inicia la investigación y su plazo (RN-04/RN-05)'],
             ['codigo' => 'ACT_INFORME_FINAL', 'nombre' => 'Informe Final', 'fase' => 'INVESTIGACION', 'rol_id' => $audJuridico->id, 'reglamento_id' => null, 'estado_origen_id' => $ejecucion->id, 'estado_destino_id' => null, 'es_automatico' => false, 'requiere_adjunto' => true, 'descripcion' => 'Informe final de la investigación'],
             ['codigo' => 'ACT_ARCHIVO_POR_ABANDONO', 'nombre' => 'Archivo por Abandono', 'fase' => 'ADMISIBILIDAD', 'rol_id' => $admin->id, 'reglamento_id' => null, 'estado_origen_id' => $subsanacion->id, 'estado_destino_id' => $archivoAbandono->id, 'es_automatico' => true, 'requiere_adjunto' => false, 'descripcion' => 'Evento automático del sistema: archiva el expediente por caducidad del plazo de subsanación sin respuesta (RN-03)'],
+            // Impugnaciones (RN-08)
+            ['codigo' => 'ACT_REMITIR_IMPUGNACION', 'nombre' => 'Remisión de Impugnación', 'fase' => 'ADMISIBILIDAD', 'rol_id' => $tecnico->id, 'reglamento_id' => null, 'estado_origen_id' => $rechazado->id, 'estado_destino_id' => $enImpugnacion->id, 'es_automatico' => false, 'requiere_adjunto' => false, 'descripcion' => 'El operador remite el expediente rechazado a la Encargada para su resolución (RN-08)'],
+            ['codigo' => 'ACT_RESOLUCION_RATIFICA_RECHAZO', 'nombre' => 'Ratificación del Rechazo', 'fase' => 'ADMISIBILIDAD', 'rol_id' => $encargada->id, 'reglamento_id' => null, 'estado_origen_id' => $enImpugnacion->id, 'estado_destino_id' => $archivoDefinitivo->id, 'es_automatico' => false, 'requiere_adjunto' => false, 'descripcion' => 'La Encargada ratifica el rechazo; el expediente queda en ARCHIVO_DEFINITIVO (RN-08)'],
+            ['codigo' => 'ACT_RESOLUCION_REVOCA_RECHAZO', 'nombre' => 'Revocación del Rechazo', 'fase' => 'ADMISIBILIDAD', 'rol_id' => $encargada->id, 'reglamento_id' => null, 'estado_origen_id' => $enImpugnacion->id, 'estado_destino_id' => $admitido->id, 'es_automatico' => false, 'requiere_adjunto' => false, 'descripcion' => 'La Encargada revoca el rechazo; el expediente retorna a ADMITIDO para su sustanciación (RN-08)'],
         ];
 
         foreach ($actuados as $a) {
@@ -69,6 +76,13 @@ class CatalogoActuadoSeeder extends Seeder
             ],
             'ACT_INFORME_FINAL' => [
                 ['rol_id' => $audJuridico->id, 'reglamento_id' => null],
+            ],
+            'ACT_REMITIR_IMPUGNACION' => $this->perfilesEvaluacion($tecnico, $audJuridico, $audFinanciero, $ac022, $ac054, $ac055),
+            'ACT_RESOLUCION_RATIFICA_RECHAZO' => [
+                ['rol_id' => $encargada->id, 'reglamento_id' => null],
+            ],
+            'ACT_RESOLUCION_REVOCA_RECHAZO' => [
+                ['rol_id' => $encargada->id, 'reglamento_id' => null],
             ],
         ];
 
