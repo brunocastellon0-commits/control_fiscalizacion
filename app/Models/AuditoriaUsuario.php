@@ -11,6 +11,8 @@ class AuditoriaUsuario extends Model
 {
     public const ACCION_INACTIVACION = 'INACTIVACION';
 
+    public const ACCION_ACTIVACION = 'ACTIVACION';
+
     /** @use HasFactory<AuditoriaUsuarioFactory> */
     use HasFactory;
 

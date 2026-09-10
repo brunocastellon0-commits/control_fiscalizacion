@@ -138,12 +138,24 @@
                         <span>Bandeja de entrada</span>
                     </a>
                     <template x-if="usuario?.rol === 'ENCARGADA'">
-                        <a href="/bandeja/sorteo"
-                            class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/20 transition">
-                            <i class="fa-solid fa-shuffle w-5 text-center text-verde-institucional"></i>
-                            <span>Sorteo de expedientes</span>
-                        </a>
+
+                        <div class="space-y-1">
+
+                            <a href="/encargada/dashboard" class="flex items-center gap-3 px-3 py-2.5 rounded-lg
+                          hover:bg-white/20 transition">
+                                <i class="fa-solid fa-chart-line w-5 text-center text-verde-institucional"></i>
+                                <span>Dashboard</span>
+                            </a>
+
+                            <a href="/bandeja/sorteo"
+                                class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/20 transition">
+                                <i class="fa-solid fa-shuffle w-5 text-center text-verde-institucional"></i>
+                                <span>Sorteo de expedientes</span>
+                            </a>
+                            <div />
+
                     </template>
+
                     <template x-if="usuario?.rol === 'TECNICO'">
                         <a href="/expedientes/nuevo"
                             class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/20 transition">
@@ -151,6 +163,7 @@
                             <span>Apertura de causa</span>
                         </a>
                     </template>
+
                     <template x-if="usuario?.rol === 'ADMIN'">
 
                         <div class="space-y-1">
@@ -196,14 +209,6 @@
 
                             </a>
 
-                            <a href="/administrador/parametros" class="flex items-center gap-3 px-3 py-2.5 rounded-lg
-                  hover:bg-white/20 transition">
-
-                                <i class="fa-solid fa-sliders w-5 text-center text-verde-institucional"></i>
-
-                                <span>Parámetros</span>
-
-                            </a>
 
                         </div>
 

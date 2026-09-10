@@ -3,9 +3,13 @@
 use App\Http\Controllers\WorkstationController;
 use Illuminate\Support\Facades\Route;
 
+//*ADMINISTRADOR
 use App\Http\Controllers\Administrador\DashboardController;
 use App\Http\Middleware\EnsureAdmin;
 use App\Http\Controllers\Administrador\UsuariosController;
+use App\Http\Controllers\Administrador\FeriadosController;
+use App\Http\Controllers\Administrador\MonitoreoController;
+
 
 Route::get('/login', function () {
     return view('auth.login');
@@ -20,11 +24,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/expedientes/{expediente}', [WorkstationController::class, 'detalle'])->name('expedientes.detalle');
 });
 
-Route::middleware('auth')->prefix('administrador')->group(function () {
-    Route::get('/dashboard', function () {
-        return view('administrador.dashboard');
-    })->name('administrador.dashboard');
-});
+
+
 /*
 |--------------------------------------------------------------------------
 | ADMINISTRADOR
@@ -41,6 +42,13 @@ Route::middleware(['auth', EnsureAdmin::class])
 
         Route::get('/usuarios', [UsuariosController::class, 'index'])
             ->name('usuarios');
+
+        Route::get('/feriados', [FeriadosController::class, 'index'])
+            ->name('feriados');
+
+        Route::get('/monitoreo', [MonitoreoController::class, 'index'])
+            ->name('monitoreo');
+
     });
 
 

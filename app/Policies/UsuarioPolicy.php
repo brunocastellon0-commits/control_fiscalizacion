@@ -44,4 +44,25 @@ class UsuarioPolicy
     {
         return $admin->activo && ($admin->rol?->codigo ?? null) === Rol::CODIGO_ADMIN;
     }
+
+
+    /**
+     * Reactivación de un usuario previamente inactivado. Mismo criterio que
+     * inactivar: solo un ADMIN activo.
+     */
+    public function activar(Usuario $admin, Usuario $objetivo): bool
+    {
+        return $admin->activo && ($admin->rol?->codigo ?? null) === Rol::CODIGO_ADMIN;
+    }
+
+    /**
+     * Gestión administrativa completa del catálogo de usuarios (listado sin
+     * restricción de rol/estado, creación y edición de cuentas). Módulo
+     * Administrador -> Usuarios. Solo un ADMIN activo.
+     */
+    public function gestionar(Usuario $user): bool
+    {
+        return $user->activo && ($user->rol?->codigo ?? null) === Rol::CODIGO_ADMIN;
+    }
+
 }

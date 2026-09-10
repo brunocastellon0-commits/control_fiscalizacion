@@ -2,14 +2,20 @@
 
 use App\Http\Controllers\ActuadoController;
 use App\Http\Controllers\AdjuntoController;
+use App\Http\Controllers\Administrador\AdminUsuariosController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CatalogoActuadoController;
 use App\Http\Controllers\CatalogoEstadoController;
 use App\Http\Controllers\ExpedienteController;
 use App\Http\Controllers\ReglamentoController;
 use App\Http\Controllers\UsuarioController;
-use Illuminate\Support\Facades\Route;
 
+//* ADMINISTRADOR
+use App\Http\Controllers\Administrador\AdminFeriadosController;
+use App\Http\Controllers\Administrador\AdminMonitoreoController;
+
+
+use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\Administrador\AdminDashboardController;
 
@@ -44,11 +50,12 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::get('/expedientes/{expediente}', [ExpedienteController::class, 'show']);
     Route::post('/expedientes/{expediente}/sortear', [ExpedienteController::class, 'sortear']);
     Route::post('/expedientes/{expediente}/actuados', [ActuadoController::class, 'store']);
+
     // -------------------------------------
     //* ADMINISTRADOR
     // -------------------------------------
     Route::get('/admin/dashboard', [AdminDashboardController::class, 'index']);
-    
+
     // Gestión de usuarios (RF Administrador): listado completo sin las
     // restricciones de /usuarios (que es solo para el sorteo de la
     // Encargada), creación, edición y activación/inactivación.
@@ -57,4 +64,11 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::put('/admin/usuarios/{usuario}', [AdminUsuariosController::class, 'update']);
     Route::post('/admin/usuarios/{usuario}/activar', [AdminUsuariosController::class, 'activar']);
     Route::post('/admin/usuarios/{usuario}/inactivar', [UsuarioController::class, 'inactivar']);
+
+    // Gestión de feriados
+    Route::get('/admin/feriados', [AdminFeriadosController::class, 'index']);
+    Route::post('/admin/feriados', [AdminFeriadosController::class, 'store']);
+    Route::put('/admin/feriados/{feriado}', [AdminFeriadosController::class, 'update']);
+    Route::delete('/admin/feriados/{feriado}', [AdminFeriadosController::class, 'destroy']);
+    Route::get('/admin/monitoreo', [AdminMonitoreoController::class, 'index']);
 });
