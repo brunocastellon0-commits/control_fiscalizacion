@@ -22,6 +22,8 @@ class PlanificacionService
 
     public const CODIGO_ACT_VISTO_BUENO = 'ACT_VISTO_BUENO_PLANIFICACION';
 
+    public const CODIGO_ACT_DEVOLUCION = 'ACT_DEVOLUCION_OBSERVACION';
+
     public const REGLAMENTO_AC022 = 'AC_022_2018';
 
     public const REGLAMENTO_AC054 = 'AC_054_2018';
@@ -116,6 +118,36 @@ class PlanificacionService
                 usuarioDestinoId: $operadorOriginal->id,
                 metadatos: ['tipo' => 'VISTO_BUENO'],
                 fechaLimiteExplicita: $fechaLimite,
+            );
+        }, 3);
+    }
+
+    /**
+     * US-2.5: la Encargada devuelve la planificación con observaciones.
+     * Transaccional:
+     *
+     * 1. Valida que el expediente esté en PENDIENTE_VISTO_BUENO.
+     * 2. Resuelve el operador original (última asignación inactiva: quien
+     *    envió la planificación).
+     * 3. Emite ACT_DEVOLUCION_OBSERVACION vía ActuadoService, que desactiva
+     *    la bandeja de la Encargada, reasigna al operador original, retorna
+     *    el expediente a EN_PLANIFICACION y reabre el plazo de PLANIFICACION
+     *    (2 días hábiles). El plazo anterior permanece CERRADO como evidencia.
+     */
+    public function devolverPlanificacion(Expediente $expediente, Usuario $encargada, string $justificacion): Actuado
+    {
+        return DB::transaction(function () use ($expediente, $encargada, $justificacion) {
+            $this->validarEstado($expediente, static::ESTADO_PENDIENTE_VISTO_BUENO);
+
+            $operadorOriginal = $this->operadorOriginalDelExpediente($expediente);
+
+            return $this->actuadoService->registerActuado(
+                expediente: $expediente,
+                catalogoActuado: $this->catalogoPorCodigo(static::CODIGO_ACT_DEVOLUCION),
+                emisor: $encargada,
+                descripcion: $justificacion,
+                usuarioDestinoId: $operadorOriginal->id,
+                metadatos: ['tipo' => 'DEVOLUCION'],
             );
         }, 3);
     }

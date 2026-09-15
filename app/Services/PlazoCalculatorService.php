@@ -68,21 +68,40 @@ class PlazoCalculatorService
      */
     public function daysRemaining(Carbon|string $fechaVencimiento): int
     {
-        $hoy = Carbon::today();
         $limite = $fechaVencimiento instanceof Carbon
             ? $fechaVencimiento->copy()->startOfDay()
             : Carbon::parse($fechaVencimiento)->startOfDay();
 
-        if ($hoy->greaterThan($limite)) {
+        return $this->businessDaysBetween(Carbon::today(), $limite);
+    }
+
+    /**
+     * Días hábiles estrictos entre dos fechas (sin incluir el día final).
+     * No cuenta fines de semana, feriados ni fechas de suspensión de plazos.
+     * Base del recálculo de límites al reanudar un reloj congelado (RN-09):
+     * si un reloj se pausa y se retoma después, no se pierden ni se suman
+     * días por días no hábiles.
+     */
+    public function businessDaysBetween(Carbon|string $inicio, Carbon|string $fin): int
+    {
+        $desde = $inicio instanceof Carbon
+            ? $inicio->copy()->startOfDay()
+            : Carbon::parse($inicio)->startOfDay();
+
+        $hasta = $fin instanceof Carbon
+            ? $fin->copy()->startOfDay()
+            : Carbon::parse($fin)->startOfDay();
+
+        if ($desde->greaterThanOrEqualTo($hasta)) {
             return 0;
         }
 
         $feriados = $this->feriados->map(fn ($f) => Carbon::parse($f)->format('Y-m-d'))->toArray();
 
         $diasRestantes = 0;
-        $cursor = $hoy->copy();
+        $cursor = $desde->copy();
 
-        while ($cursor->lessThan($limite)) {
+        while ($cursor->lessThan($hasta)) {
             $cursor->addDay();
 
             if ($cursor->isWeekend()

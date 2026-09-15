@@ -186,3 +186,74 @@ inventados**. Se reescribió completo alineado al script SQL real.
 - Smoke: el servicio se resuelve vía contenedor con `PlazoCalculatorService`
   inyectado; el mapa se lee correctamente.
 - No se ejecutó `registerActuado` contra la BD real para no insertar datos de prueba.
+
+## 2026-09-09 — US-2.5 — Devolución de Planificación por la Encargada
+
+### Objetivo
+Completar el control jerárquico de la planificación (US-2.4): la Encargada
+puede **devolver con observaciones** el Cronograma/MPA en vez de aprobarlo. El
+expediente vuelve a `EN_PLANIFICACION` y se **reabre su plazo (2 días hábiles)**
+para que el operador corrija; cada ciclo queda auditado como actuado inmutable.
+
+### Cambios realizados
+
+1. **`app/Services/PlanificacionService.php`** — método nuevo
+   `devolverPlanificacion()` (transaccional): valida `PENDIENTE_VISTO_BUENO`,
+   resuelve el operador original (asignación inactiva más reciente) y emite
+   `ACT_DEVOLUCION_OBSERVACION` con la justificación como contenido. Por el
+   `MAPA_TIPO_PLAZO`, el actuado **reabre un plazo `PLANIFICACION` de 2 días**;
+   el plazo anterior queda `CERRADO` como evidencia.
+2. **`app/Http/Requests/DevolverPlanificacionRequest.php`** — `justificacion`
+   required, string, min:10 (`authorize()` → policy `devolverPlanificacion`).
+3. **`PlanificacionController@devolver`** + ruta
+   `POST /api/expedientes/{expediente}/planificacion/devolver`.
+4. **`app/Policies/ExpedientePolicy.php`** — `devolverPlanificacion()` (rol
+   ENCARGADA + estado `PENDIENTE_VISTO_BUENO`).
+5. **Seeders** — actuado `ACT_DEVOLUCION_OBSERVACION` (pivote ENCARGADA,
+   transición `PENDIENTE_VISTO_BUENO`→`EN_PLANIFICACION`).
+6. **`tests/Feature/PlanificacionTest.php`** — devolución en AC054: el
+   expediente retorna a planificar con plazo `PLANIFICACION` VIGENTE de 2 días.
+
+### Verificación
+- `php artisan test --compact` → suite completa en verde (202 tests / 201 ok).
+
+## 2026-09-09 — US-2.6 — Ampliación Única de Plazo de Ejecución (AC-022)
+
+### Objetivo
+Ampliar el plazo de investigación cuando el Técnico (exclusivo **AC-022**) lo
+justifique. Diseño confirmado: la **Encargada** aprueba la única ampliación;
+se cierra el plazo `EJECUCION` original (10 días, queda `CERRADO` como
+evidencia) y se abre `EJECUCION_AMPLIADA` de **15 días hábiles** calculados
+sobre el **vencimiento original** (`calculateDueDate(original, 15)`), no desde
+la aprobación. Mientras la solicitud espera, el reloj **sigue corriendo**.
+
+### Cambios realizados
+
+1. **`app/Services/AmpliacionService.php`** (nuevo) — `solicitarAmpliacion()`
+   (valida AC022, estado `EN_EJECUCION`, sin ampliación previa, reloj VIGENTE)
+   y `aprobarAmpliacion()` (cierra `EJECUCION`→`CERRADO`, emite
+   `ACT_APROBAR_AMPLIACION` con metadatos `fecha_limite_anterior` y
+   `fecha_limite_ampliada`, crea el plazo `EJECUCION_AMPLIADA` referenciando el
+   actuado disparador). Ambos `DB::transaction(..., 3)`.
+2. **`app/Http/Controllers/AmpliacionController.php`** (nuevo) — `solicitar()` y
+   `aprobar()` → 201 con `ActuadoResource` (eager loads).
+3. **Requests** — `SolicitarAmpliacionRequest` (`justificacion` min:10);
+   `AprobarAmpliacionRequest` (solo `authorize()`, reglas vacías: la decisión
+   no recibe datos del frontend).
+4. **`app/Policies/ExpedientePolicy.php`** — `solicitarAmpliacion()` (TECNICO +
+   `EN_EJECUCION` + pivote AC022) y `aprobarAmpliacion()` (ENCARGADA + estado
+   `PENDIENTE_APROBACION_AMPLIACION`).
+5. **Rutas** — `POST /api/expedientes/{expediente}/ampliacion` y
+   `/ampliacion/aprobar`.
+6. **Seeders** — estado `PENDIENTE_APROBACION_AMPLIACION`; actuados
+   `ACT_SOLICITAR_AMPLIACION` (pivote TECNICO/AC022) y `ACT_APROBAR_AMPLIACION`
+   (pivote ENCARGADA); parámetro `EJECUCION_AMPLIADA` = 15 días (AC022).
+7. **`tests/Feature/AmpliacionTest.php`** (nuevo) — 10 casos: solicitud
+   (estado, bandeja→Encargada, reloj sigue VIGENTE), aprobación (EJECUCION
+   CERRADO 10d, EJECUCION_AMPLIADA VIGENTE 15d, fecha_limite 2026-10-15 desde
+   2026-09-24, metadatos, bandeja→Técnico), 403 ×5, 422 (justificación corta /
+   sin plazo VIGENTE / ampliación única).
+
+### Verificación
+- `php artisan test --compact` → **202 tests / 201 passed / 1 skipped**.
+- `vendor/bin/pint --format agent` aplicado sin errores.

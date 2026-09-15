@@ -39,6 +39,7 @@ class ActuadoService
         'ACT_RECHAZO' => 'IMPUGNACION_REMITIR',           // 1 día: el operador remite a la Encargada
         'ACT_REMITIR_IMPUGNACION' => 'IMPUGNACION_RESOLVER', // 3 días: la Encargada resuelve
         'ACT_RESOLUCION_REVOCA_RECHAZO' => 'PLANIFICACION',  // Revocación: retorna a planificación del operador
+        'ACT_DEVOLUCION_OBSERVACION' => 'PLANIFICACION',     // Devolución de la Encargada: reabre el plazo del operador
     ];
 
     /**
@@ -50,6 +51,9 @@ class ActuadoService
      * @param  Carbon|null  $fechaLimiteExplicita  Fecha límite calendario para
      *                                             plazos de límite fijo (ej. MPA de AC054/055): anula el cálculo
      *                                             por días hábiles. `null` conserva el cálculo normativo estándar.
+     * @param  int|null  $estadoNuevoIdExplicito  Estado destino override para
+     *                                            actuados cuyo catálogo no define un destino (RN-10): recibe el
+     *                                            estado actual del expediente como no-op. `null` usa el catálogo.
      */
     public function registerActuado(
         Expediente $expediente,
@@ -61,6 +65,7 @@ class ActuadoService
         ?string $ipOrigen = null,
         ?UploadedFile $adjunto = null,
         ?Carbon $fechaLimiteExplicita = null,
+        ?int $estadoNuevoIdExplicito = null,
     ): Actuado {
         return DB::transaction(function () use (
             $expediente,
@@ -72,6 +77,7 @@ class ActuadoService
             $ipOrigen,
             $adjunto,
             $fechaLimiteExplicita,
+            $estadoNuevoIdExplicito,
         ) {
             if ($catalogoActuado->requiere_adjunto && $adjunto === null) {
                 throw ValidationException::withMessages([
@@ -80,7 +86,7 @@ class ActuadoService
             }
 
             $estadoAnteriorId = $expediente->estado_actual_id;
-            $estadoNuevoId = $catalogoActuado->estado_destino_id;
+            $estadoNuevoId = $estadoNuevoIdExplicito ?? $catalogoActuado->estado_destino_id;
 
             $contenido = array_merge(
                 ['descripcion' => $descripcion],

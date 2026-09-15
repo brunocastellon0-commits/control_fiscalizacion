@@ -6,7 +6,11 @@ use App\Models\CatalogoActuado;
 use App\Models\Expediente;
 use App\Models\Rol;
 use App\Models\Usuario;
+use App\Services\AmpliacionService;
+use App\Services\CierreExpedienteService;
+use App\Services\DescargoFinancieroService;
 use App\Services\PlanificacionService;
+use App\Services\TransparenciaService;
 
 class ExpedientePolicy
 {
@@ -201,5 +205,170 @@ class ExpedientePolicy
         return $user->activo
             && ($user->rol?->codigo ?? null) === Rol::CODIGO_ENCARGADA
             && $expediente->estadoActual?->codigo === PlanificacionService::ESTADO_PENDIENTE_VISTO_BUENO;
+    }
+
+    /**
+     * US-2.5: devolución de la planificación con observaciones. Solo la
+     * Encargada activa sobre un expediente en PENDIENTE_VISTO_BUENO.
+     */
+    public function devolverPlanificacion(Usuario $user, Expediente $expediente): bool
+    {
+        return $user->activo
+            && ($user->rol?->codigo ?? null) === Rol::CODIGO_ENCARGADA
+            && $expediente->estadoActual?->codigo === PlanificacionService::ESTADO_PENDIENTE_VISTO_BUENO;
+    }
+
+    /**
+     * US-2.6: solicitud de ampliación de plazo. Solo el Técnico con la bandeja
+     * activa de un expediente en EN_EJECUCION, cuyo rol corresponda al
+     * reglamento AC022 (pivote del catálogo de actuados).
+     */
+    public function solicitarAmpliacion(Usuario $user, Expediente $expediente): bool
+    {
+        if (! $user->activo) {
+            return false;
+        }
+
+        if ($expediente->estadoActual?->codigo !== AmpliacionService::ESTADO_EJECUCION) {
+            return false;
+        }
+
+        if ($expediente->asignacionActiva?->usuario_id !== $user->id) {
+            return false;
+        }
+
+        $catalogo = CatalogoActuado::where('codigo', AmpliacionService::CODIGO_ACT_SOLICITAR_AMPLIACION)->first();
+
+        return $catalogo?->perteneceAlRolConReglamento(
+            rolId: $user->rol_id,
+            reglamentoId: $expediente->reglamento_id,
+        ) ?? false;
+    }
+
+    /**
+     * US-2.6: aprobación de la ampliación de plazo. Solo la Encargada activa
+     * sobre un expediente en PENDIENTE_APROBACION_AMPLIACION.
+     */
+    public function aprobarAmpliacion(Usuario $user, Expediente $expediente): bool
+    {
+        return $user->activo
+            && ($user->rol?->codigo ?? null) === Rol::CODIGO_ENCARGADA
+            && $expediente->estadoActual?->codigo === AmpliacionService::ESTADO_PENDIENTE_APROBACION_AMPLIACION;
+    }
+
+    /**
+     * E9-S1 (RN-10): derivación de NUREJ Hijo. Solo la Encargada activa
+     * puede crear un expediente derivado a partir de un padre.
+     */
+    public function derivarNurejHijo(Usuario $user, Expediente $expediente): bool
+    {
+        return $user->activo
+            && ($user->rol?->codigo ?? null) === Rol::CODIGO_ENCARGADA;
+    }
+
+    /**
+     * E10-S1: Visto Bueno Final de cierre. Solo la Encargada activa sobre un
+     * expediente en PENDIENTE_VISTO_BUENO_FINAL.
+     */
+    public function aprobarVistoBuenoFinal(Usuario $user, Expediente $expediente): bool
+    {
+        return $user->activo
+            && ($user->rol?->codigo ?? null) === Rol::CODIGO_ENCARGADA
+            && $expediente->estadoActual?->codigo === CierreExpedienteService::ESTADO_PENDIENTE_VISTO_BUENO_FINAL;
+    }
+
+    /**
+     * E10-S2: reparto institucional de cierre. Solo la Encargada activa sobre
+     * un expediente en LISTO_PARA_REPARTO.
+     */
+    public function ejecutarRepartoInstitucional(Usuario $user, Expediente $expediente): bool
+    {
+        return $user->activo
+            && ($user->rol?->codigo ?? null) === Rol::CODIGO_ENCARGADA
+            && $expediente->estadoActual?->codigo === CierreExpedienteService::ESTADO_LISTO_PARA_REPARTO;
+    }
+
+    /**
+     * E5-S5 (RN-09): derivación por incompetencia vía Transparencia. Cualquier
+     * operador operativo (Técnico, Auditor Jurídico, Auditor Financiero) activo
+     * con el expediente en su bandeja; transversal a los acuerdos (pivote con
+     * reglamento_id null). La Encargada lo recibe, no lo puede autogenerar.
+     */
+    public function derivarPorIncompetencia(Usuario $user, Expediente $expediente): bool
+    {
+        if (! $user->activo) {
+            return false;
+        }
+
+        if ($expediente->asignacionActiva?->usuario_id !== $user->id) {
+            return false;
+        }
+
+        $catalogo = CatalogoActuado::where('codigo', TransparenciaService::CODIGO_ACT_DERIVACION)->first();
+
+        return $catalogo?->perteneceAlRolConReglamento(
+            rolId: $user->rol_id,
+            reglamentoId: $expediente->reglamento_id,
+        ) ?? false;
+    }
+
+    /**
+     * E5-S5 (RN-09): remisión a Transparencia. Solo la Encargada activa sobre
+     * un expediente en PENDIENTE_REMISION_TRANSPARENCIA emite la salida.
+     */
+    public function remitirTransparencia(Usuario $user, Expediente $expediente): bool
+    {
+        return $user->activo
+            && ($user->rol?->codigo ?? null) === Rol::CODIGO_ENCARGADA
+            && $expediente->estadoActual?->codigo === TransparenciaService::ESTADO_PENDIENTE_REMISION;
+    }
+
+    /**
+     * E7-S* (RN-09): la comunicación de hallazgos exige al Auditor Financiero
+     * activo, asignado a la bandeja del expediente, en estado EN_EJECUCION,
+     * dentro de la auditoría financiera (AC055).
+     */
+    public function comunicarHallazgos(Usuario $user, Expediente $expediente): bool
+    {
+        return $this->puedeTramitarDescargos($user, $expediente);
+    }
+
+    /**
+     * E7-S* (RN-09): la recepción de descargos comparte los requisitos de
+     * bandeja y competencia de la comunicación de hallazgos.
+     */
+    public function recibirDescargos(Usuario $user, Expediente $expediente): bool
+    {
+        return $this->puedeTramitarDescargos($user, $expediente);
+    }
+
+    /**
+     * Requisitos comunes de la fase de descargos: rol Auditor Financiero
+     * activo, bandeja propia y expediente en ejecución bajo el AC055.
+     */
+    private function puedeTramitarDescargos(Usuario $user, Expediente $expediente): bool
+    {
+        if (! $user->activo) {
+            return false;
+        }
+
+        if (($user->rol?->codigo ?? null) !== Rol::CODIGO_AUD_FINANCIERO) {
+            return false;
+        }
+
+        if ($expediente->estadoActual?->codigo !== DescargoFinancieroService::ESTADO_EJECUCION) {
+            return false;
+        }
+
+        if ($expediente->asignacionActiva?->usuario_id !== $user->id) {
+            return false;
+        }
+
+        $catalogo = CatalogoActuado::where('codigo', DescargoFinancieroService::CODIGO_ACT_COMUNICACION)->first();
+
+        return $catalogo?->perteneceAlRolConReglamento(
+            rolId: $user->rol_id,
+            reglamentoId: $expediente->reglamento_id,
+        ) ?? false;
     }
 }

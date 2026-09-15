@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\DevolverPlanificacionRequest;
 use App\Http\Requests\StorePlanificacionRequest;
 use App\Http\Requests\VistoBuenoPlanificacionRequest;
 use App\Http\Resources\ActuadoResource;
@@ -43,6 +44,22 @@ class PlanificacionController extends Controller
             expediente: $expediente,
             encargada: $request->user(),
             descripcion: $request->input('descripcion'),
+        );
+
+        return (new ActuadoResource($this->cargarRelaciones($actuado)))->response()->setStatusCode(201);
+    }
+
+    /**
+     * US-2.5: la Encargada devuelve la planificación con observaciones; el
+     * expediente retrocede a EN_PLANIFICACION y se reabre su plazo para el
+     * operador original.
+     */
+    public function devolver(DevolverPlanificacionRequest $request, Expediente $expediente): JsonResponse
+    {
+        $actuado = $this->planificacionService->devolverPlanificacion(
+            expediente: $expediente,
+            encargada: $request->user(),
+            justificacion: $request->input('justificacion'),
         );
 
         return (new ActuadoResource($this->cargarRelaciones($actuado)))->response()->setStatusCode(201);

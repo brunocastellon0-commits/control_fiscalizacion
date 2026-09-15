@@ -22,7 +22,9 @@ class SemaforoPlazoService
      * - AMARILLO: plazos cortos (<= 3 días) con exactamente 2 restantes;
      *   plazos largos cuando los restantes caen en el último tercio otorgado.
      * - VERDE: resto.
-     * - Estados no vigentes (CERRADO, SUSPENDIDO, ...) se retornan sin cálculo.
+     * - Estados no vigentes (CERRADO, SUSPENDIDO, ...) se retornan sin cálculo,
+     *   pero conservan el flag persistente fuera_de_plazo estampado por el
+     *   comando diario, para que la penalización sobreviva al cierre del caso.
      *
      * @return array{codigo_color: string, dias_restantes: int|null, porcentaje_consumido: float|null, fecha_limite: string, es_fuera_de_plazo: bool}
      */
@@ -36,7 +38,7 @@ class SemaforoPlazoService
                 'dias_restantes' => null,
                 'porcentaje_consumido' => null,
                 'fecha_limite' => $fechaLimite,
-                'es_fuera_de_plazo' => false,
+                'es_fuera_de_plazo' => (bool) $plazo->fuera_de_plazo,
             ];
         }
 

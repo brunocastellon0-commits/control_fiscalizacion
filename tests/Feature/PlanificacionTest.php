@@ -71,6 +71,18 @@ function planificacionSemilla(): array
         'requiere_adjunto' => false,
     ]);
 
+    $actDevolucion = CatalogoActuado::create([
+        'codigo' => PlanificacionService::CODIGO_ACT_DEVOLUCION,
+        'nombre' => 'Devolución por Observaciones',
+        'fase' => 'PLANIFICACION',
+        'rol_id' => $rolEncargada->id,
+        'reglamento_id' => null,
+        'estado_origen_id' => $pendienteVb->id,
+        'estado_destino_id' => $planificacion->id,
+        'es_automatico' => false,
+        'requiere_adjunto' => false,
+    ]);
+
     DB::table('catalogo_actuado_roles')->insert([
         ['catalogo_actuado_id' => $actCronograma->id, 'rol_id' => $rolTecnico->id, 'reglamento_id' => $ac022->id],
         ['catalogo_actuado_id' => $actMpa->id, 'rol_id' => $rolAudJuridico->id, 'reglamento_id' => $ac054->id],
@@ -95,12 +107,21 @@ function planificacionSemilla(): array
         'activo' => true,
     ]);
 
+    $paramPlanificacionAc054 = ParametroPlazo::create([
+        'reglamento_id' => $ac054->id,
+        'tipo_plazo' => 'PLANIFICACION',
+        'subtipo' => null,
+        'dias_habiles' => 2,
+        'base_legal' => 'AC_054_2018',
+        'activo' => true,
+    ]);
+
     return compact(
         'encargada', 'tecnico', 'otroTecnico', 'audJuridico',
         'ac022', 'ac054',
         'planificacion', 'pendienteVb', 'ejecucion',
-        'actCronograma', 'actMpa', 'actVb',
-        'paramPlanificacion', 'paramEjecucion',
+        'actCronograma', 'actMpa', 'actVb', 'actDevolucion',
+        'paramPlanificacion', 'paramEjecucion', 'paramPlanificacionAc054',
     );
 }
 
@@ -415,5 +436,118 @@ it('devuelve 403 si se intenta cargar planificación fuera del estado EN_PLANIFI
     $this->postJson("/api/expedientes/{$expediente->id}/planificacion", [
         'descripcion' => 'Carga de planificación fuera de estado (test).',
         'adjunto' => UploadedFile::fake()->create('plan.pdf', 100, 'application/pdf'),
+    ])->assertForbidden();
+});
+
+it('la Encargada devuelve el Cronograma con observaciones: EN_PLANIFICACION, bandeja al Técnico y plazo de 2 días nuevo', function () {
+    Carbon::setTestNow('2026-09-10 10:00:00');
+    Storage::fake('local');
+
+    $semilla = planificacionSemilla();
+    $expediente = planificacionCrearExpediente($semilla['planificacion']->id, $semilla['ac022']->id, 'TECNICO', $semilla['tecnico']->id);
+    planificacionAsignar($expediente, $semilla['tecnico']);
+    planificacionPlazoVigente($expediente, $semilla['paramPlanificacion']);
+
+    Sanctum::actingAs($semilla['tecnico'], ['*']);
+
+    $this->postJson("/api/expedientes/{$expediente->id}/planificacion", [
+        'descripcion' => 'Cronograma de investigacion con las etapas previstas (test).',
+        'adjunto' => UploadedFile::fake()->create('cronograma.pdf', 100, 'application/pdf'),
+    ])->assertCreated();
+
+    Sanctum::actingAs($semilla['encargada'], ['*']);
+
+    $this->postJson("/api/expedientes/{$expediente->id}/planificacion/devolver", [
+        'justificacion' => 'El Cronograma omite el alcance de la investigacion y debe corregirse (test).',
+    ])->assertCreated()
+        ->assertJsonPath('data.tipo_actuado.codigo', PlanificacionService::CODIGO_ACT_DEVOLUCION)
+        ->assertJsonPath('data.estado_nuevo.codigo', 'EN_PLANIFICACION');
+
+    $expediente->refresh();
+
+    expect($expediente->estado_actual_id)->toBe($semilla['planificacion']->id);
+
+    $asignacionActiva = $expediente->asignacionActiva()->first();
+    expect($asignacionActiva)->not->toBeNull()
+        ->and($asignacionActiva->usuario_id)->toBe($semilla['tecnico']->id);
+
+    $plazosPlanificacion = $expediente->plazos()->where('tipo_plazo', 'PLANIFICACION')->get();
+    expect($plazosPlanificacion)->toHaveCount(2)
+        ->and($plazosPlanificacion->where('estado', 'CERRADO'))->toHaveCount(1)
+        ->and($plazosPlanificacion->where('estado', 'VIGENTE'))->toHaveCount(1)
+        ->and($plazosPlanificacion->where('estado', 'VIGENTE')->first()->dias_habiles_otorgados)->toBe(2);
+
+    $actuadoDevolucion = $expediente->actuados()
+        ->whereHas('tipoActuado', fn ($query) => $query->where('codigo', PlanificacionService::CODIGO_ACT_DEVOLUCION))
+        ->first();
+
+    expect($actuadoDevolucion)->not->toBeNull()
+        ->and($actuadoDevolucion->usuario_id)->toBe($semilla['encargada']->id)
+        ->and($actuadoDevolucion->estado_anterior_id)->toBe($semilla['pendienteVb']->id)
+        ->and($actuadoDevolucion->estado_nuevo_id)->toBe($semilla['planificacion']->id)
+        ->and($actuadoDevolucion->contenido['descripcion'])->toBe('El Cronograma omite el alcance de la investigacion y debe corregirse (test).')
+        ->and($actuadoDevolucion->contenido['usuario_destino_id'])->toBe($semilla['tecnico']->id);
+
+    $asignacionesTecnico = $expediente->asignaciones()->where('usuario_id', $semilla['tecnico']->id)->get();
+    expect($asignacionesTecnico->where('activa', true))->toHaveCount(1);
+
+    Carbon::setTestNow();
+});
+
+it('la Encargada devuelve el MPA de AC054 y la bandeja vuelve al Auditor Jurídico', function () {
+    Carbon::setTestNow('2026-09-10 10:00:00');
+    Storage::fake('local');
+
+    $semilla = planificacionSemilla();
+    $expediente = planificacionCrearExpediente($semilla['planificacion']->id, $semilla['ac054']->id, 'JURIDICO', $semilla['audJuridico']->id);
+    planificacionAsignar($expediente, $semilla['audJuridico']);
+
+    Sanctum::actingAs($semilla['audJuridico'], ['*']);
+
+    $this->postJson("/api/expedientes/{$expediente->id}/planificacion", [
+        'descripcion' => 'MPA con el alcance de la auditoria y su cronograma (test).',
+        'fecha_limite_propuesta' => '2026-10-15',
+        'adjunto' => UploadedFile::fake()->create('mpa.pdf', 100, 'application/pdf'),
+    ])->assertCreated();
+
+    Sanctum::actingAs($semilla['encargada'], ['*']);
+
+    $this->postJson("/api/expedientes/{$expediente->id}/planificacion/devolver", [
+        'justificacion' => 'El MPA no cubre las pruebas de control interno exigidas (test).',
+    ])->assertCreated()
+        ->assertJsonPath('data.tipo_actuado.codigo', PlanificacionService::CODIGO_ACT_DEVOLUCION)
+        ->assertJsonPath('data.estado_nuevo.codigo', 'EN_PLANIFICACION');
+
+    $expediente->refresh();
+
+    expect($expediente->estado_actual_id)->toBe($semilla['planificacion']->id);
+
+    $asignacionActiva = $expediente->asignacionActiva()->first();
+    expect($asignacionActiva)->not->toBeNull()
+        ->and($asignacionActiva->usuario_id)->toBe($semilla['audJuridico']->id);
+
+    $plazoPlanificacion = $expediente->plazos()->where('tipo_plazo', 'PLANIFICACION')->where('estado', 'VIGENTE')->first();
+    expect($plazoPlanificacion)->not->toBeNull()
+        ->and($plazoPlanificacion->dias_habiles_otorgados)->toBe(2);
+
+    Carbon::setTestNow();
+});
+
+it('devuelve 403 si un operador intenta usar el endpoint de devolución', function () {
+    Storage::fake('local');
+
+    $semilla = planificacionSemilla();
+    $expediente = planificacionCrearExpediente($semilla['planificacion']->id, $semilla['ac022']->id, 'TECNICO', $semilla['tecnico']->id);
+    planificacionAsignar($expediente, $semilla['tecnico']);
+
+    Sanctum::actingAs($semilla['tecnico'], ['*']);
+
+    $this->postJson("/api/expedientes/{$expediente->id}/planificacion", [
+        'descripcion' => 'Cronograma de investigacion con las etapas previstas (test).',
+        'adjunto' => UploadedFile::fake()->create('cronograma.pdf', 100, 'application/pdf'),
+    ])->assertCreated();
+
+    $this->postJson("/api/expedientes/{$expediente->id}/planificacion/devolver", [
+        'justificacion' => 'Intento de devolución por parte de un operador (test).',
     ])->assertForbidden();
 });

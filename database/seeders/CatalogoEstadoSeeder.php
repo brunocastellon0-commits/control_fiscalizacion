@@ -12,6 +12,11 @@ class CatalogoEstadoSeeder extends Seeder
      */
     public function run(): void
     {
+        // Renombrado a PENDIENTE_VISTO_BUENO_FINAL (E10-S1): el prefijo PENDIENTE_
+        // indica que la pelota está en la bandeja de la Encargada. Depura el
+        // código heredado EN_VISTO_BUENO_FINAL para entornos ya migrados.
+        CatalogoEstado::where('codigo', 'EN_VISTO_BUENO_FINAL')->delete();
+
         $estados = [
             ['codigo' => 'PENDIENTE_SORTEO', 'nombre' => 'Pendiente de Sorteo', 'padre' => null, 'es_final' => false],
             ['codigo' => 'EN_EVALUACION', 'nombre' => 'En Evaluación', 'padre' => null, 'es_final' => false],
@@ -26,8 +31,11 @@ class CatalogoEstadoSeeder extends Seeder
             ['codigo' => 'EN_PLANIFICACION', 'nombre' => 'En Planificación', 'padre' => null, 'es_final' => false],
             ['codigo' => 'PENDIENTE_VISTO_BUENO', 'nombre' => 'Pendiente de Visto Bueno', 'padre' => null, 'es_final' => false],
             ['codigo' => 'EN_EJECUCION', 'nombre' => 'En Ejecución', 'padre' => null, 'es_final' => false],
-            ['codigo' => 'EN_VISTO_BUENO_FINAL', 'nombre' => 'En Visto Bueno Final', 'padre' => null, 'es_final' => false],
+            ['codigo' => 'PENDIENTE_APROBACION_AMPLIACION', 'nombre' => 'Pendiente de Aprobación de Ampliación', 'padre' => null, 'es_final' => false],
+            ['codigo' => 'PENDIENTE_VISTO_BUENO_FINAL', 'nombre' => 'Pendiente de Visto Bueno Final', 'padre' => null, 'es_final' => false],
+            ['codigo' => 'LISTO_PARA_REPARTO', 'nombre' => 'Listo para Reparto', 'padre' => null, 'es_final' => false],
             ['codigo' => 'CONCLUIDO_REMITIDO', 'nombre' => 'Concluido y Remitido', 'padre' => null, 'es_final' => true],
+            ['codigo' => 'PENDIENTE_REMISION_TRANSPARENCIA', 'nombre' => 'Pendiente de Remisión a Transparencia', 'padre' => null, 'es_final' => false],
             ['codigo' => 'DERIVADO_TRANSPARENCIA', 'nombre' => 'Derivado a Transparencia', 'padre' => null, 'es_final' => true],
             ['codigo' => 'ARCHIVO_POR_ABANDONO', 'nombre' => 'Archivo por Abandono', 'padre' => null, 'es_final' => true],
             ['codigo' => 'EN_IMPUGNACION', 'nombre' => 'En Impugnación', 'padre' => null, 'es_final' => false],

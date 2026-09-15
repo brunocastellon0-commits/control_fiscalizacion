@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\DerivarNurejHijoRequest;
 use App\Http\Requests\SortearExpedienteRequest;
 use App\Http\Requests\SortearTodosRequest;
 use App\Http\Requests\StoreExpedienteRequest;
@@ -9,6 +10,7 @@ use App\Http\Resources\ExpedienteResource;
 use App\Models\CatalogoEstado;
 use App\Models\Expediente;
 use App\Services\ExpedienteService;
+use App\Services\NurejHijoService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -18,6 +20,7 @@ class ExpedienteController extends Controller
 {
     public function __construct(
         protected ExpedienteService $expedienteService,
+        protected NurejHijoService $nurejHijoService,
     ) {}
 
     /**
@@ -134,6 +137,30 @@ class ExpedienteController extends Controller
             'total' => count($resultados),
             'resultados' => $resumen,
         ]);
+    }
+
+    /**
+     * E9-S1 (RN-10): la Encargada deriva un NUREJ Hijo a partir de un
+     * expediente padre. El hijo hereda los metadatos informativos (via,
+     * reglamento, resumen de hechos, partes) pero nace en PENDIENTE_SORTEO
+     * con su línea de tiempo en cero: sin actuados, plazos ni asignaciones
+     * del padre. El padre conserva su estado actual.
+     */
+    public function derivarNurejHijo(DerivarNurejHijoRequest $request, Expediente $expediente): JsonResponse
+    {
+        $hijo = $this->nurejHijoService->crearHijo(
+            padre: $expediente,
+            encargada: $request->user(),
+            motivo: $request->input('motivo'),
+            ipOrigen: $request->ip(),
+        );
+
+        return (new ExpedienteResource($hijo->load([
+            'reglamento',
+            'estadoActual',
+            'creador',
+            'partesVigentes',
+        ])))->response()->setStatusCode(201);
     }
 
     /**
