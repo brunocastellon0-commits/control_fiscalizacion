@@ -11,13 +11,28 @@ class UsuarioPolicy
      * Catálogo de usuarios operativos para el sorteo.
      * Solo la Encargada activa puede consultarlo (least privilege).
      */
-    public function viewOperativos(Usuario $user): bool
+    //* codigo 1
+    // public function viewOperativos(Usuario $user): bool
+    // {
+    //     if (!$user->activo) {
+    //         return false;
+    //     }
+
+    //     return ($user->rol?->codigo ?? null) === Rol::CODIGO_ENCARGADA;
+    // }
+    //* nuevo codigo
+    public function viewOperativos(Usuario $usuario): bool
     {
-        if (! $user->activo) {
+        if (!$usuario->activo) {
             return false;
         }
 
-        return ($user->rol?->codigo ?? null) === Rol::CODIGO_ENCARGADA;
+        $rol = $usuario->rol?->codigo;
+
+        return in_array($rol, [
+            Rol::CODIGO_ENCARGADA,
+            Rol::CODIGO_ADMIN,
+        ], true);
     }
 
     /**
@@ -29,4 +44,25 @@ class UsuarioPolicy
     {
         return $admin->activo && ($admin->rol?->codigo ?? null) === Rol::CODIGO_ADMIN;
     }
+
+
+    /**
+     * Reactivación de un usuario previamente inactivado. Mismo criterio que
+     * inactivar: solo un ADMIN activo.
+     */
+    public function activar(Usuario $admin, Usuario $objetivo): bool
+    {
+        return $admin->activo && ($admin->rol?->codigo ?? null) === Rol::CODIGO_ADMIN;
+    }
+
+    /**
+     * Gestión administrativa completa del catálogo de usuarios (listado sin
+     * restricción de rol/estado, creación y edición de cuentas). Módulo
+     * Administrador -> Usuarios. Solo un ADMIN activo.
+     */
+    public function gestionar(Usuario $user): bool
+    {
+        return $user->activo && ($user->rol?->codigo ?? null) === Rol::CODIGO_ADMIN;
+    }
+
 }

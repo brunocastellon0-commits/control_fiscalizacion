@@ -35,7 +35,7 @@ class SeguridadSesionesService
     public function expulsar(Usuario $admin, Usuario $objetivo, ?string $ipOrigen = null): void
     {
         DB::transaction(function () use ($admin, $objetivo, $ipOrigen) {
-            if (! $objetivo->activo) {
+            if (!$objetivo->activo) {
                 throw ValidationException::withMessages([
                     'usuario' => 'El usuario objetivo ya se encuentra inactivo.',
                 ]);
@@ -61,4 +61,32 @@ class SeguridadSesionesService
             ]);
         });
     }
+
+    /**
+     * Reactiva a un usuario previamente inactivado. No revoca ni restaura
+     * tokens/sesiones (fueron purgados en la inactivación); el usuario
+     * simplemente vuelve a poder autenticarse. Deja registro auditable.
+     *
+     * @param  Usuario  $admin  Funcionario ADMIN que ejecuta la acción.
+     */
+    public function reactivar(Usuario $admin, Usuario $objetivo, ?string $ipOrigen = null): void
+    {
+        DB::transaction(function () use ($admin, $objetivo, $ipOrigen) {
+            if ($objetivo->activo) {
+                throw ValidationException::withMessages([
+                    'usuario' => 'El usuario objetivo ya se encuentra activo.',
+                ]);
+            }
+
+            $objetivo->update(['activo' => true]);
+
+            AuditoriaUsuario::create([
+                'admin_id' => $admin->id,
+                'usuario_objetivo_id' => $objetivo->id,
+                'accion' => AuditoriaUsuario::ACCION_ACTIVACION,
+                'ip_origen' => $ipOrigen,
+            ]);
+        });
+    }
+
 }

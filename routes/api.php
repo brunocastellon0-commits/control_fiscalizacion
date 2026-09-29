@@ -2,6 +2,10 @@
 
 use App\Http\Controllers\ActuadoController;
 use App\Http\Controllers\AdjuntoController;
+use App\Http\Controllers\Administrador\AdminDashboardController;
+use App\Http\Controllers\Administrador\AdminFeriadosController;
+use App\Http\Controllers\Administrador\AdminMonitoreoController;
+use App\Http\Controllers\Administrador\AdminUsuariosController;
 use App\Http\Controllers\AmpliacionController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CatalogoActuadoController;
@@ -9,6 +13,7 @@ use App\Http\Controllers\CatalogoEstadoController;
 use App\Http\Controllers\CierreExpedienteController;
 use App\Http\Controllers\DescargoFinancieroController;
 use App\Http\Controllers\EvaluacionAdmisibilidadController;
+use App\Http\Controllers\Encargada\EncargadaDashboardController;
 use App\Http\Controllers\ExpedienteController;
 use App\Http\Controllers\ImpugnacionController;
 use App\Http\Controllers\PlanificacionController;
@@ -48,6 +53,8 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::get('/expedientes/{expediente}', [ExpedienteController::class, 'show']);
     Route::post('/expedientes/{expediente}/sortear', [ExpedienteController::class, 'sortear']);
     Route::post('/expedientes/{expediente}/actuados', [ActuadoController::class, 'store']);
+
+    // Evaluación de admisibilidad
     Route::get('/expedientes/{expediente}/requisitos', [EvaluacionAdmisibilidadController::class, 'requisitos']);
     Route::post('/expedientes/{expediente}/evaluacion', [EvaluacionAdmisibilidadController::class, 'store']);
 
@@ -78,4 +85,28 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     // Descargos de auditoría financiera (E7-S*, RN-09, AC055)
     Route::post('/expedientes/{expediente}/descargos/comunicar', [DescargoFinancieroController::class, 'comunicar']);
     Route::post('/expedientes/{expediente}/descargos/recibir', [DescargoFinancieroController::class, 'recibir']);
+
+    // Dashboard operativo de la Encargada
+    Route::get('/encargada/dashboard', [EncargadaDashboardController::class, 'index']);
+
+    // -------------------------------------
+    // ADMINISTRADOR
+    // -------------------------------------
+    Route::get('/admin/dashboard', [AdminDashboardController::class, 'index']);
+
+    // Gestión de usuarios (RF Administrador)
+    Route::get('/admin/usuarios', [AdminUsuariosController::class, 'index']);
+    Route::post('/admin/usuarios', [AdminUsuariosController::class, 'store']);
+    Route::put('/admin/usuarios/{usuario}', [AdminUsuariosController::class, 'update']);
+    Route::post('/admin/usuarios/{usuario}/activar', [AdminUsuariosController::class, 'activar']);
+    Route::post('/admin/usuarios/{usuario}/inactivar', [UsuarioController::class, 'inactivar']);
+
+    // Gestión de feriados
+    Route::get('/admin/feriados', [AdminFeriadosController::class, 'index']);
+    Route::post('/admin/feriados', [AdminFeriadosController::class, 'store']);
+    Route::put('/admin/feriados/{feriado}', [AdminFeriadosController::class, 'update']);
+    Route::delete('/admin/feriados/{feriado}', [AdminFeriadosController::class, 'destroy']);
+
+    // Monitoreo administrativo
+    Route::get('/admin/monitoreo', [AdminMonitoreoController::class, 'index']);
 });
