@@ -90,7 +90,8 @@ class ExpedienteService
     /**
      * Sorteo ciego del expediente (rol ENCARGADA).
      *
-     * En una única transacción: valida que la causa esté en PENDIENTE_SORTEO,
+     * En una única transacción: bloquea la causa con lock pesimista para
+     * serializar sorteos concurrentes, valida que esté en PENDIENTE_SORTEO,
      * ejecuta el algoritmo probabilístico (que incrementa el peso del ganador
      * en `sorteo_pesos`) y emite ACT_SORTEO_INICIAL hacia el ganador, lo que
      * transiciona a EN_EVALUACION y abre el plazo natural. Si cualquiera de
@@ -106,6 +107,11 @@ class ExpedienteService
     ): Usuario {
         return DB::transaction(function () use ($expediente, $encargada, $descripcion, $ipOrigen) {
             $estadoPendiente = CatalogoEstado::where('codigo', 'PENDIENTE_SORTEO')->firstOrFail();
+
+            // Serializa el sorteo de una misma causa: el primer lock avanza;
+            // los demás releen el estado ya committeado (EN_EVALUACION) y se
+            // rechazan, evitando múltiples ACT_SORTEO_INICIAL ganadores.
+            $expediente = Expediente::whereKey($expediente->id)->lockForUpdate()->firstOrFail();
 
             if ($expediente->estado_actual_id !== $estadoPendiente->id) {
                 throw ValidationException::withMessages([
