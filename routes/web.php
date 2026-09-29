@@ -1,15 +1,13 @@
 <?php
 
-use App\Http\Controllers\WorkstationController;
-use Illuminate\Support\Facades\Route;
-
-//*ADMINISTRADOR
 use App\Http\Controllers\Administrador\DashboardController;
-use App\Http\Middleware\EnsureAdmin;
-use App\Http\Controllers\Administrador\UsuariosController;
 use App\Http\Controllers\Administrador\FeriadosController;
 use App\Http\Controllers\Administrador\MonitoreoController;
-
+use App\Http\Controllers\Administrador\UsuariosController;
+use App\Http\Controllers\Encargada\DashboardController as EncargadaDashboardController;
+use App\Http\Controllers\WorkstationController;
+use App\Http\Middleware\EnsureAdmin;
+use Illuminate\Support\Facades\Route;
 
 Route::get('/login', function () {
     return view('auth.login');
@@ -24,7 +22,19 @@ Route::middleware('auth')->group(function () {
     Route::get('/expedientes/{expediente}', [WorkstationController::class, 'detalle'])->name('expedientes.detalle');
 });
 
+/*
+|--------------------------------------------------------------------------
+| ENCARGADA
+|--------------------------------------------------------------------------
+*/
 
+Route::middleware('auth')
+    ->prefix('encargada')
+    ->name('encargada.')
+    ->group(function () {
+        Route::get('/dashboard', [EncargadaDashboardController::class, 'index'])
+            ->name('dashboard');
+    });
 
 /*
 |--------------------------------------------------------------------------
@@ -50,7 +60,6 @@ Route::middleware(['auth', EnsureAdmin::class])
             ->name('monitoreo');
 
     });
-
 
 // Route::middleware(['auth'])->prefix('administrador')->group(function () {
 

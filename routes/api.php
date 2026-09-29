@@ -2,22 +2,18 @@
 
 use App\Http\Controllers\ActuadoController;
 use App\Http\Controllers\AdjuntoController;
+use App\Http\Controllers\Administrador\AdminDashboardController;
+use App\Http\Controllers\Administrador\AdminFeriadosController;
+use App\Http\Controllers\Administrador\AdminMonitoreoController;
 use App\Http\Controllers\Administrador\AdminUsuariosController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CatalogoActuadoController;
 use App\Http\Controllers\CatalogoEstadoController;
+use App\Http\Controllers\Encargada\EncargadaDashboardController;
 use App\Http\Controllers\ExpedienteController;
 use App\Http\Controllers\ReglamentoController;
 use App\Http\Controllers\UsuarioController;
-
-//* ADMINISTRADOR
-use App\Http\Controllers\Administrador\AdminFeriadosController;
-use App\Http\Controllers\Administrador\AdminMonitoreoController;
-
-
 use Illuminate\Support\Facades\Route;
-
-use App\Http\Controllers\Administrador\AdminDashboardController;
 
 // Ruta pública para iniciar sesión (con rate limiting anti fuerza bruta)
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
@@ -51,8 +47,11 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::post('/expedientes/{expediente}/sortear', [ExpedienteController::class, 'sortear']);
     Route::post('/expedientes/{expediente}/actuados', [ActuadoController::class, 'store']);
 
+    // Dashboard operativo de la Encargada.
+    Route::get('/encargada/dashboard', [EncargadaDashboardController::class, 'index']);
+
     // -------------------------------------
-    //* ADMINISTRADOR
+    // * ADMINISTRADOR
     // -------------------------------------
     Route::get('/admin/dashboard', [AdminDashboardController::class, 'index']);
 
