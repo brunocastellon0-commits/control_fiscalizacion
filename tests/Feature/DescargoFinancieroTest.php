@@ -155,6 +155,11 @@ function descargoHabilitarFeriadosProcesales(): void
 }
 
 it('ciclo completo: comunicar pausa EJECUCION y abre el sub-reloj de 5 días hábiles; recibir lo cierra y reanuda el reloj', function () {
+    // AUD-0002: el test fue escrito para "hoy ≈ 2026-09-15" sin congelar el
+    // reloj; se congela esa fecha para que las expectativas de fecha fija
+    // (:188 y :208) sean deterministas. El servicio NO se modifica.
+    Carbon\Carbon::setTestNow('2026-09-15 10:00:00');
+
     Storage::fake('local');
     descargoHabilitarFeriadosProcesales();
 
@@ -206,6 +211,8 @@ it('ciclo completo: comunicar pausa EJECUCION y abre el sub-reloj de 5 días há
         ->and($plazoEjecucion->estado)->toBe(DescargoFinancieroService::ESTADO_PLAZO_VIGENTE)
         ->and($plazoEjecucion->fecha_reanudacion)->not->toBeNull()
         ->and($plazoEjecucion->fecha_limite->format('Y-m-d'))->toBe('2026-09-25');
+
+    Carbon\Carbon::setTestNow();
 });
 
 it('el informe final financiero exige la fase de descargos previa y se emite tras recibirlos (Bloqueo de Salida)', function () {

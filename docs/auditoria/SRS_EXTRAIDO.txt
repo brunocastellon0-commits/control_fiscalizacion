@@ -1,0 +1,446 @@
+﻿A: Dra. Pamela Alcocer Villarroel
+REPRESENTANTE DISTRITAL
+CONSEJO DE LA MAGISTRATURA - COCHABAMBA
+VIA: Ing. Eduardo Mauricio Cartagena Carmona
+ENCARGADO DE INFORMÁTICA
+CONSEJO DE LA MAGISTRATURA - COCHABAMBA
+DE: Ing. Alex Alain Pedraza Peña
+ADMINISTRADOR DE SISTEMAS
+CONSEJO DE LA MAGISTRATURA – COCHABAMBA
+Documento de Análisis de Requerimientos y Especificación de Software (SRS)
+Proyecto: Sistema de Control y Fiscalización Institucional
+Unidad: Unidad de Control y Fiscalización
+
+ANÁLISIS DE REQUERIMIENTO DE SOFTWARE.
+Introducción
+El presente Documento de Especificación de Requisitos de Software (SRS) define de manera exhaustiva las características funcionales, reglas de negocio, restricciones operativas y requerimientos técnicos para el desarrollo e implementación del "Sistema de Control y Fiscalización".
+Su propósito es servir como el marco técnico y lógico fundamental que garantice que el software a construir responda a las necesidades operativas de la Unidad. Este documento establece un entendimiento común entre las autoridades institucionales y el equipo de desarrollo, asegurando que la digitalización del proceso integral de gestión cumpla con los más altos estándares de trazabilidad, inmutabilidad legal y eficiencia administrativa.
+Antecedentes
+Durante su funcionamiento, la Unidad de Control y Fiscalización ha manejado la totalidad de su carga procesal mediante métodos manuales. Desde el ingreso de una nueva solicitud hasta la finalización del informe final, el registro histórico y la gestión diaria han dependido exclusivamente de libros físicos de registro y carpetas impresas. Las derivaciones de casos entre el Encargado, Técnicos, Auditor Juridico y Auditor Financiero, así como las transferencias a otras unidades, se realizaban de manera presencial, y el control de los tiempos procedimentales se llevaba a cabo mediante anotaciones en calendarios de escritorio o memorándums físicos. Esta metodología, aunque funcional en sus inicios, ha llegado a su límite operativo frente a la exigencia actual de celeridad, transparencia y auditoría institucional.
+Planteamiento del Problema
+La dependencia de un modelo de gestión análogo y físico genera vulnerabilidades críticas para el Consejo de la Magistratura, específicamente en el control de los plazos perentorios dictados por la normativa. Al existir tres reglamentos con tiempos de respuesta estrictos e independientes (Acuerdo N° 022/2018 para faltas procedimentales, Acuerdo N° 54/2018 para auditorías jurídicas y Acuerdo N° 55/2018 para auditorías financieras), el control manual mediante calendarios de escritorio representa un riesgo inminente de caducidad de procesos, pérdida de trazabilidad, extravío de fojas y una imposibilidad técnica para que la Jefatura obtenga reportes gerenciales en tiempo real sobre el estado de las investigaciones y el rendimiento de su personal:
+Inexistencia de trazabilidad y vulnerabilidad: El uso de libros físicos no permite auditar de manera confiable quién tuvo acceso a un expediente, cuándo lo recibió o si la información fue alterada, comprometiendo la integridad legal de los procesos.
+Cálculo manual de plazos (Riesgo legal): El control de los tiempos de investigación y subsanación conlleva un alto margen de error humano al descontar fines de semana y feriados, exponiendo a la institución a vicios de nulidad por caducidad.
+Opacidad operativa: Imposibilidad de conocer en tiempo real la ubicación exacta de un caso (en qué fase procesal se encuentra) o de medir la carga laboral de los técnicos.
+Deterioro y pérdida física: Alto riesgo de extravío de documentos, deterioro por el tiempo o daño accidental de la información histórica que sustenta las resoluciones.
+Justificación del Proyecto
+El desarrollo e implementación del "Sistema Integral de Control y Fiscalización" se justifica como una medida urgente de modernización tecnológica e institucional. La digitalización del flujo de trabajo eliminará el riesgo de manipulación de fechas, garantizará la inmutabilidad del historial de los expedientes (cadena de custodia) y dotará a la Encargada de la Unidad de un panel de control automatizado. Esto permitirá una fiscalización oportuna, separando y respetando la autonomía investigativa de los Usuarios Técnicos, Auditores Jurídicos y Auditores Financieros bajo un único ecosistema digital.
+
+Objetivos del Sistema
+ Objetivo General
+Diseñar, desarrollar e implementar un Sistema Integral informático basado en arquitectura Cliente - Servidor que automatice el registro, enrutamiento, seguimiento y cierre de los procesos de fiscalización y auditoría de la Unidad de Control y Fiscalización, garantizando el cumplimiento estricto de los plazos legales, la seguridad de la información y la generación de reportes gerenciales en tiempo real.
+
+ Objetivos Específicos del Software
+Para dar cumplimiento al objetivo general y garantizar la viabilidad técnica y legal del proyecto, se establecen los siguientes objetivos específicos:
+Estandarizar y digitalizar los procesos actuales de control mediante un motor central de "Actuados Inmutables" (Arquitectura Orientada a Eventos) que registre de forma permanente y auditable cada movimiento, edición o transición del proceso.
+Automatizar el control y cálculo de plazos procesales, parametrizando el sistema para que descuente de forma autónoma días no hábiles (fines de semana, feriados oficiales y suspensiones excepcionales institucionales).
+Centralizar la documentación probatoria en formato digital, permitiendo la carga, almacenamiento seguro y visualización de múltiples archivos anexos por cada actuado generado.
+Restringir el flujo de información mediante un sistema de "Bandejas de Entrada" y perfiles de usuario, garantizando que cada expediente solo sea visualizado y operado por el profesional legalmente asignado (Técnico, Auditor Jurídico o Auditor Financiero), preservando la confidencialidad.
+Proveer una interfaz intuitiva y tableros estadísticos (Dashboards) automatizados que faciliten a la Jefatura la toma de decisiones en tiempo real, el monitoreo del rendimiento del personal y la distribución equitativa de la carga laboral.
+ Alcance del Proyecto
+El proyecto abarcará el desarrollo, pruebas e implementación de un sistema informático en entorno servidor - cliente (Intranet) diseñado exclusivamente para la Unidad de Control y Fiscalización.
+Dentro del Alcance:
+Gestión de Solicitudes: Registro unificado de denuncias y derivaciones, con generación automática de Número Único de Registro (NUREJ Padre e Hijo).
+Arquitectura de Sorteo y Enrutamiento: Sistema de bandejas de entrada que distribuye la carga laboral hacia los tres motores independientes de evaluación (Usuario Técnico, Auditor Jurídico y Auditor Financiero).
+Calculadora de Plazos Procesales: Motor automatizado que descuenta días no hábiles y controla los tiempos perentorios específicos de los Acuerdos N° 022/2018, 54/2018 y 55/2018.
+Control de Trazabilidad: Implementación de un catálogo de "Actuados Inmutables" para garantizar el registro histórico, auditable y permanente de cada transición del proceso.
+Módulo de Reportes: Generación de tableros operativos y estadísticos para el monitoreo de la carga laboral por parte de la Jefatura.
+
+Fuera del Alcance:
+Interoperabilidad Externa: La integración, consumo de datos vía API o validación automatizada con sistemas externos (como SEGIP, Contraloría General del Estado, o sistemas de otras carteras de Estado) no está incluida en esta fase para evitar dependencias tecnológicas de terceros. El sistema operará de manera aislada y segura en la red LAN institucional.
+Fase Jurisdiccional y Sancionatoria: El flujo del sistema concluye estrictamente con la emisión de los Informes Finales y la remisión de la denuncia. El software no administrará las fases de juicio, dictado de sentencias, apelaciones ni ejecución de sanciones, dado que estas son competencias exclusivas de los Juzgados Disciplinarios y Autoridades Sumariantes.
+Metodología de Desarrollo y Estrategia Incremental.
+Para el diseño, construcción e implementación del "Sistema Integral de Control y Fiscalización", se aplicará una Metodología Híbrida (Water-Scrum-Fall) bajo un Modelo de Desarrollo Incremental. Esta decisión arquitectónica responde a la criticidad normativa del proyecto, equilibrando la rigurosidad legal exigida en el sector público con la eficiencia del desarrollo de software moderno:
+
+Fase Inicial Predictiva (Water / Cascada):
+
+Dado que el sistema está sujeto a normativas inamovibles (Acuerdos N° 022/2018, N° 54/2018 y N° 55/2018, Ley SAFCO y Ley 025), la fase inicial requiere un levantamiento exhaustivo y estricto de requisitos. En esta etapa se definen las reglas de negocio, los diagramas de flujo de los tres motores de auditoría y la delimitación de competencias, documentando todo formalmente en el presente SRS antes de la programación para garantizar el cumplimiento legal absoluto.
+
+ Fase de Construcción Ágil (Scrum + Modelo Incremental):
+La codificación (utilizando el framework Laravel y bases de datos relacionales en PostgreSQL con soporte JSONB para auditoría) no se realizará de manera monolítica, sino a través de un Modelo Incremental gestionado mediante iteraciones cortas. El sistema se construirá y validará en los siguientes incrementos funcionales:
+
+Incremento 1 (Ingreso y Enrutamiento): Registro digital unificado de solicitudes, generación de Número Único (NUREJ Padre), motor de sorteo a la bandeja correspondiente (Técnico, Jurídico o Financiero) y reportes básicos de ingreso. Reemplazo definitivo de los libros físicos y excels.
+Incremento 2 (Fase Investigativa y Tiempos): Construcción del catálogo de "Actuados Inmutables" (Admisión, Observación, Rechazo, Derivación a NUREJ Hijo), módulo de Visto Bueno jerárquico y activación de las tres Calculadoras de Plazos Hábiles independientes según el reglamento de cada perfil.
+Incremento 3 (Resolución y Cierre): Gestión de ampliaciones de plazo, fase de descargos (específica para el Auditor Financiero), carga de Informes Finales con anexos probatorios y ejecución de los actuados de cierre con salidas legales independientes.
+Incremento 4 (Monitoreo y Administración): Paneles de control (Dashboards) para la Encargada, reportes gerenciales avanzados de carga laboral, y módulo de administración autónoma de parámetros (registro de feriados, suspensiones de plazo y gestión de usuarios).
+.
+Fase de Cierre Formal (Fall / Cascada):
+Previo al paso a producción, el proyecto retorna a un esquema rígido para cumplir con los estándares de calidad del Consejo de la Magistratura. Esta fase incluye la ejecución de Pruebas de Aceptación de Usuario (UAT) exhaustivas con el personal de la Unidad, la validación de la inmutabilidad de los registros en la base de datos y el despliegue final seguro en los servidores locales de la institución.
+
+Identificación de Roles
+Rol
+Nivel de Acceso
+Responsabilidades en el Sistema
+Encargado (Jefatura)
+Nivel 1 (Aprobación)
+Máxima autoridad del flujo. Recibe en su bandeja las solicitudes ya registradas, ejecuta el sorteo aleatorio de casos hacia los especialistas, supervisa todas las bandejas de entrada, otorga el "Visto Bueno" para el inicio de investigaciones o derivaciones, y genera devoluciones.
+Operador Especializado (Técnico)
+Nivel 2 (Ejecución)
+Perfil operativo con doble función. 1. Ingreso: Registra y digitaliza los memoriales o representaciones entrantes generando el NUREJ Padre. 2. Sustanciación: Evalúa requisitos de admisión, emite actuados de estado, realiza la investigación dentro de los plazos legales (10/15 días) y elabora los informes finales disciplinarios.
+Auditor Jurídico / Financiero
+Nivel 2 (Especialista)
+Perfil operativo de auditoría. Recibe los casos sorteados por la Encargada. Ejecuta la revisión de fondo según sus reglamentos (Acuerdos 54/2018 o 55/2018), maneja sus propias calculadoras de plazos y emite informes finales especializados de forma autónoma.
+Administrador (Sistemas)
+Nivel 3 (Configuración)
+Responsable Administrador Informático. Gestiona usuarios, feriados y catálogos según normativa. Capacidad de Monitoreo: Puede visualizar el estado y ubicación del expediente para soporte. Restricción: No puede registrar causas, ver el contenido de los archivos ni mover trámites o interferir en el flujo.
+
+Definición de Roles y Perfiles de Usuario (Sustento Normativo).
+De acuerdo a los sustento normativo Para el funcionamiento del ecosistema de fiscalización, se definen cuatro perfiles con competencias y reglamentaciones diferenciadas:
+Encargada de la Unidad.
+Función: Clasificación inicial de memoriales y formularios, ejecución del sorteo aleatorio y emisión del "Visto Bueno" de control de plazos.
+Sustento Legal: Conforme al Artículo 17 del Acuerdo N° 022/2018 (Atribuciones) referente al control jerárquico. Asimismo, los Artículos 26 y 27 del mismo cuerpo normativo obligan a que el inicio de la investigación y los cronogramas sean aprobados por el "inmediato superior" (Visto Bueno).
+Usuario Técnico
+Reglamento Aplicable: Acuerdo N° 022/2018.
+Alcance: Investigación de faltas procedimentales, retardación de justicia y ética. Conforme al Artículo 27, ejerce la investigación bajo plazos perentorios de 10 días (Área Jurisdiccional) o 15 días (Área Administrativa).
+Producto Final: Informe Final (Con/Sin Responsabilidad), cuya estructura y exigencia de conclusión jurídica se encuentra estrictamente delimitada en el Artículo 29 (Contenido del Informe Final).
+Auditor Jurídico
+Reglamento Aplicable: Acuerdo N° 54/2018.
+Alcance: Verificación o revisión independiente y objetiva del cumplimento de la normativa legal en la tramitación de los procesos jurisdiccionales y administrativos. Su competencia está condicionada por el Artículo 18, inciso f), el cual exige explícitamente que la denuncia debe circunscribirse a "procesos de relevancia social y/o intereses del Estado".
+Producto Final: Informe de Auditoría Jurídica. Su estructura y conclusión técnica legal sobre el trabajo realizado se encuentran reguladas en el Artículo 25 (Resumen o Comunicación de Resultados). El cierre y la remisión de antecedentes (ya sea a la autoridad disciplinaria o a Asesoría Jurídica para la vía penal/civil) están estrictamente regulados por el Artículo 26 (Resultados del Informe de Auditoría Jurídica) de su reglamento.
+Auditor Financiero
+Reglamento Aplicable: Acuerdo N° 55/2018.
+Alcance: Evaluación del grado de eficacia, eficiencia y economía con que se manejan los recursos disponibles y se logran los objetivos de gestión , dando cumplimiento a la Ley N° 1178 (SAFCO).
+Producto Final: Informe de Auditoría de Gestión Financiera. Se caracteriza operativamente por contemplar una fase donde los funcionarios objeto de presunta responsabilidad deberán presentar sus aclaraciones y descargos en el plazo de cinco (5) días hábiles, conforme al Artículo 25, numeral 2. La remisión de los informes que establezcan indicios de responsabilidad ejecutiva, civil y/o penal a la Unidad de Auditoría Interna, Contraloría General del Estado o a la autoridad ordinaria está sustentada en el Artículo 29 (Resultados del Informe).
+Requerimientos Funcionales (RF)
+RF-01 Generación de Número Único (NUREJ Padre e Hijo): El sistema asignará un identificador correlativo, alfanumérico e irrepetible al guardar una solicitud matriz (NUREJ Padre). Asimismo, permitirá la generación automática de identificadores derivados (NUREJ Hijo, ej. 150-1) cuando exista una derivación interna aprobada. Ningún NUREJ podrá ser editado ni reutilizado, y servirá para la generación de la Carátula Oficial.
+RF-02 Motor de Actuados Universal (Append-Only): El sistema operará bajo un modelo estricto de registro de eventos. No existen ediciones o borrados "silenciosos" en el expediente. La modificación de partes (denunciado/denunciante) o la corrección de datos exigirá la emisión de un "Actuado de Enmienda", guardando el dato original y el nuevo para fines de auditoría.
+RF-03 Control de Bandejas Privadas: Los usuarios visualizarán e interactuarán exclusivamente con las solicitudes asignadas formalmente a su perfil en ese momento. Intentar acceder a otros casos retornará un error de "Acceso Denegado".
+RF-04 Evaluación Dinámica de Requisitos: El profesional asignado (Técnico, Auditor Jurídico o Financiero) podrá seleccionar desde un catálogo dinámico y parametrizable qué requisitos de admisibilidad se cumplen o faltan según su reglamento, conservando el sistema un registro histórico inmutable de estas evaluaciones.
+RF-05 Transferencia Inter-Unidad: El movimiento de un expediente a otra jurisdicción o unidad externa exigirá obligatoriamente un actuado de "Remisión" (origen) y el trámite no se considerará concluido en esa fase hasta la generación del actuado de "Recepción" (destino).
+RF-06 Transiciones Basadas en Actuados: El movimiento de expedientes entre perfiles (ej. del Técnico a la Encargada) se activará exclusivamente mediante la emisión de actuados formales y firmados digitalmente en el sistema (ej. Actuado de Remisión para Visto Bueno o Actuado de Devolución por Observación).
+Requerimientos No Funcionales (RNF)
+RNF-01 Seguridad: Autenticación mediante contraseñas encriptadas y Control de Acceso Basado en Roles (RBAC), garantizando el aislamiento de datos sensibles.
+RNF-02 Fiabilidad e Integridad Transaccional: Uso de transacciones nativas a nivel de base de datos. Si una operación compleja falla a la mitad del proceso, el sistema revertirá los cambios (Rollback) para evitar expedientes huérfanos. Se implementará un Hash de Seguridad en los actuados para detectar y prevenir manipulaciones externas.
+RNF-03 Rendimiento: El sistema garantizará una carga ágil de las bandejas y búsquedas, utilizando paginación eficiente a nivel de servidor para soportar un volumen masivo de expedientes históricos.
+RNF-04 Tecnología y Arquitectura: Backend desarrollado en PHP (Framework Laravel), Frontend dinámico y Base de Datos en PostgreSQL. Se utilizarán tablas relacionales puras para el flujo central de estados, y columnas tipo JSONB para el almacenamiento flexible de metadatos procesales en el historial de actuados.
+Requerimientos de Salida (Reportes)
+Todos los reportes contarán con parámetros de filtrado por rango de fechas, usuario asignado y estado del trámite. La salida será multiformato: visualización en pantalla, exportación a Excel (.xlsx) para análisis de datos y PDF para archivo oficial.
+RF-R01: Carga Laboral por Usuario: Reporte en tiempo real de casos pendientes, segmentado por perfil (Técnico, Jurídico, Financiero).
+RF-R02: Solicitudes Registradas: Sustituto digital del libro matriz de ingresos.
+RF-R03: Recepción Inter-Unidad: Auditoría de trámites derivados y aceptados.
+RF-R04: Estado de Evaluación: Resumen de casos Admitidos, Observados y Rechazados.
+RF-R05: Notificaciones Pendientes: Seguimiento de casos en plazo de subsanación.
+RF-R06: Resoluciones Finales: Listado de salidas (Demanda Disciplinaria, Sumariante o Archivo).
+RF-R07: Estadístico por Vía: Gráficas de rendimiento y tipos de denuncia en el Dashboard.
+RF-R08: Carátula Oficial: Generación automática de la foja 0 del expediente en PDF.
+RF-R09: Trazabilidad de Derivaciones (Padre-Hijo): Reporte que vincula las recomendaciones técnicas con las auditorías jurídicas o financieras resultantes.
+Reglas de Negocio Institucionales
+Estas políticas rigen la lógica matemática y jurídica del código fuente:
+
+RN-01: Inmutabilidad de la Información (Universal).
+Los actuados son permanentes, inmutables y auditables en una línea de tiempo. Ningún usuario, sin importar su rol o el reglamento que aplique, puede sobrescribir o eliminar un actuado previamente guardado. Toda corrección exige un "Actuado de Enmienda".
+Respaldo Legal: Art. 28 inc. c y e; Art. 17 num. 7 (Acuerdo 022/2018). Aplica transversalmente a toda la Unidad.
+RN-02: Disparador de Plazo de Evaluación (Admisibilidad).
+El sistema leerá el perfil del usuario asignado para disparar el reloj correspondiente a partir de la recepción/sorteo:
+Motor Disciplinario (Técnico): Dos (2) días hábiles para admitir o rechazar. (Respaldo: Art. 24 num. I, Ac. 022/2018).
+Motor Jurídico/Financiero: Tres (3) o cinco (5) días hábiles según la complejidad del memorial y su reglamento aplicable.
+RN-03: Disparador de Plazo de Subsanación (Motor Disciplinario).
+Si el Técnico emite un Actuado de Observación, el sistema otorga al interesado un plazo de tres (3) días hábiles a partir de su notificación para subsanar. Si caduca y no se subsana, el sistema ejecutará la transición a "Archivo Automático”.
+Respaldo Legal: Art. 24 num. III (Acuerdo 022/2018).
+RN-04: Disparador de Plazo de Planificación y Traba de Inicio.
+Admitida la causa, el sistema bloqueará el inicio de la investigación/auditoría hasta que el documento de planificación reciba el "Visto Bueno" jerárquico:Técnico: Tiene dos (2) días hábiles para subir su Cronograma de Trabajo.
+(Respaldo: Art. 27 num. I, Ac. 022/2018).Auditores (Jurídico y Financiero): Deben cargar el Memorándum de Planificación de Auditoría (MPA) con sus propios plazos definidos.
+RN-05: Motor de Plazos de Investigación y Ejecución.
+Una vez otorgado el Visto Bueno, el sistema activará el reloj de ejecución según la naturaleza del trámite:
+Área Jurisdiccional (Técnico): 10 días hábiles (+ 5 de ampliación justificada).
+Área Administrativa (Técnico): 15 días hábiles (+ 5 de ampliación justificada). (Respaldo: Art. 27 num. II, Ac. 022/2018).
+Auditorías (Jurídico/Financiero): El sistema tomará como límite la fecha parametrizada en el MPA aprobado, dado que su complejidad varía por caso.
+
+RN-06: Independencia Normativa (Universal).
+Las actividades que iniciaron su tramitación con un reglamento anterior, deberán concluir con esa misma norma. El sistema debe conservar el historial de versiones normativas.
+Respaldo Legal: Disposición Transitoria Única.
+RN-07: Control Jerárquico Estricto.
+Todo actuado de impacto o cierre requiere revisión jerárquica. La Encargada de la Unidad debe revisar, observar o aprobar (Visto Bueno) los informes emitidos por cualquiera de los tres motores antes de su salida.
+Respaldo Legal: Art. 17 num. 12 (Aplicación transversal).
+RN-08: Impugnación del Rechazo Inicial.
+Si la denuncia original fuese rechazada, el sistema habilita el recurso de revisión. El operador tiene un (1) día para remitir el sistema a la autoridad superior, la cual tiene tres (3) días hábiles en su bandeja para emitir resolución.
+Respaldo Legal: Art. 25 (Acuerdo 022/2018).
+RN-09: Emisión de Informe Final, Fase de Descargos y Salida.
+El cierre exige un flujo secuencial que se adapta al tipo de operador:
+Fase 1 (Descargos Previos - Solo Auditor Financiero): El sistema pausa el reloj de auditoría y habilita cinco (5) días hábiles para que los auditados presenten descargos. (Respaldo: Art. 25, Ac. 55/2018). Los Técnicos y Auditores Jurídicos omiten este paso.
+Fase 2 (Propuesta): El Operador genera el "Informe Final Con Responsabilidad o Sin Responsabilidad".
+Fase 3 (Filtro del Encargado): Emite "Devolución por Observación" o "Visto Bueno".
+Fase 4 (Frontera del Sistema - Salidas Ordinarias): Tras el Visto Bueno, se ejecuta la salida según el motor:
+Técnico — Encargada de Unidad — Remisión a Juez Disciplinario / Sumariante.
+Auditor Jurídico — Encargada de Unidad — Remisión a Asesoría Legal / Juez.
+Auditor Financiero — Encargada de Unidad — Remisión a Asesoría Jurídica
+Fase 5 (Frontera Penal Extraordinaria): Si en cualquier punto de la investigación o en el Informe Final cualquier operador detecta un delito de corrupción o penal (ej. Prevaricato), el sistema emitirá un Actuado de Derivación por Incompetencia enviando el expediente a la Unidad de Transparencia (Ley N° 974) para la vía fiscal/penal..
+
+RN-10: Asincronía y Trazabilidad de Expedientes Derivados (NUREJ Padre-Hijo).
+Trazabilidad, no Herencia: Cuando un Operador emite un "Actuado de Informe Final" recomendando la intervención de otra especialidad (ej. del Técnico al Auditor Jurídico), la Encargada generará un "Actuado de Creación de NUREJ Hijo". Este NUREJ Hijo funciona exclusivamente como un enlace de origen de datos.
+
+Independencia de Actuados: El operador que recibe el NUREJ Hijo inicia un flujo procesal totalmente nuevo e independiente. No hereda ni visualiza la línea de tiempo de actuados del NUREJ Padre. Debe emitir sus propios Actuados de Evaluación (Admitir, Observar, Rechazar) aplicando su reglamento y requisitos específicos (Acuerdos 54 o 55).
+Salidas Asíncronas (Paralelismo): El sistema permitirá a la Encargada ejecutar salidas legales en tiempos distintos. Tras dar el Visto Bueno al NUREJ Padre, la Encargada puede emitir la denuncia externa (ej. al Juzgado Disciplinario) cerrando esa vía, mientras el NUREJ Hijo continúa su sustanciación en paralelo en otra bandeja hasta su propio cierre y posterior denuncia independiente.
+Restricciones
+Técnica / Infraestructura: El sistema operará bajo una arquitectura cliente-servidor exclusivamente dentro de la red local (LAN / Intranet). No requerirá conexión a internet público, garantizando el aislamiento perimetral.
+Restricción Legal Crítica: Está terminantemente prohibido el borrado físico de expedientes y actuados en la base de datos. El historial técnico debe garantizar inmutabilidad absoluta para fines de auditoría.
+Criterios de Aceptación.
+Para que el sistema sea considerado como finalizado y apto para su paso a producción (despliegue en red LAN), deberá superar estrictamente las siguientes pruebas de validación:
+
+Auditoría de Plazos (Multimotor): Se comprobará que el motor de cálculo omite con precisión matemática los sábados, domingos y fechas declaradas en el catálogo de feriados/suspensiones. Asimismo, debe validarse que el sistema aplica correctamente la calculadora de tiempos específica dependiendo de si el operador es Técnico (Acuerdo 022), Auditor Jurídico (Acuerdo 54) o Auditor Financiero (Acuerdo 55).
+
+Privacidad de Bandejas y Aislamiento: Pruebas de seguridad e intrusión a nivel de aplicación deben confirmar que un usuario (Técnico o Auditor) no puede visualizar, buscar ni operar solicitudes asignadas a la bandeja de otro compañero. El acceso a casos ajenos debe retornar invariablemente un error de acceso denegado.
+
+Control de Vencimiento y Trazabilidad: Se validará que, si un plazo perentorio es superado, el sistema no bloqueará la continuidad del proceso (permitiendo que el operador concluya su informe, aunque sea tarde), pero estampará obligatoriamente el estado de “Fuera de Plazo” (con alerta visual permanente) en el historial del expediente y en los tableros de la Jefatura para su respectiva sanción interna.
+
+Consistencia de Reportes e Integridad de Datos: Deberá existir una correspondencia matemática total (100%) entre los datos visualizados en el Dashboard, los archivos exportados a Excel/PDF y las consultas (SQL) directas a la base de datos PostgreSQL, garantizando especialmente la correcta vinculación en los reportes de los NUREJs Padres con sus respectivos NUREJs Hijos.
+
+Recomendación y Consideraciones de Implementación
+Se recomienda establecer un plazo de ejecución de cuatro (4) meses para el desarrollo e implementación del Sistema de Control y Fiscalización. Es fundamental comprender que este es un desarrollo de naturaleza crítica y altamente delicada, no solo por los procesos jurídicos que administra, sino por su estricta arquitectura de despliegue: el sistema operará de manera aislada y exclusiva en la Intranet institucional (Red LAN) para garantizar la confidencialidad absoluta y el blindaje perimetral de la información.
+Asimismo, se debe tomar en cuenta que la Unidad opera bajo un reglamento interno vigente que impone un régimen riguroso de plazos procesales perentorios y responsabilidades institucionales. El cálculo exacto de estos días hábiles es el núcleo del software; un mínimo error en la programación lógica de los tiempos podría derivar en vicios de nulidad de los procesos o en la caducidad indebida de las denuncias, exponiendo a la institución a severas contingencias legales.
+En este sentido, el desarrollo de la base de datos y del motor de plazos exige un enfoque sumamente cuidadoso, progresivo y sin margen de error. Cada funcionalidad debe asegurar el cumplimiento pleno de la normativa interna, garantizando la inmutabilidad del historial de actuados mediante la filosofía de registro por eventos, protegiendo así la validez legal de las resoluciones emitidas dentro de esta red cerrada.
+El plazo propuesto de cuatro meses permitirá no solo la construcción técnica del sistema, sino también la configuración estricta de la seguridad en la Intranet, la validación exhaustiva con los usuarios, pruebas de estrés sobre la calculadora de plazos y la adecuada capacitación del personal. Esto reducirá drásticamente los riesgos operativos, asegurando una implementación exitosa, segura y jurídicamente impecable.
+
+MARCO LEGAL Y COMPETENCIA INSTITUCIONAL DEL SISTEMA
+Justificación y Competencia Legal
+El desarrollo e implementación del "Sistema Integral de Control y Fiscalización" no responde a una iniciativa aislada, sino al estricto cumplimiento del mandato supremo otorgado al Consejo de la Magistratura.
+La automatización de estos procesos se ampara en la máxima jerarquía normativa del Estado Plurinacional de Bolivia:
+Mandato Constitucional: En estricta observancia del Artículo 193 de la Constitución Política del Estado, el cual señala que: "El Consejo de la Magistratura es la instancia responsable del régimen disciplinario de la jurisdicción ordinaria, agroambiental y de las jurisdicciones especializadas; del control y fiscalización de su manejo administrativo y financiero; y de la formalización de políticas de su gestión". El sistema informático se erige como el instrumento tecnológico principal para materializar este control.
+Autoridad de Sala Plena: En concordancia con el Artículo 2 de la Ley N° 929 (que modifica la Ley N° 025), el cual establece en su Art. 182 que el Consejo de la Magistratura conformado por Sala Plena tendrá atribuciones exclusivas para resolver aspectos de control y fiscalización. Esta disposición otorga la plena competencia legal a la institución para desplegar las reglas de negocio, flujogramas y restricciones que el presente software ejecutará de manera automatizada.
+Base Normativa Aplicable.
+El diseño, arquitectura y automatización del Sistema se fundamenta en el siguiente marco jurídico. Cada normativa dicta reglas de negocio específicas que el software debe restringir, controlar y auditar:
+Ley N° 1178 de "Administración y Control Gubernamental" (SAFCO).
+Concepto: Regula los sistemas de administración y control de recursos del Estado, estableciendo el régimen de responsabilidad por la función pública.
+Importancia para el Sistema: Obliga a que el sistema cuente con una arquitectura inmutable (Append-Only). Además, es la base legal principal para el accionar del Auditor Financiero.
+Ley N° 025 del Órgano Judicial y Ley N° 929 (Modificatoria).
+Concepto: Define los principios y el régimen disciplinario específico para los administradores de justicia.
+Importancia para el Sistema: Define al "usuario objetivo" jurisdiccional. Justifica que el software emita la resolución final de "Remisión a Juez Disciplinario".
+Ley N° 974 y Ley N° 004 "Marcelo Quiroga Santa Cruz".
+Concepto: Regulan la lucha contra la corrupción, enriquecimiento ilícito y delitos penales en la función pública.
+Importancia para el Sistema: Marca el límite perimetral del software (Frontera del Sistema). Si se detectan delitos (ej. cohecho), el sistema debe permitir cerrar el flujo interno para remitir a Transparencia o Fiscalía.
+Acuerdo N° 022/2018 "Reglamento de Control y Fiscalización".
+Concepto: Norma reglamentaria específica que rige el procedimiento disciplinario de la Unidad.
+Importancia para el Sistema: Es el "Código Fuente" del Usuario Técnico. Dicta los plazos perentorios estrictos (2, 3, 10 y 15 días) y el alcance sobre faltas procedimentales (ej. retardación de justicia).
+Acuerdo N° 54/2018 "Reglamento de Auditoría Jurídica".
+Concepto: Regula la revisión técnica de la aplicación normativa en procesos jurisdiccionales.
+Importancia para el Sistema: Es la base legal del Auditor Jurídico. Ordena al sistema permitir un análisis de fondo (no solo de plazos) en casos de relevancia social, con plazos definidos por un MPA aprobado.
+Acuerdo N° 55/2018 "Reglamento de Auditoría de Gestión Financiera"
+Concepto: Regula la evaluación de eficacia y eficiencia del manejo de recursos institucionales.
+Importancia para el Sistema: Es la base legal del Auditor Financiero. Obliga al sistema a incluir transaccionalmente la "Fase de Descargos" obligatoria (5 días hábiles) antes de emitir cualquier responsabilidad ejecutiva o civil.
+Reglamento Interno de Control de Personal Área Administrativa (RICPA - Ac. 155/2017)
+Concepto: Regula el régimen disciplinario para servidores de apoyo administrativo.
+Importancia para el Sistema: Justifica la bifurcación de plazos (15 días) y la salida final de "Remisión a Proceso Sumariante".
+Delimitación de Competencias y Ámbito de Aplicación.
+Para garantizar la validez legal de los actuados procesales en el sistema informático y evitar la nulidad de obrados, se establece la frontera jurisdiccional de la Unidad y de sus respectivos operadores operativos:
+
+Competencia de la Unidad de Control y Fiscalización (Ámbito del Sistema):
+
+El sistema gestiona de forma centralizada, pero procesa de forma independiente, las tres líneas de fiscalización de la Unidad:
+
+Competencia del Usuario Técnico (Motor Disciplinario - Acuerdo 022):
+
+Alcance: Fiscaliza exclusivamente la "forma" y el "procedimiento". Investiga la ineficiencia, el incumplimiento de plazos legales (retardación de justicia), pérdida de expedientes o vulneración de manuales administrativos.
+
+Salida del Sistema: Remisión de Demanda Disciplinaria o Remisión a Proceso Sumariante.
+
+Competencia del Auditor Jurídico (Motor Legal - Acuerdo 54):
+
+Alcance: Fiscaliza el "fondo" legal. Realiza un examen independiente y objetivo de la correcta aplicación de la Ley y la Constitución Política del Estado en fallos judiciales, limitándose estrictamente a procesos de "Relevancia Social y/o Intereses del Estado".
+
+Salida del Sistema: Remisión a Juez Disciplinario (por faltas graves en fallos) o Remisión a Asesoría Legal Nacional (si detecta indicios de prevaricato u otros delitos).
+
+Competencia del Auditor Financiero (Motor de Gestión - Acuerdo 55):
+
+Alcance: Fiscaliza los "recursos". Evalúa el grado de eficacia, eficiencia y economía del presupuesto, las contrataciones y el patrimonio de la institución bajo la Ley SAFCO.
+
+Salida del Sistema: Remisión a Asesoria Juridica..
+
+Nota de Frontera de Flujo: La Unidad concluye su ciclo con la generación y remisión de los informes finales de los tres motores mencionados. La facultad de dictar sentencias, suspender, destituir o congelar cuentas queda totalmente fuera del alcance de la Unidad y del software informático, siendo competencia de autoridades externas (Juez Disciplinario, Sumariante o Contraloría).
+
+Competencia de la Unidad de Transparencia (Ámbito Excluido del Sistema):
+
+Amparado en el Acuerdo N° 36/2023, la Ley N° 974 y la Ley N° 004, esta Unidad gestiona denuncias por actos de corrupción y delitos penales cometidos en el ejercicio de la función pública. Su investigación busca identificar elementos de convicción para derivar el caso ante el Ministerio Público, excluyendo del sistema informático hechos de carácter doloso como el Prevaricato (dictar resoluciones contrarias a la ley), cohecho (sobornos), extorsión, uso indebido de influencias o consorcio de jueces y abogados. Opera bajo un régimen de plazos extendidos de hasta 45 días hábiles (Art. 27) y protocolos de reserva de identidad del denunciante.
+
+Mecanismo de Derivación Operativa en el Software:
+Si un usuario ingresa por error una denuncia de corrupción en la Unidad de Control, o si el Técnico de Control descubre indicios penales durante su investigación disciplinaria (de 10/15 días), el software informático dispone del estado "Derivación por Incompetencia a la Unidad de Transparencia". Este evento actúa como un punto final en el flujo del sistema de Control, sellando el expediente disciplinario y obligando la remisión física de los antecedentes a la unidad competente (Transparencia) en cumplimiento estricto del Art. 17 de la Ley N° 974.
+
+Tabla Comparativa
+
+Fase del Proceso
+Usuario Técnico (Acuerdo 022)
+Auditor Jurídico (Acuerdo 54)
+Auditor Financiero (Acuerdo 55)
+Lógica en el Sistema y Rol de Transparencia
+1. Evaluación (Admisibilidad)
+2 días hábiles estrictos.
+3 a 5 días hábiles, dependiendo de complejidad.
+Hasta 5 días hábiles, sujeto a normativa SAFCO.
+El Técnico evalúa requisitos formales rápidos. Los Auditores revisan el fondo para justificar si amerita la fiscalización.
+2. Subsanación
+3 días hábiles tras la notificación.
+No aplica rígidamente; sujeto a la evaluación de fondo.
+No aplica rígidamente; sujeto a la evaluación de fondo.
+El reloj del Técnico es automatizado: genera "Archivo por Abandono" si el interesado no subsana en 3 días.
+3. Planificación
+2 días hábiles para cargar el "Cronograma".
+Elabora el MPA (Sin plazo estricto predefinido para elaborarlo).
+Elabora el MPA (Sin plazo estricto predefinido para elaborarlo).
+El Técnico llena un formato rápido. Los Auditores elaboran un documento complejo (MPA) donde proponen su fecha de fin al sistema.
+4. Ejecución (Investigación)
+10 días (Jurisdiccional) o 15 días (Administrativa). Ampliación de +5 días.
+Plazo Dinámico. El límite de días no está pre-fijado en la ley.
+Plazo Dinámico. El límite de días no está pre-fijado en la ley.
+Para el Técnico, el sistema usa variables fijas (plazo = 10 o 15). Para Auditores, el sistema lee y bloquea la fecha_limite aprobada en el MPA.
+5. Fase de Descargos
+No aplica.
+No aplica.
+5 días hábiles estrictos tras comunicar hallazgos.
+Exclusivo del Financiero: El sistema congela/pausa el reloj principal de la auditoría para garantizar el derecho a la defensa antes del Informe Final.
+6. Salida Final Ordinaria (Vía Disciplinaria/Administrativa)
+Remisión al Juzgado Disciplinario (Jurisdiccional) o Sumariante (Administrativo).
+Remisión al Juzgado Disciplinario (por faltas procedimentales o disciplinarias graves).
+Remisión a Asesoría Jurídica..
+La Encargada da el Visto Bueno al Informe Final y el sistema genera la derivación al destino correspondiente para sanciones disciplinarias o administrativas.
+7. Salida Extraordinaria (Vía Penal / Transparencia)
+Remisión directa a la Unidad de Transparencia.
+Remisión directa a la Unidad de Transparencia (Ej: Hallazgo de Prevaricato).
+Remisión directa a la Unidad de Transparencia (Ej: Peculado, desvío de fondos).
+Transversal para todos: Si en cualquier fase (o en el Informe Final) se detecta un delito de corrupción o penal, el caso sale hacia Transparencia (Ley 974). Transparencia es quien interpone la denuncia ante el Ministerio Público (Fiscalía).
+
+CATÁLOGO PARAMÉTRICO DE ACTUADOS DEL SISTEMA.
+Este capítulo define el listado oficial de "Actuados" (eventos o documentos digitales inmutables) que operan como el motor de transiciones de estado dentro del Sistema de Control y Fiscalización. Ningún expediente (NUREJ) puede cambiar de responsable, estado o fase sin la generación de uno de estos actuados.
+
+ Fase de Ingreso y Distribución
+Estos actuados inicializan el ciclo de vida del trámite en el sistema.
+
+Actuado de Registro y Digitalización:
+Actor: Usuario Técnico.
+Impacto en Sistema: Genera el NUREJ Padre, asocia metadatos y coloca el expediente en estado Pendiente de Sorteo.
+
+Actuado de Sorteo Inicial / Sorteo Derivado:
+Actor: Encargada de Unidad.
+Impacto en Sistema: Asigna el trámite a la bandeja de un operador (Técnico, Auditor Jurídico o Financiero). Si es derivado desde un informe previo, genera el NUREJ Hijo. Arranca el reloj de Evaluación.
+
+Fase de Evaluación de Admisibilidad
+Actuados utilizados por los operadores para calificar el fondo y forma del memorial.
+
+Actuado de Observación:
+Actor: Técnico / Auditor
+Impacto en Sistema: Pausa el reloj de evaluación, cambia el estado a Observado e inicia la cuenta regresiva de subsanación (ej. 3 días para el Técnico).
+
+Actuado de Rechazo:
+Actor: Técnico / Auditor.
+Impacto en Sistema: Cambia el estado a Rechazado. Habilita el módulo de Impugnación para el interesado.
+
+Actuado de Admisión:
+Actor: Técnico / Auditor.
+Impacto en Sistema: Cierra la fase de evaluación y habilita la fase de Planificación.
+
+Fase de Impugnación (Excepcional)
+Actuados exclusivos de la jefatura para resolver quejas sobre trámites rechazados.
+
+Actuado de Resolución de Impugnación (Ratifica):
+Actor: Encargada de Unidad.
+Impacto en Sistema: Cierra el NUREJ de forma definitiva con el estado Archivo Definitivo.
+
+Actuado de Resolución de Impugnación (Revoca):
+Actor: Encargada de Unidad.
+Impacto en Sistema: Anula el rechazo previo, cambia el estado a Admitido y lo devuelve a la bandeja del operador original.
+
+Fase de Planificación Operativa
+Documentos que definen la estrategia y, lo más importante, los plazos de investigación.
+
+Actuado de Cronograma de Trabajo:
+Actor: Usuario Técnico.
+Impacto en Sistema: Carga el plan rápido (Acuerdo 022) y lo envía a bandeja de Visto Bueno.
+
+Actuado de Memorándum de Planificación de Auditoría (MPA):
+Actor: Auditor Jurídico / Auditor Financiero.
+Impacto en Sistema: Registra el alcance y la fecha_limite dinámica solicitada por el auditor (Acuerdos 54 y 55).
+
+Actuado de Visto Bueno a Planificación:
+Actor: Encargada de Unidad.
+Impacto en Sistema: Aprueba el Cronograma o MPA. Acción crítica: A partir de la firma de este actuado, el sistema arranca oficialmente el reloj inamovible de investigación.
+
+Fase de Ejecución y Descargos
+Eventos que ocurren durante el trabajo de campo y recolección de pruebas.
+
+Actuado de Ampliación de Plazo:
+Actor: Usuario Técnico.
+Impacto en Sistema: Suma automáticamente 5 días hábiles al reloj predeterminado.
+
+Actuado de Comunicación de Hallazgos:
+Actor: Auditor Financiero (Exclusivo Acuerdo 55).
+Impacto en Sistema: Pausa el reloj general del MPA e inicia un sub-reloj estricto de 5 días hábiles para la defensa.
+
+Actuado de Recepción de Descargos:
+Actor: Auditor Financiero.
+Impacto en Sistema: Finaliza el sub-reloj de 5 días y reanuda el reloj general del MPA, habilitando el botón de Informe Final.
+
+Fase de Conclusión y Resultados
+Esta fase contiene los documentos técnicos periciales definitivos. Para garantizar la trazabilidad inmutable y evitar el uso de variables secundarias (casillas o botones), el sistema cataloga cada posible dictamen como un actuado único e independiente, restringido estrictamente según el perfil del operador.
+
+Actuados Exclusivos del USUARIO TÉCNICO (Acuerdo 022)
+El sistema habilitará únicamente estos cuatro actuados al momento de cerrar su investigación disciplinaria:
+
+Actuado de Informe Final Técnico CON Responsabilidad:
+
+Impacto: Establece indicios de falta disciplinaria. Pasa a bandeja de la Encargada para su remisión final (cierre del ciclo).
+
+Actuado de Informe Final Técnico SIN Responsabilidad:
+
+Impacto: No halla faltas. Pasa a bandeja de la Encargada para el archivo del caso.
+
+Actuado de Informe Final Técnico CON Responsabilidad y Recomendación de Auditoría:
+
+Impacto: Establece la falta disciplinaria PERO pide investigación de fondo. Al recibir el Visto Bueno, cierra el NUREJ Padre (Sanción) y gatilla la creación del NUREJ Hijo.
+
+Actuado de Informe Final Técnico SIN Responsabilidad y Recomendación de Auditoría:
+
+Impacto: No halla falta disciplinaria, pero detecta irregularidades de fondo. Al recibir el Visto Bueno, archiva el Padre y gatilla la creación del NUREJ Hijo.
+
+Actuados Exclusivos del AUDITOR JURÍDICO (Acuerdo 54)
+El sistema habilitará únicamente estos dos actuados al finalizar su cronograma del MPA:
+
+Actuado de Informe de Auditoría Jurídica CON Responsabilidad:
+
+Impacto: Establece fallos contra la ley o daño. Pasa a Visto Bueno para remisión externa (Asesoría Legal / Jurisdiccional).
+
+Actuado de Informe de Auditoría Jurídica SIN Responsabilidad:
+
+Impacto: Desestima las irregularidades. Pasa a Visto Bueno para archivo definitivo.
+
+Actuados Exclusivos del AUDITOR FINANCIERO (Acuerdo 55)
+El sistema habilitará estos actuados solo si se cumplió previamente la fase de los 5 días de descargos:
+
+Actuado de Informe de Auditoría Financiera CON Responsabilidad:
+
+Impacto: Establece daño económico o responsabilidad ejecutiva/administrativa. Pasa a Visto Bueno para remisión a Asesoría Jurídica
+
+Actuado de Informe de Auditoría Financiera SIN Responsabilidad:
+
+Impacto: Los descargos desvirtuaron los hallazgos. Pasa a Visto Bueno para archivo definitivo.
+
+Actuado Transversal (Para los tres perfiles)
+
+Actuado de Derivación por Incompetencia (Vía Penal):
+
+Actor: Técnico, Auditor Jurídico o Auditor Financiero.
+
+Impacto en Sistema: Se emite exclusivamente al detectar en flagrancia un delito penal o acto de corrupción. Congela cualquier reloj de plazo vigente y pide Visto Bueno inmediato a la Encargada para remitir físicamente todo a la Unidad de Transparencia.
+
+Fase de Cierre y Salidas Institucionales
+
+Actuados de alta jerarquía que derivan el trámite del sistema hacia las vías externas.
+Actuado de Visto Bueno Final:
+Actor: Encargada de Unidad.
+Impacto en Sistema: Habilita la derivación externa.
+
+Actuado de Reparto Institucional (Cierre del NUREJ):
+Actor: Encargada de Unidad.
+Impacto en Sistema: El sistema exige seleccionar el destino exacto (Juzgado Disciplinario, Sumariante, Asesoría Legal). Cambia el estado a Concluido / Remitido y finaliza el ciclo del trámite.
+
+Actuado de Remisión a Transparencia (Vía Penal):
+Actor: Encargada de Unidad.
+Impacto en Sistema: Cierre excepcional del trámite en la Unidad para que Transparencia interponga denuncia en el Ministerio Público (Fiscalía).
+
+Actuados Automáticos (Eventos del Sistema / Cron Jobs)
+
+Registros inmutables generados por el propio motor del sistema, sin intervención humana.
+
+Actuado de Archivo por Abandono (Sistema):
+Impacto: Se dispara a la medianoche si vence el plazo de 3 días de subsanación sin respuesta del usuario. Cierra el caso.
+
+Alerta de Estado Fuera de Plazo (Sistema):
+Impacto: Se dispara cuando el reloj (del Técnico o el MPA) llega a cero. Marca el expediente en rojo (alerta) para auditoría interna, aunque no bloquea la subida del informe final.
+

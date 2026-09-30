@@ -146,8 +146,9 @@ it('calcula la carga de los operadores activos', function () {
 it('rechaza a una encargada inactiva y a otros roles', function (string $rol, bool $activo) {
     $usuario = encargadaDashboardUsuario($rol, $activo);
 
-    Sanctum::actingAs($usuario, ['*'])
-        ->getJson('/api/encargada/dashboard')
+    Sanctum::actingAs($usuario, ['*']);
+
+    $this->getJson('/api/encargada/dashboard')
         ->assertForbidden();
 })->with([
     [Rol::CODIGO_ENCARGADA, false],

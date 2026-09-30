@@ -1,5 +1,6 @@
 <?php
 
+use App\Exceptions\CannotDeriveNurejException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -19,4 +20,17 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
+
+        /*
+         * AUD-0038 (RN-10): derivar un NUREJ Hijo desde un expediente ya
+         * derivado es una regla de negocio, no un error de servidor. El mismo
+         * contrato 422 del endpoint recibe el rechazo con su mensaje.
+         */
+        $exceptions->render(function (CannotDeriveNurejException $exception) {
+            return response()->json([
+                'message' => $exception->getMessage(),
+            ], 422);
+        });
+
+        $exceptions->dontReport(CannotDeriveNurejException::class);
     })->create();

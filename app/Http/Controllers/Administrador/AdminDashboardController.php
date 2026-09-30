@@ -24,8 +24,13 @@ class AdminDashboardController extends Controller
     {
         $usuario = $request->user();
 
-        // Seguridad adicional: esta API solamente puede ser utilizada por ADMIN.
-        if (($usuario->rol?->codigo ?? null) !== Rol::CODIGO_ADMIN) {
+        // Seguridad adicional: esta API solamente puede ser utilizada por un
+        // ADMIN activo (misma condición que AdminMonitoreoController — AUD-0041).
+        if (
+            ! $usuario ||
+            ! $usuario->activo ||
+            ($usuario->rol?->codigo ?? null) !== Rol::CODIGO_ADMIN
+        ) {
             abort(403, 'No tiene permisos para acceder al dashboard administrativo.');
         }
 
