@@ -21,7 +21,7 @@
 
 | ID | Título | Sev. | Fase | Estado |
 |---|---|---|---|---|
-| AUD-0001 | `ExpedientePolicy::viewAny` devuelve `true` a ADMIN → test 403 falla | P1 | 0 | **DECIDIDO (2026-09-30, cierre F12): DEUDA CONOCIDA aceptada; F12 no lo introdujo ni agravó; sin cambio de código ni de test en F12.** Semántica de ADMIN (opciones A/B/C de la ficha) → resolver en la fase de hardening/seguridad; no aplicar ninguna todavía; NO modificar el test para hacerlo pasar |
+| AUD-0001 | `ExpedientePolicy::viewAny` devuelve `true` a ADMIN → test 403 falla | P1 | 0 | **CERRADO (2026-10-05)** — fix en `ExpedientePolicy::view()` (eliminación del bypass de ADMIN) en tarea B2.0; `SecurityCompartimentosTest` 9/9 verde sin modificar el test; suite 310 tests · 304 OK · 0 fallos · 6 omitidos |
 | AUD-0002 | Falla `DescargoFinancieroTest` (fecha plazo: 2026-09-23 vs 2026-10-06) | P1 | 0 | **CERRADO (2026-09-30)** |
 | AUD-0003 | 5 tests `EncargadaDashboardTest` con `Usuario::getJson()` inexistente | P2 | 0 | **CERRADO (2026-09-30)** |
 | AUD-0004 | Ruta de inactivar usuario duplicada | P2 | 0 | OPEN |
@@ -95,8 +95,8 @@
 
 ### AUD-0001 — `ExpedientePolicy` da acceso total a rol ADMIN
 - **Severidad:** P1 (seguridad / RF-03 compartimentos)
-- **Fase:** 0 (detectado) · 1 (evidencia recopilada) · pendiente de resolución en Fase 3 + decisión del usuario
-- **Estado:** OPEN/P1 — **DECISIÓN (2026-09-30, cierre de validación F12): deuda conocida ACEPTADA.** F12 no introdujo ni agravó AUD-0001; el fallo existente queda conocido y documentado (único fallo de la suite). NO autorizado ningún cambio de código dentro de F12; NO modificar el test para hacerlo pasar artificialmente. La semántica de acceso de ADMIN (opciones A/B/C abajo) se traslada a la fase de hardening/seguridad correspondiente — mantenerlas abiertas, no aplicar ninguna todavía. *(Decisión previa "NEEDS_REVIEW" de 2026-09-30 queda resuelta por esta.)*
+- **Fase:** 0 (detectado) · 1 (evidencia recopilada) · **fix aplicado en tarea B2.0 (2026-10-05)**
+- **Estado:** **CERRADO (2026-10-05)** — fix en `app/Policies/ExpedientePolicy.php`: eliminada la rama `CODIGO_ADMIN` con `return true` en `view()` (antes `:80-82`), sin tocar `esRolConAccesoCatalogos()` ni `crearActuado()` y **sin modificar el test**. Validación: `SecurityCompartimentosTest` **9/9 verde** (incluye `:165`, que espera `assertForbidden()`); `php artisan test --compact` → **310 tests · 304 OK · 0 fallos · 6 omitidos · 1453 aserciones**; `vendor/bin/pint --dirty --format agent` → aplicado (solo estilo) y revalidado en verde. *(Historial: decisión 2026-09-30 de "deuda conocida aceptada" en F12 — resuelta por este fix.)*
 - **Código:** `app/Policies/ExpedientePolicy.php:80-82` — rama `CODIGO_ADMIN` con `return true` en `view()`, sin comprobar asignación activa.
 - **Afecta:** `ExpedienteController@show` (`:85`), `WorkstationController@detalle` (`:35`), `EvaluacionAdmisibilidadController@requisitos` (`:26`), `AdjuntoController@descargar` (`:22`, vía `authorize('view', $expediente)`), por tanto la descarga de archivos.
 - **Test en conflicto:** `tests/Feature/SecurityCompartimentosTest.php:165` — `it('bloquea a ADMIN sin asignacion para ver un expediente ajeno (sin bypass indebido)')` → espera `assertForbidden()` (línea 179); ejecución real: 200. **No ajustar el test para que pase.**

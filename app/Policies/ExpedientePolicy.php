@@ -16,7 +16,7 @@ class ExpedientePolicy
 {
     public function crearActuado(Usuario $user, Expediente $expediente, CatalogoActuado $catalogoActuado): bool
     {
-        if (!$user->activo) {
+        if (! $user->activo) {
             return false;
         }
 
@@ -52,7 +52,7 @@ class ExpedientePolicy
 
     public function operadorBandeja(Usuario $user): bool
     {
-        if (!$user->activo) {
+        if (! $user->activo) {
             return false;
         }
 
@@ -65,7 +65,7 @@ class ExpedientePolicy
 
     public function view(Usuario $user, Expediente $expediente): bool
     {
-        if (!$user->activo) {
+        if (! $user->activo) {
             return false;
         }
 
@@ -76,10 +76,7 @@ class ExpedientePolicy
         if ($expediente->asignacionActiva?->usuario_id === $user->id) {
             return true;
         }
-        
-        if (($user->rol?->codigo ?? null) === Rol::CODIGO_ADMIN) {
-            return true;
-        }
+
         // El creador (ventanilla de ingreso) conserva lectura mientras la
         // causa no haya sido sorteada; una vez asignada, pierde acceso (RF-03).
         return $expediente->creado_por === $user->id
@@ -115,7 +112,7 @@ class ExpedientePolicy
 
     private function esRolConAccesoCatalogos(Usuario $user): bool
     {
-        if (!$user->activo) {
+        if (! $user->activo) {
             return false;
         }
 

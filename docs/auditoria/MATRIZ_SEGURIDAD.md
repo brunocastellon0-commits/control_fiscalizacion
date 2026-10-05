@@ -22,7 +22,7 @@
 | 11 | GET | `/api/estados` | FormRequest + policy `verCatalogoEstados` | ídem | N/A (catálogo) | BLOQUEADO (TEST, 401) | `CatalogoEstadoControllerTest:22` |
 | 12 | GET | `/api/adjuntos/{a}/descargar` | controller `view` sobre el expediente del actuado | ENCARGADA o con asignación/creación propia | 403 | BLOQUEADO (TEST) | `AdjuntoControllerTest:125` + **SeguridadIdorTest** |
 | 13 | POST | `/api/expedientes` | `StoreExpedienteRequest` | solo TÉCNICO | 403 | BLOQUEADO (TEST) | `ExpedienteControllerTest:148` + **SeguridadIdorTest** |
-| 14 | GET | `/api/expedientes/{e}` | policy `view` | ENCARGADA siempre; operativo con asignación/creación; **ADMIN bypass → AUD-0001** | 403 (excepto ADMIN) | FALLA CONOCIDA (AUD-0001) | `SecurityCompartimentosTest` ×5 + `ExpedienteControllerTest:178` |
+| 14 | GET | `/api/expedientes/{e}` | policy `view` | ENCARGADA siempre; operativo con asignación/creación; ADMIN sin bypass (AUD-0001 cerrada 2026-10-05) | 403 | BLOQUEADO (TEST) | `SecurityCompartimentosTest` ×5 + `ExpedienteControllerTest:178` |
 | 15 | POST | `/api/expedientes/{e}/sortear` | `SortearExpedienteRequest` | solo ENCARGADA | 403 | BLOQUEADO (TEST) | `FormRequestsTest:149` + **SeguridadIdorTest** |
 | 16 | POST | `/api/expedientes/{e}/actuados` | `StoreActuadoRequest` → policy `crearActuado` | rol del catálogo + asignación activa | 403 | BLOQUEADO (TEST) | `SecurityCompartimentosTest:144,210` |
 | 17 | GET | `/api/expedientes/{e}/requisitos` | controller `view` | que #14 | 403 | BLOQUEADO (TEST) | `EvaluacionAdmisibilidadTest:127,401` + **SeguridadIdorTest** |
@@ -75,9 +75,9 @@
 
 | Estado | Cantidad |
 | ------ | -------- |
-| BLOQUEADO (TEST) — incluye 11 aportados/confirmados por `SeguridadIdorTest` | 44 |
+| BLOQUEADO (TEST) — incluye 11 aportados/confirmados por `SeguridadIdorTest` | 45 |
 | BLOQUEADO (CÓDIGO) — policy en controller, sin test (solo operaciones CRUD admin) | 6 |
-| FALLA CONOCIDA | 1 (`GET /api/expedientes/{e}` → AUD-0001, bypass ADMIN) |
+| FALLA CONOCIDA | 0 (AUD-0001 cerrada 2026-10-05: la fila 14 pasó a BLOQUEADO (TEST)) |
 | FILTRADO (TEST) | 1 (`GET /api/bandeja`) |
 | N/A | 2 (`login`, `me`/`logout`) |
 
@@ -88,7 +88,7 @@
 
 | ID | Hallazgo | Estado |
 | -- | -------- | ------ |
-| AUD-0001 | Bypass `view` para ADMIN contradice RF-03/CA-2/SRS `:85-86` (test existente en rojo) | OPEN — decisión del usuario, Fase 3 |
+| AUD-0001 | Bypass `view` para ADMIN contradice RF-03/CA-2/SRS `:85-86` (test existente en rojo) | **CERRADO (2026-10-05)** — fix en `ExpedientePolicy::view()`; test en verde sin modificarlo |
 | AUD-0017 | `abort(403)` inline en `AdminDashboardController:29` y `AdminMonitoreoController:31` en vez de policy (enforcement presente, patrón no óptimo) | OPEN |
 | (nota) | FormRequests de admin (`IndexUsuariosAdmin`, `Store/UpdateUsuario`, `Store/UpdateFeriado`, `Activar/Inactivar`) tienen `authorize(): true`; la autorización real vive en el policy llamado desde el controlador — correcto, pero no obvio | Documentado, sin acción |
 

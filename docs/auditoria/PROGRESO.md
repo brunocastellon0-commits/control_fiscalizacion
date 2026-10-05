@@ -1263,3 +1263,46 @@ fuera de `.md`.
 
 **Pendiente:** validación de F18 por el usuario (consistencia de la matriz, checklist
 §79/§116 y veredicto §7). **NO cerrar F18 hasta esa validación.**
+
+---
+
+## Cierre de AUD-0001 — tarea B2.0 (2026-10-05)
+
+**Estado:** **AUD-0001 CERRADA (2026-10-05)** — eliminada la última deuda P1 de
+seguridad que dejaba la suite en rojo.
+
+**Cambio de producción (mínimo y aislado):**
+
+- `app/Policies/ExpedientePolicy.php` — eliminada la rama
+  `if (($user->rol?->codigo ?? null) === Rol::CODIGO_ADMIN) { return true; }` en
+  `view()` (antes `:80-82`). `esRolConAccesoCatalogos()` y `crearActuado()`
+  intactos; ningún otro comportamiento modificado. Único archivo PHP tocado.
+
+**Efecto:** `GET /api/expedientes/{e}` —y vía `authorize('view', $expediente)`
+también `requisitos`, descarga de adjuntos y detalle workstation— devuelve **403
+para ADMIN sin asignación activa**. El "monitoreo" del SRS del ADMIN queda en
+`AdminDashboardController`/`AdminMonitoreoController` (endpoints propios, sin
+cambios).
+
+**Validación (sin modificar ningún test):**
+
+- `vendor/bin/pest tests/Feature/SecurityCompartimentosTest.php` → **antes:
+  9 tests · 8 OK · 1 fallo** (`:165`, esperaba 403 y recibía 200 = AUD-0001) ·
+  **después: 9/9 OK · 12 aserciones.**
+- `php artisan test --compact` → **310 tests · 304 OK · 0 fallos · 0 errores ·
+  6 omitidos · 1453 aserciones** (2 corridas: antes y después de Pint, idénticas).
+  Delta vs baseline F17/F18 (310 · 303 · 1 fallo AUD-0001 · 6 omitidos · 1453
+  aserciones): **mismos 310 tests, +1 OK, −1 fallo, mismos 6 omitidos**
+  (env-gated preexistentes: 5 `RUN_STRESS_TESTS` + 1 `RUN_CONCURRENCY_TEST`).
+- `vendor/bin/pint --dirty --format agent` → `fixed` sobre
+  `ExpedientePolicy.php` (espaciado de operadores unarios, solo estilo) →
+  tests re-ejecutados en verde después del formateo.
+
+**Documentación actualizada en este cierre:** `BACKLOG_AUDITORIA.md` (ficha y
+resumen → CERRADO), `MATRIZ_SEGURIDAD.md` (fila 14 → BLOQUEADO (TEST); FALLA
+CONOCIDA → 0; BLOQUEADO (TEST) 44 → 45 para mantener la suma 54), esta sección.
+
+**Fuera de alcance (no tocados, reportados):** `MATRIZ_COBERTURA_FINAL.md:21`,
+`MATRIZ_PRUEBAS.md:137,304`, `MATRIZ_HARDENING.md:105` y citas históricas de este
+archivo siguen mencionando AUD-0001 como abierta / "único fallo" (son registros
+de sus fases; actualizar solo si el usuario lo pide).
