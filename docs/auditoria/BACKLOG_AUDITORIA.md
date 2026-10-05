@@ -64,6 +64,30 @@
 | AUD-0041 | `AdminDashboardController` no valida `activo` → ADMIN inactivo recibe 200 en el dashboard (el monitoreo sí devuelve 403) | P2 | 12 | **CERRADO (2026-09-30, con la validación de F12)** — fix AUTORIZADO y aplicado: check `activo`+rol en dashboard (patrón Monitoreo) + test `ReportesAdminTest`; pint OK; suite de cierre F12: 296: 289 OK · 1 fallo (AUD-0001, deuda aceptada) · 0 errores · 6 omitidos |
 | AUD-0042 | Job `plazos:verificar-vencidos` falla con excepción no capturada (exit 1) si falta `ACT_ARCHIVO_POR_ABANDONO` o un ADMIN activo → RN-03 y marca `fuera_de_plazo` no corren (en BD dev **ya falla hoy**) | P2 | 13 | OPEN — fix propuesto (degradación controlada + log) NO aplicado (toca producto) |
 | AUD-0043 | Corte UTC prematuro: comando corre 00:00 UTC = 21:00 ART y compara `fecha_limite` contra fecha UTC → archiva/marca hasta 3 h antes de la medianoche local que pide el SRS | P2 | 13 | OPEN — fix requiere decisión de zona horaria institucional (config global); NO aplicado |
+| AUD-0044 | Sidebar "Bandeja de entrada" visible para ENCARGADA/ADMIN → 403 en `/expedientes` | P2 | 14 | OPEN — requiere decisión: gatear enlace por rol vs habilitar ruta (esta última toca autorización) |
+| AUD-0045 | Monitoreo: fallo de carga sin mensaje renderizado → "No se encontraron expedientes" (sin indicador de carga) | P2 | 14 | OPEN |
+| AUD-0046 | Monitoreo: rótulo "Actualización automática" sin mecanismo de auto-refresco | P3 | 14 | OPEN |
+| AUD-0047 | Vista `administrador\parametros` inalcanzable + "Guardar" que informa éxito sin persistir | P3 | 14 | OPEN — requiere decisión (eliminar / habilitar con API / congelar) |
+| AUD-0048 | Login: "¿Olvidaste tu contraseña?" con `href="#"` sin ruta ni endpoint | P3 | 14 | OPEN |
+| AUD-0049 | Login: errores sin adaptar al usuario (429 en inglés sin `Retry-After`; respuesta no-JSON → mensaje técnico crudo) | P3 | 14 | OPEN |
+| AUD-0050 | Bandeja operador: `meta.total` nunca asignado → contador siempre vacío | P3 | 14 | OPEN |
+| AUD-0051 | Apertura: plantilla `errorGral` jamás activada (UI inerte) | P3 | 14 | OPEN |
+| AUD-0052 | Apertura: límite de 10 partes solo en cliente (sin `max` en servidor; valor sin respaldo en SRS) | P3 | 14 | OPEN — requiere decisión sobre si es regla de negocio |
+| AUD-0053 | Dashboards admin y Encargada: refresco fallido conserva datos previos junto al banner de error | P3 | 14 | OPEN |
+| AUD-0054 | Sorteo individual: el error queda invisible si el usuario cierra el modal durante la petición | P3 | 14 | OPEN |
+| AUD-0055 | Sorteo: recarga a página fuera de rango tras sortear el último ítem → estado vacío + contador > 0 | P3 | 14 | OPEN |
+| AUD-0056 | Usuarios: "Inactivar" visible sobre la propia cuenta → 422 siempre | P3 | 14 | OPEN |
+| AUD-0057 | Layout: `cargarUsuario()` y `cerrarSesion()` fallan en silencio | P3 | 14 | OPEN |
+| AUD-0058 | Salidas de consola con datos en vistas entregadas (`console.log` de la respuesta del API) | P3 | 14 | OPEN — candidato a F17 (hardening) |
+| AUD-0059 | `welcome.blade.php` inalcanzable con enlace a `/dashboard` inexistente (código muerto) | P3 | 14 | OPEN |
+| AUD-0060 | RF-04 sin interfaz: la evaluación de admisibilidad no es ejecutable desde la UI | P1 | 14 | OPEN — decisión de alcance de UI (mismo criterio que AUD-0035) |
+| AUD-0061 | Operaciones con endpoints dedicados sin interfaz: planificación/VB/devolución, ampliación, cierre/reparto, transparencia, descargos | P1 | 14 | OPEN — decisión de alcance de UI |
+| AUD-0062 | N+1 medido: `feriados` + `suspensiones_plazo` se recargan por cada expediente/plazo serializado (26 de 43 queries de la bandeja) | P2 | 15 | OPEN — fix PROPUESTO (unificar/cachear `PlazoCalculatorService`), pendiente de decisión; NO implementado |
+| AUD-0063 | Dashboard admin carga la tabla completa de expedientes (con plazos) y la consulta 5 veces por petición | P2 | 15 | OPEN — fix PROPUESTO (agregados en SQL, patrón del dashboard Encargada), pendiente de decisión; NO implementado |
+| AUD-0064 | Sin índice en `expedientes.fecha_ingreso` → `Using temporary; Using filesort` en bandejas y monitoreo | P3 | 15 | OPEN — índice PROPUESTO (justificado por patrón real), pendiente de decisión; NO creado |
+| AUD-0065 | `sesiones_acceso` sin índice en `login_at` / `(exitoso, login_at)` → `type=ALL` + filesort en el dashboard admin; crece con cada login | P3 | 15 | OPEN — índice PROPUESTO, pendiente de decisión; NO creado |
+| AUD-0066 | Cron diario de plazos hace full scan de `plazos` (sin índice `(estado, fecha_limite)`) | P3 | 15 | OPEN — índice PROPUESTO, pendiente de decisión; NO creado |
+| AUD-0067 | Búsqueda por NUREJ/resumen con `LIKE '%…%'` → full scan no indexable; única búsqueda del sistema y sin endpoint dedicado | P3 | 15 | OPEN — rediseño de búsqueda PROPUESTO, pendiente de decisión |
 
 ---
 
@@ -481,9 +505,220 @@
 - **Impacto:** el plazo vence efectivamente a las **21:00** hora local del día de vencimiento, no a la medianoche: hasta 3 h de ventana en las que el interesado aún está dentro del día hábil local pero el sistema ya archiva el expediente (irreversible) y estampa `fuera_de_plazo`. Misma ventana afecta el semáforo/conservas de fechas comparadas en UTC.
 - **Acción propuesta:** **Fix NO aplicado — requiere decisión del usuario:** fijar la zona horaria institucional (p. ej. `app.timezone` + zona del schedule) con impacto global en todo el sistema de fechas (plazos, semáforos, feriados, tests). Presentar antes el análisis de impacto; cualquier cambio de configuración global requiere confirmación explícita.
 
+### AUD-0044 — Sidebar "Bandeja de entrada" visible para la Encargada y el Administrador → 403
+- **Severidad:** P2 (UX/autorización: enlace navegable que siempre falla)
+- **Fase:** 14
+- **Estado:** OPEN — requiere decisión: gatear el enlace por rol en el sidebar, o habilitar la ruta para ENCARGADA/ADMIN (esta última toca autorización → confirmación explícita obligatoria)
+- **Evidencia:** `resources/views/layouts/app.blade.php:135-139` muestra el enlace a `/expedientes` **sin `x-if`** (los demás links sí: Encargada `:140`, Técnico `:159`, Admin `:167`); `routes/web.php:19` → `WorkstationController.php:15` `authorize('operadorBandeja', ...)`; `app/Policies/ExpedientePolicy.php:53-64` acepta solo TECNICO/AUD_JURIDICO/AUD_FINANCIERO activos; `tests/Feature/WebWorkstationRoutesTest.php:53-57` prueba el 403 de la Encargada. No hay `resources/views/errors/403.blade.php`.
+- **Impacto:** 2 de los 5 roles (ENCARGADA, ADMIN) ven un enlace principal del sidebar que siempre termina en página de error genérica. El backend está protegido correctamente: es un defecto de UI, no de seguridad. Relacionado con **AUD-0028** (la Encargada sigue sin bandeja propia de supervisión).
+- **Acción propuesta:** fix de UI (condicionar el enlace por rol) cuando se decida el alcance de la bandeja de la Encargada. NO aplicado en F14.
+
+### AUD-0045 — Monitoreo: el fallo de carga no se renderiza y se muestra "No se encontraron expedientes"
+- **Severidad:** P2 (feedback/estado: error silencioso + estado vacío engañoso)
+- **Fase:** 14
+- **Estado:** OPEN
+- **Evidencia:** `resources/views/administrador/monitoreo.blade.php:506-509` asigna `this.error` en el `catch`, pero `grep error` sobre el markup de la vista no encuentra ningún `x-text="error"` ni banner (0 renders); `:369-375` renderiza "No se encontraron expedientes." cuando `expedientes.length === 0` (que el catch también fuerza en `:511`); `cargando` se pone en `true/false` (`:405-411`) pero tampoco tiene render → en la primera carga se ve el estado vacío antes de que lleguen los datos.
+- **Impacto:** el Administrador no distingue entre "no hay expedientes" y "falló la API": ante un 422/500 ve datos vacíos sin causa. Inconsistente con los demás módulos, que sí renderizan errores (`encargada/dashboard:231`, `administrador/dashboard:308-314`).
+- **Acción propuesta:** renderizar `error` (banner) y `cargando` (spinner) en la vista de monitoreo. NO aplicado en F14.
+
+### AUD-0046 — Monitoreo: rótulo "Actualización automática" sin mecanismo de auto-refresco
+- **Severidad:** P3 (UX: afirmación falsa en la interfaz)
+- **Fase:** 14
+- **Estado:** OPEN
+- **Evidencia:** `resources/views/administrador/monitoreo.blade.php:21-23` muestra "Actualización automática" con ícono de rotación; `grep setInterval|setTimeout` en `resources/views/**` → 0 coincidencias; la única carga es `cargar()` en `:6` (on init) y tras aplicar filtros (`:73`, `:96-103`).
+- **Impacto:** el operador cree que los datos se actualizan solos y toma decisiones sobre información potencialmente vieja; no hay forma de refrescar sin recargar la página (el dashboard admin sí tiene botón "Actualizar", O-16).
+- **Acción propuesta:** o implementar un `setInterval` con `cargar()` (y quitarlo al salir de la vista), o eliminar el rótulo. NO aplicado en F14.
+
+### AUD-0047 — Vista de parámetros inalcanzable con un "Guardar" que informa éxito sin persistir
+- **Severidad:** P3 (funcional/consistencia: código muerto con feedback falso)
+- **Fase:** 14
+- **Estado:** OPEN — requiere decisión: eliminar la vista, habilitarla (requiere API nueva) o congelarla hasta remediación
+- **Evidencia:** `routes/web.php:78-81` tiene la ruta `GET /administrador/parametros` **comentada** (bloque `web.php:64-86`); `php artisan route:list` no la incluye; `grep view('administrador.parametros')` en `app/` = 0 → **inalcanzable**; `resources/views/administrador/parametros.blade.php:287-305` el handler `guardar()` no hace `fetch` (0 `apiFetch` en la vista) y solo `this.exito = true` → toast "Parámetros guardados" sin escritura alguna.
+- **Impacto:** si algún día se habilita la ruta, el botón informa éxito sin guardar nada (peor que ausencia de pantalla). Hoy es código muerto que engaña al auditor/lector.
+- **Acción propuesta:** decisión de producto; no tocar en F14.
+
+### AUD-0048 — Login: "¿Olvidaste tu contraseña?" es un enlace muerto
+- **Severidad:** P3 (funcional: flujo inexistente)
+- **Fase:** 14
+- **Estado:** OPEN — sin endpoint de recuperación en el sistema
+- **Evidencia:** `resources/views/auth/login.blade.php:274-278` `<a href="#">¿Olvidaste tu contraseña?</a>`; `php artisan route:list` no tiene rutas de recuperación/reset de contraseña; grep `reset|forgot` en `routes/` = 0.
+- **Impacto:** el usuario que olvida la contraseña no tiene salida (la política de contraseñas obliga a cambio vía perfil, pero no existe recuperación por correo). Falta de alcance documentada por primera vez.
+- **Acción propuesta:** definir alcance (módulo de recuperación + correo vs. reset por ADMIN). F14 solo lo registra.
+
+### AUD-0049 — Login: los errores llegan sin adaptar al usuario
+- **Severidad:** P3 (feedback/seguridad de mensajes)
+- **Fase:** 14
+- **Estado:** OPEN
+- **Evidencia:** `resources/views/auth/login.blade.php:335` `const data = await response.json()` **sin `try/catch`** ni `response.ok` → una respuesta HTML (500/503) revienta con excepción no manejada; `:338` muestra `data.message` crudo → con `throttle:login` (`app/Providers/AppServiceProvider.php:25`, 5/min) el 429 se muestra como **"Too Many Attempts."** (mensaje de Laravel en inglés, sin `Retry-After`); `AuthorizationException` del backend (`messages/en` vs `es` no publicados) llega igual.
+- **Impacto:** el usuario no entiende que está limitado ni cuánto esperar; posible fuga de texto técnico en 500. Relacionado con **AUD-0006** (mensajes genéricos de login).
+- **Acción propuesta:** manejar `response.ok`, traducir/adaptar 422/429/500 a copy en español y ofrecer reintento. NO aplicado en F14.
+
+### AUD-0050 — Bandeja operador: contador "Total de expedientes" siempre vacío
+- **Severidad:** P3 (estado/datos en pantalla)
+- **Fase:** 14
+- **Estado:** OPEN
+- **Evidencia:** `resources/views/expedientes/bandeja-operador.blade.php:16` usa `meta.total` en el rótulo; `:133-139` la respuesta del API se copia en `data` con `total: j.meta.total ?? data.length` pero **nunca** se asigna `this.meta` (grep `this.meta` = 0); comparar con `bandeja-sorteo.blade.php:184` que sí hace `this.meta = j.meta`.
+- **Impacto:** el rótulo muestra un valor vacío; el usuario pierde el total que la API sí envía.
+- **Acción propuesta:** asignar `this.meta` igual que en la bandeja de sorteo. NO aplicado en F14.
+
+### AUD-0051 — Apertura: plantilla `errorGral` jamás activada
+- **Severidad:** P3 (feedback: componente inerte)
+- **Fase:** 14
+- **Estado:** OPEN
+- **Evidencia:** `resources/views/expedientes/apertura.blade.php:14-19` declara el banner `x-show="errorGral"`; `:170` y `:224` solo asignan `this.errorGral = null` en los `finally`; grep de asignaciones de texto a `errorGral` = 0 (los errores van a `error403`, `errorValidacion`, `errorServidor`, `catch` local).
+- **Impacto:** sin efecto visible hoy (el resto de ramas cubre 403/422/500), pero el componente es código muerto que confunde al mantener la ilusión de un canal de error genérico.
+- **Acción propuesta:** eliminar el banner o enrutar a él los errores no clasificados. NO aplicado en F14.
+
+### AUD-0052 — Apertura: el límite de 10 partes existe solo en el cliente
+- **Severidad:** P3 (validación consistente / posible cambio funcional)
+- **Fase:** 14
+- **Estado:** OPEN — requiere decisión: ¿el límite de 10 partes es regla de negocio real? No consta en el SRS (grep sin mención)
+- **Evidencia:** `resources/views/expedientes/apertura.blade.php:71,198` oculta el botón "Agregar parte" a partir de 10 y bloquea con toast; `app/Http/Requests/StoreExpedienteRequest.php:25` valida `partes.*.nombre` con `required|string|max:255` **sin `max` en el array** → vía API se aceptan N partes.
+- **Impacto:** validación débil en servidor (inconsistencia cliente/servidor, patrón contrario a las reglas del proyecto); si 10 no es regla real, el límite de la UI es arbitrario.
+- **Acción propuesta:** decidir el alcance y, si procede, añadir `max` en el FormRequest + test. NO aplicado en F14 (toca validación → confirmación).
+
+### AUD-0053 — Dashboards: un refresco fallido conserva los datos previos junto al banner de error
+- **Severidad:** P3 (estado/consistencia de datos en pantalla)
+- **Fase:** 14
+- **Estado:** OPEN
+- **Evidencia:** `resources/views/administrador/dashboard.blade.php:304-316` y `resources/views/encargada/dashboard.blade.php:226-235`: en el `catch` se setea `this.error` pero **no** se reinicia `datosListos` (solo se pone en `true` tras éxito) → `x-if="datosListos"` sigue mostrando los KPIs de la carga anterior, ahora con el banner de error encima.
+- **Impacto:** el usuario ve números viejos junto a "Error al cargar" sin saber cuáles están desactualizados; decisión potencial sobre datos obsoletos.
+- **Acción propuesta:** poner `datosListos = false` en el `catch` (o marcar los datos como "última actualización"). NO aplicado en F14.
+
+### AUD-0054 — Sorteo individual: el error puede quedar invisible si se cierra el modal
+- **Severidad:** P3 (feedback dependiente del timing del usuario)
+- **Fase:** 14
+- **Estado:** OPEN
+- **Evidencia:** `resources/views/expedientes/bandeja-sorteo.blade.php:222-227` captura el error en `errorSorteo`, que solo se renderiza **dentro del modal** (`:135-136`); el cierre del modal (`seleccionado = null` en `:106,116,140`) queda habilitado durante la petición (solo el botón submit se deshabilita, `:145`) → si el usuario cierra mientras `fetch` está en vuelo, el `x-show` del modal se apaga y el mensaje deja de existir; no hay `apiToast` para este caso (contrasta con el resto de acciones del sistema).
+- **Impacto:** falla silenciosa percibida: el expediente no se sorteó y la UI no lo dice.
+- **Acción propuesta:** duplicar el error a un toast global y/o deshabilitar el cierre mientras `sorteandoId` esté activo. NO aplicado en F14.
+
+### AUD-0055 — Sorteo: recarga a página fuera de rango tras sortear el último ítem
+- **Severidad:** P3 (estado/paginación)
+- **Fase:** 14
+- **Estado:** OPEN
+- **Evidencia:** `resources/views/expedientes/bandeja-sorteo.blade.php:219` hace `this.cargar()` conservando `current_page`; `sortear()` saca el ítem de la lista local (`:210-214`) pero no recalcula la página → con un ítem en la última página, el backend (`LengthAwarePaginator`, no recorta páginas fuera de rango) devuelve `data=[]` con `total > 0`.
+- **Impacto:** pantalla vacía con contador "N de M" inconsistente y sin indicación de cómo volver; el usuario cree que desaparecieron expedientes.
+- **Acción propuesta:** tras sortear, si la página quedó vacía y `current_page > last_page`, retroceder una página antes de recargar. NO aplicado en F14.
+
+### AUD-0056 — Usuarios: "Inactivar" disponible sobre la propia cuenta → 422 del servidor
+- **Severidad:** P3 (UX/estado inválido: la UI ofrece una acción que siempre falla)
+- **Fase:** 14
+- **Estado:** OPEN
+- **Evidencia:** `resources/views/administrador/usuarios.blade.php:110-113` renderiza el botón para toda fila, sin comparar `id` con el usuario logueado; `app/Services/SeguridadSesionesService.php:44-48` lanza `ValidationException` "Un administrador no puede inactivarse a sí mismo" (mostrada en UI en `usuarios:337-345`).
+- **Impacto:** feedback de error en vez de prevención: el admin descubre la regla solo al intentarlo. Relacionado con O-13 (auto-edición de rol).
+- **Acción propuesta:** ocultar/deshabilitar el botón en la fila propia (comparación con `/api/me`). NO aplicado en F14.
+
+### AUD-0057 — Layout: `cargarUsuario()` y `cerrarSesion()` fallan en silencio
+- **Severidad:** P3 (feedback/errores no capturados)
+- **Fase:** 14
+- **Estado:** OPEN
+- **Evidencia:** `resources/views/layouts/app.blade.php:261-272` `cargarUsuario()` no tiene `try/catch` (una sesión expirada ya redirige vía `api-helper:38-41`, pero un 500 deja la UI sin usuario sin aviso); `:274-281` `cerrarSesion()` tiene `catch` **vacío** → si `POST /api/logout` falla, el usuario cree que salió y el `localStorage`/estado quedan sin limpiar.
+- **Impacto:** estados de sesión ambiguos en la barra superior; sin mensaje ni fallback.
+- **Acción propuesta:** capturar, limpiar estado local y notificar (toast) en ambos casos. NO aplicado en F14.
+
+### AUD-0058 — Salidas de consola con datos en vistas entregadas
+- **Severidad:** P3 (higiene / candidato a F17 hardening)
+- **Fase:** 14
+- **Estado:** OPEN
+- **Evidencia:** `resources/views/administrador/monitoreo.blade.php:469` `console.log` con la respuesta completa del monitoreo (datos de expedientes/personas), `:500` `console.error` del error; `resources/views/administrador/feriados.blade.php:645` similar en el save. Regla del proyecto: prohibido `Log::info()` de debug en entregables finales — el equivalente en consola del navegador aplica al mismo criterio.
+- **Impacto:** cualquier persona con la consola abierta ve datos del expediente; inconsistente con la política de datos sensible del sistema gubernamental.
+- **Acción propuesta:** eliminar los `console.*` de datos; mantener solo si se justifica. NO aplicado en F14 (candidato natural a F17 junto con AUD-0006/0027).
+
+### AUD-0059 — `welcome.blade.php`: código muerto con enlace a `/dashboard` inexistente
+- **Severidad:** P3 (código muerto / navegación)
+- **Fase:** 14
+- **Estado:** OPEN
+- **Evidencia:** no hay `GET /` en `php artisan route:list`; `grep -r "welcome" routes/ app/ tests/` = 0 → la vista es inalcanzable; `resources/views/welcome.blade.php:26` enlaza a `/dashboard` (**ruta inexistente**) y `:30` a `route('login')`.
+- **Impacto:** sin efecto de usuario hoy; si se habilita `/` aparecería un enlace roto. Código huérfano que engaña al inventory.
+- **Acción propuesta:** eliminar la vista o corregirla si se decide habilitar la raíz. NO aplicado en F14.
+
+### AUD-0060 — RF-04 sin interfaz: la evaluación de requisitos de admisibilidad no es ejecutable desde la UI
+- **Severidad:** P1 (requisito funcional sin superficie de usuario; criterio ya adoptado por el usuario en AUD-0035: "los endpoints NO sustituyen la interfaz")
+- **Fase:** 14
+- **Estado:** OPEN — decisión de alcance de UI pendiente; NO implementar
+- **Evidencia:** requisito citado sin interpretar: `docs/auditoria/SRS_EXTRAIDO.txt:109` (RF-04: el profesional asignado "**podrá seleccionar** desde un catálogo dinámico… qué requisitos se cumplen o faltan"). Backend **existe y está probado**: `routes/api.php:58-59` → `EvaluacionAdmisibilidadController@requisitos:23-33` y `@store:44-61` con `StoreEvaluacionAdmisibilidadRequest`, servicio `EvaluacionAdmisibilidadService`, tablas `catalogo_requisitos`/`evaluaciones_admisibilidad`, tests `EvaluacionAdmisibilidadTest`. UI: `grep -i "evaluacion|requisito" resources/views/**` → 0 llamadas a `/requisitos` ni `/evaluacion` (las coincidencias `detalle.blade.php:218,320` son `verificarRequisitoAdjunto` del modal de actuados). Estado previo en `MATRIZ_SRS_IMPLEMENTACION.md:29` = "IMPLEMENTADA (FE pendiente: sin UI de checklist)" con acción "UI en Fase 14".
+- **Impacto:** RF-04 describe una capacidad **del usuario**; sin pantalla, solo es accesible por HTTP directo con sesión. Relacionado con AUD-0014 (endpoint global de catálogo de requisitos) y AUD-0061.
+- **Acción propuesta:** diseñar la superficie (checklist por expediente + persistencia de la evaluación) como parte de la decisión de alcance de UI junto a AUD-0035/0061. NO implementar sin decisión explícita.
+
+### AUD-0061 — 11 operaciones con endpoint dedicado no tienen interfaz
+- **Severidad:** P1 (alcance de producto / flujo normativo incompleto en UI)
+- **Fase:** 14
+- **Estado:** OPEN — decisión de alcance de UI pendiente; NO implementar
+- **Evidencia (todas verificadas en `routes/api.php` con grep de `resources/views/` = 0):**
+  | Operación | Ruta | Fase backend |
+  |---|---|---|
+  | Evaluación de requisitos (RF-04) | `api.php:58-59` | 7 → **AUD-0060** |
+  | Impugnación remitir/resolver | `api.php:62-63` | 7 → ya **AUD-0035** |
+  | Planificación + VB + devolución | `api.php:66-68` | 8 |
+  | Ampliación + aprobación | `api.php:71-72` | 8 |
+  | Expediente hijo (NUREJ) | `api.php:75` | 8 |
+  | Cierre: VB + reparto | `api.php:78-79` | 9 |
+  | Derivación a Transparencia + remisión | `api.php:82-83` | 9 |
+  | Descargos: comunicar/recibir | `api.php:86-87` | 9 |
+- **Impacto:** vistos desde el usuario final, el sistema "tiene" planificación (RN-04/05), cierre con VB, Transparencia (US-2.6) y descargos (RN-09, 5 días hábiles) **solo como API**: el operador no puede ejecutarlos desde la interfaz. Relacionados: **AUD-0028** (VB/devolución Encargada), **AUD-0035** (impugnación), **AUD-0039**, **AUD-0060**.
+- **Acción propuesta:** en conjunto con AUD-0035, definir la superficie de operaciones contra el flujo normativo (no botones aislados) y priorizarla. NO implementar en F14.
+
+### AUD-0062 — N+1 medido: feriados y suspensiones se recargan por cada expediente/plazo serializado
+- **Severidad:** P2 (rendimiento: crece linealmente con filas/plazos por página; 60% de las queries de la bandeja son redundantes)
+- **Fase:** 15
+- **Estado:** OPEN — fix PROPUESTO (unificar/cachear `PlazoCalculatorService`), pendiente de decisión; NO implementado
+- **Evidencia (código):** `app/Http/Resources/ExpedienteResource.php:82` y `app/Http/Resources/PlazoResource.php:24` llaman `app(SemaforoPlazoService::class)` **por cada ítem serializado**; no hay `singleton`/`bind` en `app/Providers` (grep = 0) → cada llamada construye instancia nueva; `app/Services/SemaforoPlazoService.php:11-14` inyecta `PlazoCalculatorService`, cuyo constructor (`app/Services/PlazoCalculatorService.php:23-25`) ejecuta `loadFeriados()` (`:141-143`, `Feriado::pluck('fecha')`) y `loadSuspensiones()` (`:149`, `suspensiones_plazo`) **una vez por instancia**. Verificado con test de identidad en tinker: dos `app()` → instancias distintas (`$a === $b` → `false`) y +4 queries.
+- **Evidencia (medición, `DB::listen` en BD dev 2026-10-01):** `GET /api/bandeja` completo = **43 queries / 127 ms**, de las cuales **13× `select fecha from feriados` + 13× `select fecha_inicio, fecha_fin from suspensiones_plazo` = 26/43 (60%)**; serialización directa de 15 expedientes con `relacionesDetalle` = 32 queries (22 repetidas); detalle de 1 expediente = 12 queries (2 repetidas). Composición: 3 semáforos de `ExpedienteResource` (plazos VIGENTES) + 10 semáforos de `PlazoResource` (10 plazos en dev).
+- **Impacto:** cada página de bandeja/disparo de detalle paga ~2 queries extra por plazo y por expediente con plazo vigente; con volumen histórico del SRS esto domina el conteo de queries por request. Relacionado con **AUD-0018** (costo por página) y **RNF-03**.
+- **Acción propuesta:** PROPUESTA — cachear feriados/suspensiones (singleton por request o `memoize` en `PlazoCalculatorService`) o inyectar una única instancia del servicio calculador en los resources. Requiere aprobación (toca services/resources). NO implementado en F15.
+
+### AUD-0063 — Dashboard admin: carga completa de expedientes y 5 consultas sobre la misma tabla por petición
+- **Severidad:** P2 (rendimiento/escalabilidad: costo lineal con el total de expedientes)
+- **Fase:** 15
+- **Estado:** OPEN — fix PROPUESTO (agregados en SQL, patrón del dashboard Encargada), pendiente de decisión; NO implementado
+- **Evidencia (código):** `app/Http/Controllers/Administrador/AdminDashboardController.php:95` `Expediente::with(['plazos','asignacionActiva.usuario'])->get()` (**tabla completa** + plazos, agregación del semáforo en PHP `:97-126`); pasadas sobre `expedientes` en la misma petición: `:64` count, `:77-81` GROUP BY via, `:88` whereDoesntHave, `:95` get completo, `:133-136` take(5).
+- **Evidencia (medición):** traza de queries de `GET /api/admin/dashboard` con `DB::listen` = 23-24 queries / 65 ms (BD dev), incluyendo `select * from expedientes` completo (query #13 de la traza). Dashboard Encargada equivalente = 23 queries / 30 ms **con select acotado** (`EncargadaDashboardService:88-113`: `whereHas('plazos')` + `select` mínimo) → patrón correcto ya existente en el proyecto.
+- **Impacto:** con miles de expedientes (contexto del SRS), el dashboard admin carga y agrega en PHP toda la tabla en cada carga de pantalla (CPU PHP + memoria + red BD), aunque la respuesta solo devuelve resúmenes. Contrasta con Maestro §55 "dashboard" y "no cargar miles de expedientes".
+- **Acción propuesta:** PROPUESTA — convertir los agregados del semáforo/`fuera_de_plazo` a consultas SQL (o reusar el enfoque del dashboard Encargada). Requiere aprobación. NO implementado en F15.
+
+### AUD-0064 — Sin índice en `expedientes.fecha_ingreso`: filesort en cada página de bandeja y en monitoreo
+- **Severidad:** P3 (rendimiento: plan de ejecución subóptimo; sin impacto medible con datos actuales)
+- **Fase:** 15
+- **Estado:** OPEN — índice PROPUESTO (justificado por patrón real de consulta), pendiente de decisión; NO creado
+- **Evidencia (EXPLAIN, MySQL 9.7, BD dev):** bandeja operador (`EXISTS` + `ORDER BY fecha_ingreso DESC LIMIT 15`) → subquery materializada usa `asignaciones_usuario_id_foreign`, expedientes `eq_ref` PK, **`Extra: Using temporary; Using filesort`**; bandeja sorteo y monitoreo con filtro de estado → `ref idx_expedientes_estado` + **`Using filesort`** (§6 de `MATRIZ_RENDIMIENTO.md`, EXPLAIN #1-#3).
+- **Evidencia (esquema):** `php artisan db:table expedientes` → solo `idx_expedientes_estado`, `idx_expedientes_padre`, `idx_expedientes_via`, UNIQUE `nurej_code`, PK y FKs (`mig 2026_08_25_191155_create_expedientes_table.php:30-32`); **ningún índice cubre `fecha_ingreso`**.
+- **Patrón real que lo justifica:** `ORDER BY fecha_ingreso` en `ExpedienteController:62,75`, `AdminMonitoreoController:98,102,110`, `AdminDashboardController:134`.
+- **Impacto:** ordenamiento completo (temp+filesort) en cada página; con volumen alto el sort domina el costo. **Limitación:** con 24 filas en dev no hay impacto observable; `EXPLAIN` con datos triviales puede subestimar el plan.
+- **Acción propuesta:** PROPUESTA — evaluar `index('fecha_ingreso')` o compuesto `(estado_actual_id, fecha_ingreso)` (bandeja por estado). Cada opción debe justificarse contra las consultas citadas antes de crearla. NO creado en F15 (§55: sin índices indiscriminados).
+
+### AUD-0065 — `sesiones_acceso` sin índice en `login_at` / `(exitoso, login_at)`; el dashboard admin ordena y filtra esas columnas
+- **Severidad:** P3 (rendimiento: full scan + filesort; tabla que crece con cada login)
+- **Fase:** 15
+- **Estado:** OPEN — índice PROPUESTO, pendiente de decisión; NO creado
+- **Evidencia (esquema):** `php artisan db:table sesiones_acceso` → solo PK y `sesiones_acceso_usuario_id_foreign`; **sin índices en `login_at` ni `exitoso`**.
+- **Evidencia (código):** `AdminDashboardController:159-162` `SesionAcceso::with('usuario')->orderByDesc('login_at')->take(6)`; `:172-174` `where('exitoso', false)->where('login_at', '>=', now()->subDay())->count()`.
+- **Evidencia (EXPLAIN):** `ORDER BY login_at DESC LIMIT 6` → `type=ALL`, key NULL, `Using filesort`; `WHERE exitoso=0 AND login_at>=…` → `type=ALL`, key NULL (§6, EXPLAIN #13-#14).
+- **Impacto:** cada carga del dashboard admin recorre la tabla completa de sesiones (una fila por intento de login del sistema, crecimiento continuo por la auditoría de sesiones). **Limitación:** 3 filas en dev → costo actual nulo; el riesgo es el crecimiento.
+- **Acción propuesta:** PROPUESTA — índices `login_at` y `(exitoso, login_at)` justificados por las dos consultas citadas. NO creado en F15.
+
+### AUD-0066 — El cron diario de plazos hace full scan de `plazos` (sin índice `(estado, fecha_limite)`)
+- **Severidad:** P3 (rendimiento de la automatización diaria; sin impacto actual por volumen)
+- **Fase:** 15
+- **Estado:** OPEN — índice PROPUESTO, pendiente de decisión; NO creado
+- **Evidencia (código):** `app/Services/MarcarPlazosVencidosService.php:26-31` (`tipo_plazo != … AND estado='VIGENTE' AND fuera_de_plazo=false AND fecha_limite < hoy` → UPDATE) y `app/Services/ArchivoPorAbandonoService.php:49-54` (mismo filtro de `fecha_limite` → `get()`), ambos ejecutados por `plazos:verificar-vencidos` diario (`routes/console.php:11`).
+- **Evidencia (esquema):** `php artisan db:table plazos` → solo PK + 4 índices FK; **sin índice que combine `estado`/`fecha_limite`**.
+- **Evidencia (EXPLAIN):** `SELECT * FROM plazos WHERE estado='VIGENTE' AND fecha_limite < CURDATE()` → `type=ALL`, key NULL, `Using where` (§6, EXPLAIN #9).
+- **Impacto:** recorrido completo de `plazos` una vez al día; crece con el histórico de plazos (los plazos no se borran). Relacionado con **AUD-0042** (robustez del mismo comando) y **AUD-0036** (falta de unicidad) — este hallazgo es solo de índice.
+- **Acción propuesta:** PROPUESTA — índice `(estado, fecha_limite)` o `(fecha_limite, estado)` justificado por las dos consultas del cron. NO creado en F15.
+
+### AUD-0067 — Búsqueda por NUREJ/resumen con `LIKE '%…%'`: full scan no indexable y sin endpoint de búsqueda
+- **Severidad:** P3 (rendimiento + deuda de RNF-03: la única búsqueda del sistema no puede usar índice)
+- **Fase:** 15
+- **Estado:** OPEN — rediseño de búsqueda PROPUESTO, pendiente de decisión; NO implementado
+- **Evidencia (código):** `app/Http/Controllers/Administrador/AdminMonitoreoController.php:52-57` `nurej_code LIKE '%buscar%' OR resumen_hechos LIKE '%buscar%'`; invocado desde `resources/views/administrador/monitoreo.blade.php:73,421-426` (input con debounce); **grep de rutas de búsqueda en `routes/` = 0** (no hay endpoint dedicado de búsqueda por NUREJ).
+- **Evidencia (EXPLAIN):** `… nurej_code LIKE '%A-%' OR resumen_hechos LIKE '%A-%'` → `type=ALL`, key NULL (§6 #4); `… resumen_hechos LIKE '%test%'` → `type=ALL` (#6); contra-partida: `nurej_code = 'A-0001'` → **const vía `expedientes_nurej_code_unique`** (#5) → el índice existe y funciona solo con igualdad/prefijo.
+- **Impacto:** la búsqueda monitoreo siempre escanea la tabla completa de expedientes (+`resumen_hechos` TEXT); imposible de acelerar con índices btree en el patrón `%…%`. Relacionado con **AUD-0018** (búsqueda exigida por RNF-03).
+- **Acción propuesta:** PROPUESTA — definir el patrón de búsqueda (NUREJ por prefijo/exacto aprovechando el índice único; FULLTEXT o alternativa para `resumen_hechos`; o endpoint de búsqueda dedicado). Es decisión de diseño, NO un índice que agregar. NO implementado en F15.
+
 ---
 
-## Observaciones O-x (sin ficha AUD) — decisión 2026-09-30
+## Observaciones O-x (sin ficha AUD) — O-4…O-10 decisión 2026-09-30; O-11…O-19 añadidas en F14 (2026-10-01); O-20…O-21 añadidas en F15 (2026-10-01)
 
 | ID | Evidencia exacta (origen) | Decisión |
 |---|---|---|
@@ -491,6 +726,17 @@
 | O-6 | `FLUJO_TECNICO.md:123-126`: el Técnico que creó la causa puede ganar su propio sorteo (candidatos = todos los TECNICO activos; el SRS no lo prohíbe). Verificado: `SorteoAlgorithmService:83-89` filtra solo `activo` + rol, sin `creado_por`. | **CERRADA (2026-09-30, cierre F12): "Comportamiento aceptado provisionalmente; el SRS no establece prohibición explícita de autoasignación."** No se autoriza excluir al creador del pool en esta fase. Si luego se decide excluir → abrir como **cambio funcional separado con sus respectivos tests**. |
 | O-7 | `FLUJO_JURIDICO.md:158-161`: `ImpugnacionService:87` usa `fecha_limite_resolucion = $plazoResolucion?->fecha_limite ?? now()`; si falta el parámetro `IMPUGNACION_RESOLVER` (BD dev 8/17, AUD-0023) la impugnación queda con límite "ahora" aunque el flujo siga vivo. **Verificado 2026-09-30:** BD dev con **0 filas** `tipo_plazo = IMPUGNACION_RESOLVER` → fallback `now()` activo en dev. | **CERRADA (2026-09-30, cierre F12) como SUB-CASO de AUD-0023 — sin ficha P2 independiente.** Documentado: en BD dev el parámetro está ausente y el fallback `now()` produce un límite de resolución inmediato. NO modificar el comportamiento. Riesgo/candidato de corrección **asociado a la sincronización de parámetros de AUD-0023**. |
 | O-10 | `routes/console.php:11`: `Schedule::command('plazos:verificar-vencidos')->daily()` sin `withoutOverlapping()`/`onOneServer()`/lock; sin índice único `(expediente_id, tipo_plazo)` en `create_plazos_table` → corridas solapadas podrían emitir dos actuados de archivo. Detectada en Fase 13 (`MATRIZ_JOBS_CRON.md` §4). | **Observación, NO elevada** (regla 2026-09-30): no reproducida experimentalmente (stress tests no cubren este comando) → sin evidencia no se clasifica; monitorizar/ reproducir antes de decidir fix (`withoutOverlapping()` o lock). |
+| O-11 | F14: `bandeja-operador.blade.php:128-131` muestra un único mensaje genérico con "Reintentar" sin distinguir `status` ni mostrar `data.message` (contrasta con el resto de vistas). | **Observación, NO elevada (F14):** hay mensaje visible; es calidad de copy, no ausencia de feedback. |
+| O-12 | F14: `feriados.blade.php:293-317` permite editar/eliminar feriados con fecha pasada (backend sin restricción temporal). | **Observación, NO elevada (F14):** grep en SRS sin prohibición → no se inventa requisito. Si se decide bloquear, es cambio funcional con tests. |
+| O-13 | F14: un ADMIN puede autoeditarse (incluido su rol) vía `PUT /api/admin/usuarios/{id}`. | **Observación, NO elevada (F14):** sin requisito que lo prohíba; puede ser intencional → **decisión pendiente** (¿prohibir auto-cambio de rol?). |
+| O-14 | F14: `apertura.blade.php:223-241` sin guarda anti-doble envío en el mismo frame (`enviando` solo se setea tras la validación de cliente). | **Observación, NO elevada (F14):** no ejecutado en navegador; probabilidad baja. |
+| O-15 | F14: `GET /api/estados` (`routes/api.php:47`) y `GET /api/usuarios` (`:37`) no son llamados por ninguna vista. | **Observación, NO elevada (F14):** funcionalidad sin consumidor; sin impacto de usuario. |
+| O-16 | F14: botón "Actualizar" de `administrador/dashboard.blade.php:13` sin `:disabled` durante la carga (cargas concurrentes posibles). | **Observación, NO elevada (F14):** sin efecto sobre datos. |
+| O-17 | F14: `monitoreo.blade.php:544` define `claseSemaforo` sin invocarlo (código muerto). | **Observación, NO elevada (F14):** sin impacto funcional. |
+| O-18 | F14: `parametros.blade.php:81` `min="1"` vs valor por defecto `dias_fuera_plazo: 0`. | **Observación, NO elevada (F14):** vista inalcanzable (cubierto por AUD-0047). |
+| O-19 | F14: descarga de adjunto en pestaña nueva (`detalle.blade.php:185`) sin manejo visible de 403. | **Observación, NO elevada (F14):** no verificable estáticamente (sin navegador). |
+| O-20 | F15: el monitoreo filtra `estado` **después** de cargar todo (`AdminMonitoreoController:295-312`) porque `POR_VENCER`/`FUERA_DE_PLAZO` son estados computados, y el `resumen` se calcula sobre el conjunto completo (`:317-335`). | **Observación, NO elevada (F15):** decisión de diseño documentada en el código; se registra porque condiciona la solución de AUD-0018 (paginar el monitoreo no es trivial). |
+| O-21 | F15: la mayoría de `->get()` sin límite están acotados por catálogo/purpose (catálogos, feriados, candidatos de sorteo, vencidos del día, partes de un padre). | **Observación, NO elevada (F15):** no todo `get()` es defecto — dataset pequeño/estable por naturaleza (inventario completo en `MATRIZ_RENDIMIENTO.md` §8). |
 
 ---
 

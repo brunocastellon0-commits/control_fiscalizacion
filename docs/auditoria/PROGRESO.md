@@ -626,8 +626,10 @@ Documentación explícita del cierre:
     formalmente a la lista de decisiones pendientes del backlog global,
     con sus propuestas técnicas mantenidas; **no bloquean F12** (F12 no los
     introdujo ni modificó).
-  - **AUD-0042/AUD-0043 (P2, Fase 13):** decisión pendiente del usuario
-    (revisión posterior a este cierre, antes de F14).
+  - **AUD-0042/AUD-0043 (P2, Fase 13):** resueltos en el **cierre de F13
+    (2026-09-30)** — ambos P2 OPEN → backlog de desarrollo; AUD-0043 con la
+    corrección conforme al SRS (corte 23:59, zona horaria institucional)
+    confirmada como pendiente de desarrollo.
 - **Sin cambios de producto como consecuencia de esta validación:** el
   cierre solo registró decisiones en documentación. El único cambio de
   producto de F12 fue el fix de **AUD-0041**, autorizado explícitamente por
@@ -647,7 +649,7 @@ autorizado y aplicado**; O-4 resuelta sin elevar.
 
 ---
 
-## Fase 13 — Jobs/cron (ENTREGADA, 2026-09-30 — pendiente de validación)
+## Fase 13 — Jobs/cron (VALIDADA Y CERRADA, 2026-09-30)
 
 ### Trabajo realizado
 
@@ -678,10 +680,16 @@ autorizado y aplicado**; O-4 resuelta sin elevar.
   falta `ACT_ARCHIVO_POR_ABANDONO` o un ADMIN activo → RN-03 y
   `fuera_de_plazo` no corren; **ya falla hoy en BD dev**. Fix propuesto
   (degradación controlada + log) NO aplicado — toca producto.
+  **Decisión (2026-09-30): P2 OPEN, pendiente de desarrollo** — no se
+  implementa en esta etapa de auditoría; registrado en backlog de
+  desarrollo.
 - **AUD-0043 (P2/OPEN):** corte UTC (00:00 UTC = 21:00 ART) archiva/marca
   hasta 3 h antes de la medianoche local que pide el SRS; reproducido con
   test. Fix = decisión de zona horaria institucional (config global) NO
-  aplicado.
+  aplicado. **Decisión (2026-09-30): se confirma el SRS — el
+  vencimiento/corte debe producirse a las 23:59 de la fecha correspondiente
+  según la zona horaria institucional aplicable**; corrección = pendiente
+  de desarrollo, no implementar ahora.
 - **O-10 (observación, NO elevada):** `daily()` sin
   `withoutOverlapping()`/lock + sin índice único → corridas solapadas
   podrían duplicar actuados; no reproducido → no clasificado.
@@ -689,12 +697,569 @@ autorizado y aplicado**; O-4 resuelta sin elevar.
   cumplida en `MATRIZ_JOBS_CRON.md` §5; (b) sigue pendiente de autorización.
 - Sin cambios de producto en la fase (solo tests + documentación).
 
-### Salida de fase
+### Salida de fase — Cierre de validación (decisiones del usuario, 2026-09-30)
 
-**Fase 13 ENTREGADA (2026-09-30), pendiente de validación.**
-**Backlog vigente: 39 hallazgos abiertos: 16 P1 · 17 P2 · 6 P3 — 4 cerrados
-(AUD-0002, AUD-0003, AUD-0038, AUD-0041).**
-**`NEEDS_REVIEW`: NINGUNO** (resueltos con el cierre de Fase 12).
-**Gates:** `vendor/bin/pint --dirty --format agent` → OK;
-`php artisan test --compact` → **296 tests: 289 OK · 1 fallo (AUD-0001)
-· 0 errores · 6 omitidos** (+3 tests nuevos).
+**Fase 13 VALIDADA Y CERRADA (2026-09-30).**
+
+- **Entregables:** `MATRIZ_JOBS_CRON.md` (§0-§9) +
+  `VerificarVencimientoPlazosTest.php` (3 tests / 17 aserciones).
+- **Tests/gates:** `vendor/bin/pint --dirty --format agent` → OK;
+  `php artisan test --compact` → **296 tests: 289 OK · 1 fallo (AUD-0001,
+  deuda aceptada en F12) · 0 errores · 6 omitidos** (gate de este cierre).
+- **Decisiones sobre los hallazgos de F13:**
+  - **AUD-0042 → P2 OPEN, pendiente de desarrollo.** Etapa de auditoría:
+    no se implementa la degradación controlada/log; el problema está
+    identificado y documentado.
+  - **AUD-0043 → SRS confirmado:** corte a las **23:59 de la fecha
+    correspondiente, según la zona horaria institucional aplicable** (no
+    anticiparse por el scheduler 00:00 UTC); fix = pendiente de
+    desarrollo, no implementar ahora.
+- **Pasan a backlog de desarrollo:** **AUD-0042, AUD-0043** (+ relacionados
+  ya existentes: AUD-0023, AUD-0036, AUD-0037(b); O-10 monitorización ya
+  decidida, no elevada).
+- **Sin pendientes de auditoría que bloqueen F13.**
+- **Backlog vigente: 39 hallazgos abiertos: 16 P1 · 17 P2 · 6 P3 — 4
+  cerrados (AUD-0002, AUD-0003, AUD-0038, AUD-0041).**
+- **`NEEDS_REVIEW`: NINGUNO.**
+
+---
+
+## Fase 14 — Auditoría UX / Frontend (2026-10-01)
+
+### Entrada
+
+- Plan §36 (auditoría de frontend), §37 (UX operativa), §70 (frontend vs backend), alcance `PLAN_EJECUCION_AUDITORIA.md` §3 "F14 UX/frontend".
+- Obligación: detectar y documentar, NO corregir. Único cambio permitido: documentos de auditoría.
+- Hallazgos previos a verificar: AUD-0033, AUD-0008, AUD-0034, RF-04 sin UI, `/expedientes` para la Encargada.
+
+### Metodología
+
+- Superficie real verificada: `route:list` = 54 rutas; 13 vistas Blade + `layouts/app.blade.php` + `partials/api-helper.blade.php`; stack Blade + Alpine (CDN) + Tailwind, sin Livewire/Inertia y sin `pest-plugin-browser` (verificado en `composer.json`/`package.json`) → revisión **estática** + lectura de backend + tests HTTP; sin ejecución en navegador.
+- Cada acción visible trazada por la cadena §70 completa (UI → handler → ruta → controller → policy → request → operación → respuesta → refresco → mensaje). Toda afirmación con `archivo:línea`.
+
+### Entregable
+
+- **`docs/auditoria/MATRIZ_UX_FRONTEND.md`** (§0–§17): §4 inventario vistas→rutas→backend→acciones; matriz §36 por vista; §37 flujo por flujo; §70 por acción visible; §8 verificación AUD-0033/0008; §9 AUD-0034; §10 RF-04; §11 `/expedientes`; §12 hallazgos nuevos; §13 observaciones; §14 descartados; §15 decisiones pendientes; §16 limitaciones; §17 conclusión + gates.
+
+### Hallazgos nuevos (18) — fichas completas en `BACKLOG_AUDITORIA.md`
+
+- **P1 (2):** **AUD-0060** RF-04 sin interfaz (evaluación de admisibilidad no ejecutable desde la UI; `SRS:109` vs 0 llamadas en vistas) · **AUD-0061** 11 operaciones con endpoint dedicado sin interfaz (planificación/VB/devolución, ampliación, cierre/reparto, transparencia, descargos — `routes/api.php:58-87`).
+- **P2 (2):** **AUD-0044** sidebar "Bandeja de entrada" visible para ENCARGADA/ADMIN → 403 (`layouts/app.blade.php:135-139` vs `ExpedientePolicy:53-64`; test `WebWorkstationRoutesTest:53-57`) · **AUD-0045** monitoreo: `error`/`cargando` nunca renderizados → "No se encontraron expedientes" en todo fallo.
+- **P3 (14):** AUD-0046 (rótulo "Actualización automática" sin auto-refresco), AUD-0047 (vista `parametros` inalcanzable + "Guardar" con éxito falso), AUD-0048 (link "¿Olvidaste tu contraseña?" `href="#"`), AUD-0049 (login: 429 en inglés sin Retry-After, respuesta no-JSON), AUD-0050 (`meta.total` sin asignar), AUD-0051 (`errorGral` inerte), AUD-0052 (límite de 10 partes solo en cliente), AUD-0053 (dashboards: datos previos tras refresco fallido), AUD-0054 (error de sorteo invisible si se cierra el modal), AUD-0055 (página fuera de rango tras sortear), AUD-0056 ("Inactivar" sobre la propia cuenta → 422), AUD-0057 (`cargarUsuario`/`cerrarSesion` en silencio), AUD-0058 (`console.log`/`console.error` con datos), AUD-0059 (`welcome` inalcanzable + enlace `/dashboard` inexistente).
+- **Observaciones NO elevadas (9):** O-11 (copy genérico de error en bandeja operador), O-12 (feriados pasados editables), O-13 (ADMIN autoedita rol), O-14 (sin guarda anti-doble envío), O-15 (`GET /api/estados`, `/api/usuarios` sin uso), O-16 (botón "Actualizar" sin disabled), O-17 (`claseSemaforo` muerto), O-18 (`min=1` vs default 0), O-19 (descarga en pestaña nueva sin manejo de 403).
+
+### Verificaciones cerradas en F14
+
+- **AUD-0033 / AUD-0008 / AUD-0035:** confirmado que NO existe UI de impugnación ni de informe final (grep = 0 en vistas); backend parcial ya testeado; decisión previa "NO implementar" **se mantiene** (no se cambia estado). Nueva evidencia: el modal genérico de actuados no crea la fila de `impugnaciones` que `resolver` exige.
+- **AUD-0034:** confirmada y ampliada — `detalle.blade.php:297` no envía `expediente_id` **ni** `estado_origen_id` (el endpoint soporta ambos; `CatalogoActuadoController:37-51`) → el modal ofrece acciones que serán 403 o inválidas. Sin cambio de estado; fix sigue pendiente de autorización.
+- **RF-04:** backend completo y testeado, UI inexistente → **AUD-0060 (P1)** por el criterio ya adoptado por el usuario en AUD-0035.
+- **`/expedientes` Encargada:** backend protegido correctamente (403 testeado); el defecto es de UI (enlace sin gate) → **AUD-0044 (P2)**, relacionada con AUD-0028.
+- **Confirmados sin duplicar:** `GET /api/bandeja` sin authorize ya está en `MATRIZ_SEGURIDAD.md:15` (F3); CDNs = AUD-0006.
+- **Descartados con evidencia:** actuados para roles sin permiso (filtrado por rol en servidor), sorteo en estado inválido (revalidación con lock), errores de validación sin mostrar (sí se muestran), endpoints inexistentes llamados por la UI (correspondencia 1:1 con `route:list`).
+
+### Decisiones pendientes (usuario)
+
+1. AUD-0060/AUD-0061: alcance de la superficie de operaciones sin interfaz (mismo criterio que AUD-0035).
+2. AUD-0047: destino de la vista `parametros` (eliminar / habilitar con API / congelar).
+3. AUD-0044: gatear el enlace por rol vs habilitar la ruta (esta opción toca autorización → confirmación explícita).
+4. O-13: ¿prohibir al ADMIN autoeditarse el rol?
+5. AUD-0052: ¿el límite de 10 partes es regla de negocio real?
+
+### Gates de salida
+
+| Gate | Resultado |
+|---|---|
+| `vendor/bin/pint --dirty --format agent` | **OK** (sin PHP sucio; F14 no tocó código PHP) |
+| `php artisan test --compact` | **296 tests · 289 OK · 1 fallo (AUD-0001, `SecurityCompartimentosTest`, deuda aceptada desde F12) · 0 errores · 6 omitidos** — idéntico al baseline de F13, sin regresiones |
+
+- **Cambios de producto: NINGUNO** (solo `.md`: `MATRIZ_UX_FRONTEND.md` nuevo + `BACKLOG_AUDITORIA.md`, `PROGRESO.md`, `PLAN_EJECUCION_AUDITORIA.md` actualizados).
+- **Estado: ENTREGADA (2026-10-01) — pendiente de validación de fase.**
+
+---
+
+## Cierre de validación F14 (2026-10-01)
+
+- **F14 — UX/Frontend: VALIDADA Y CERRADA (2026-10-01).**
+- **Los 18 hallazgos AUD-0044…AUD-0061 permanecen intactos** (sin cambios de severidad, estado ni evidencia; ninguno cerrado ni eliminado).
+- **Las 5 decisiones pendientes de F14 (§15 de `MATRIZ_UX_FRONTEND.md`) permanecen pendientes: ninguna fue aplicada.**
+- **Cambios de producto: NINGUNO.** Solo documentación de auditoría.
+- **Gates de cierre (2026-10-01):** `vendor/bin/pint --dirty --format agent` → **OK**; `php artisan test --compact` → **296 tests · 289 OK · 1 fallo (AUD-0001, `SecurityCompartimentosTest`, deuda aceptada desde F12) · 0 errores · 6 omitidos** — **idéntico al baseline, SIN REGRESIONES**.
+- Documentos del cierre: `PLAN_EJECUCION_AUDITORIA.md` §5 (fila F14) y esta sección.
+
+---
+
+## Fase 15 — Rendimiento (entrada 2026-10-01)
+
+### Alcance (NO redefinido — plan existente)
+
+- `PLAN_EJECUCION_AUDITORIA.md` §3: "F15 Rendimiento: N+1, índices vs `EXPLAIN`, paginación server-side".
+- Plan Maestro §55 (`PLAN_MAESTRO_AUDITORIA_Y_FINALIZACION_SISTEMA.md:2201-2233`): N+1 queries, consultas repetidas, paginación, índices, joins, reportes pesados, exportaciones, dashboard, carga de bandejas; en MySQL: índices utilizados/faltantes, `EXPLAIN`, joins costosos, ordenamientos, filtros, búsquedas por NUREJ; **sin índices indiscriminados — cada índice debe justificarse por un patrón real de consulta**.
+- Alcance operativo acordado: (1) índices reales vs columnas filtradas/ordenadas; (2) N+1 y consultas repetidas; (3) `EXPLAIN` de consultas críticas; (4) inventario de endpoints con `->get()` sin límite; (5) reauditoría de AUD-0018, AUD-0036, AUD-0055; (6) documentación de recomendaciones **sin implementar fixes**.
+
+### Método
+
+- Evidencia obligatoria `archivo:línea` o `EXPLAIN` reproducible; esquema real vía `php artisan db:table` (nada asumido de memoria).
+- Medición dinámica de queries con `DB::listen` en tests existentes o `tinker --execute` (solo lectura).
+- `EXPLAIN` solo lectura sobre consultas críticas; prohibido índices, migraciones, `paginate()` nuevo o cambios de controllers/resources/frontend/tests.
+- Toda recomendación se registra como **PROPUESTA / PENDIENTE DE DECISIÓN**.
+
+### Áreas a auditar
+
+- Índices: `expedientes`, `asignaciones`, `actuados`, `plazos`, `usuarios`, catálogos (migraciones + esquema real).
+- Endpoints: bandejas (operador/sorteo), monitoreo, dashboards (admin/encargada), catálogos, usuarios, feriados, evaluación de admisibilidad, reportes R01…R09.
+- Hallazgos a reverificar (sin modificarlos): **AUD-0018** (P2, paginación/búsqueda — evidencia histórica "0 paginate()" desactualizada), **AUD-0036** (P3, índice único `plazos`), **AUD-0055** (P3, paginador, de F14).
+
+### Entregable
+
+- `docs/auditoria/MATRIZ_RENDIMIENTO.md` (fila añadida en §1 del plan) + fichas nuevas desde **AUD-0062** en `BACKLOG_AUDITORIA.md`.
+
+### Estado
+
+- **EN CURSO** (ejecución iniciada 2026-10-01). Gates finales y cierre: ver sección final de esta fase.
+
+---
+
+### F15 — Salida: ejecución, gates y control de cambios (2026-10-01)
+
+- **Entregable creado:** `docs/auditoria/MATRIZ_RENDIMIENTO.md` (§0-§16): índice §4, matriz §5, EXPLAIN §6, medición dinámica §7, inventario de paginación §8, reauditoría §9, NUREJ §10, áreas §11, hallazgos §12, decisiones §14, limitaciones §15, gates §16.
+- **Hallazgos nuevos (6):** **AUD-0062 (P2)** N+1 medido en resources — `feriados`+`suspensiones_plazo` = 26 de 43 queries de `GET /api/bandeja` (`ExpedienteResource:82`, `PlazoResource:24`, sin singleton) · **AUD-0063 (P2)** dashboard admin carga la tabla completa de expedientes y la consulta 5 veces por petición (`AdminDashboardController:64,77,88,95,133`) · **AUD-0064 (P3)** sin índice `expedientes.fecha_ingreso` → `Using temporary; Using filesort` en bandejas/monitoreo · **AUD-0065 (P3)** `sesiones_acceso` sin índice `login_at`/`(exitoso,login_at)` → `type=ALL` en el dashboard · **AUD-0066 (P3)** cron de plazos full scan (sin `(estado, fecha_limite)`) · **AUD-0067 (P3)** búsqueda NUREJ/resumen `LIKE '%…%'` full scan no indexable (única búsqueda del sistema).
+- **Observaciones nuevas:** O-20 (el monitoreo filtra `estado` post-load por diseño → condiciona AUD-0018), O-21 (inventario de `->get()` acotados por catálogo/purpose).
+- **Reauditoría (sin modificar fichas):** **AUD-0018** — evidencia histórica "0 paginate()" queda desactualizada (hoy 3 usos: `ExpedienteController:63,76`, `UsuarioController:40`); se mantiene OPEN y se **amplía** (monitoreo/dashboard/usuarios sin paginar + 0 rutas de búsqueda; paginar el monitoreo exige diseño previo por estados computados). **AUD-0036** — confirmado: `db:table plazos` sigue sin índice único `(expediente_id, tipo_plazo)` (solo FKs). **AUD-0055** — evidencia vigente: código sin cambios (`paginate(15)` + recarga con `current_page`).
+- **Índices creados: NINGUNO. Migraciones tocadas: NINGUNA. Consultas alteradas: NINGUNA.** Recomendaciones registradas como PROPUESTA/PENDIENTE DE DECISIÓN (§14 de la matriz).
+
+#### Gates de salida F15
+
+| Gate | Resultado |
+|---|---|
+| `vendor/bin/pint --dirty --format agent` | **OK** (sin PHP sucio) |
+| `php artisan test --compact` (corrida final) | **296 tests · 289 OK · 1 fallo (AUD-0001, deuda aceptada) · 0 errores · 6 omitidos** — baseline, **sin regresiones** |
+
+**ANOMALÍA DETESTS REGISTRADA (no ocultada):** en la primera corrida de gates
+de F15 (mismo código, mismos tests) la suite devolvió **289→287 OK · 2 fallos ·
+1 error**: además de AUD-0001 falló `AmpliacionTest:175` (resumen esperado vs
+"Asignación inicial de la semilla") y erroró `DerivacionTransparenciaTest`
+("Undefined array key tipo"). Investigación: ambos tests **pasan aisladamente**
+(10/10 cada uno) y las **dos corridas completas siguientes reprodujeron el
+baseline exacto** (289/1/0/6). Conclusión: **flake/interacción entre tests
+preexistente**, no introducido por F15 (F15 no modificó ni código de producto
+ni tests — ver control de diff). Frecuencia observada: 1 corrida desviada en 4
+corridas completas del día. Acción propuesta: monitorear; si se repite, abrir
+ficha dedicada de estabilidad de tests (no se modifica ningún test en F15).
+
+- **Control de diff final:** solo `docs/auditoria/*.md` (creados/ modificados
+  `MATRIZ_RENDIMIENTO.md`, `BACKLOG_AUDITORIA.md`, `PROGRESO.md`,
+  `PLAN_EJECUCION_AUDITORIA.md`). **Cero cambios de producto, cero
+  migraciones, cero cambios de comportamiento.**
+- **Estado: F15 ENTREGADA — PENDIENTE DE VALIDACIÓN (2026-10-01).**
+- **Backlog vigente: 63 hallazgos abiertos: 18 P1 · 21 P2 · 24 P3 — 4
+  cerrados (AUD-0002, AUD-0003, AUD-0038, AUD-0041). `NEEDS_REVIEW`: ninguno.**
+
+---
+
+## Cierre de validación F15 (2026-10-01)
+
+- **F15 — Rendimiento: VALIDADA Y CERRADA (2026-10-01).**
+- **Los 6 hallazgos AUD-0062…AUD-0067 permanecen intactos** (sin cambios de severidad, estado ni evidencia; ninguno cerrado ni eliminado); igual las 18 filas de F14 (AUD-0044…AUD-0061) y las fichas de AUD-0018, AUD-0036 y AUD-0055 sin tocar.
+- **Las recomendaciones de F15 (§14 de `MATRIZ_RENDIMIENTO.md`) permanecen PROPUESTA / PENDIENTE DE DECISIÓN: ninguna fue implementada** — cero índices creados, cero migraciones, cero cambios de consultas/controllers/resources.
+- **Cambios de producto: NINGUNO.** Solo documentación de auditoría.
+- **Gates de cierre (2026-10-01):** `vendor/bin/pint --dirty --format agent` → **OK**; `php artisan test --compact` → **296 tests · 289 OK · 1 fallo (AUD-0001, `SecurityCompartimentosTest`, deuda aceptada desde F12) · 0 errores · 6 omitidos** — **idéntico al baseline, SIN REGRESIONES**.
+- Documentos del cierre: `PLAN_EJECUCION_AUDITORIA.md` §5 (fila F15) y esta sección.
+- **Estado del backlog al cierre: 63 hallazgos abiertos: 18 P1 · 21 P2 · 24 P3 — 4 cerrados (AUD-0002, AUD-0003, AUD-0038, AUD-0041). `NEEDS_REVIEW`: ninguno.**
+
+
+---
+
+## Fase 16 - Pruebas integrales (entrada 2026-10-01)
+
+### Alcance (NO redefinido - plan existente)
+
+- `PLAN_EJECUCION_AUDITORIA.md` §3: "F16 Pruebas integrales: escenario integral mínimo
+  (Registro→…→Salida) + suites negativas; cobertura de prioridades (seguridad, plazos,
+  actuados)" (`PLAN_EJECUCION_AUDITORIA.md:80`).
+- Artefacto: `docs/auditoria/MATRIZ_PRUEBAS.md` (fila añadida en §1 del plan).
+
+### Método
+
+- Inventario previo obligatorio antes de escribir cualquier test (§1 de la matriz).
+- Tests nuevos **solo** en `tests/Feature/`: cero cambios de producción, cero
+  funcionalidad nueva, sin repetir F13/F14/F15, sin implementar recomendaciones de F15.
+- Un test que falle por requisitos mal leídos se ajusta el **test**, nunca el producto;
+  defecto de producto → ficha nueva (próximo ID **AUD-0068**) sin tocar código.
+- Cobertura documentada cualitativamente (`archivo:línea`): sin xdebug/pcov no hay % PHPUnit.
+- Baseline de gates: 296 tests · 289 OK · 1 fallo (AUD-0001) · 0 errores · 6 omitidos;
+  F16 puede aumentar el total → documentar cantidad anterior/nueva.
+
+### Entregable
+
+- `docs/auditoria/MATRIZ_PRUEBAS.md` (§0-§12) + tests nuevos de F16 en `tests/Feature/`.
+
+### Estado
+
+- **VALIDADA Y CERRADA (2026-10-02).** Ejecución: pasos 1-6 completados
+  (`MATRIZ_PRUEBAS.md` §0-§12, `tests/Feature/FlujoIntegralTest.php` — 3 tests +
+  `tests/Feature/AdminHttpCoverageTest.php` — 4 tests, gates de entrega). Validación de
+  cierre ejecutada con correcciones documentales y cierre formal — ver las dos secciones
+  finales de esta fase.
+
+---
+
+### Nota de continuidad F16 — CORTE HISTÓRICO / PRE-EJECUCIÓN (2026-10-01, paso 2 pendiente)
+
+> **⚠ Corte histórico (pre-ejecución).** Esta nota registra el estado al comienzo de la
+> fase, cuando los tests aún no existían. **No contradice el cierre de F16**: conserva la
+> trazabilidad de la planificación. El estado definitivo está en "## Ejecución F16" y en
+> "## Cierre formal de F16" más abajo.
+
+**Estado (al corte, pre-ejecución):** paso 1 (inventario) COMPLETADO; paso 2 (tests) EN
+CURSO — el/los archivos de test aún NO se han escrito. Cero cambios de producto hasta
+ahora (solo `MATRIZ_PRUEBAS.md`, `PLAN_EJECUCION_AUDITORIA.md` §1/§5 y esta entrada).
+
+**Hecho:**
+- `MATRIZ_PRUEBAS.md` §0-§4 (§5-§12 PENDIENTE, se llenan en paso 6).
+- PLAN §1 fila artefacto + §5 fila F16 = EN CURSO (F17-18 = PENDIENTE).
+- Cadena integral verificada contra código (payloads/códigos/respuestas):
+  1) `POST /api/expedientes` (TECNICO; via=FINANCIERO, AC055, partes≥1, adjunto pdf)
+  → 201 + ACT_REGISTRO_DIGITALIZACION → PENDIENTE_SORTEO;
+  2) `POST .../sortear` (ENCARGADA, descripcion nullable) → 201 ActuadoResource +
+  ACT_SORTEO_INICIAL → EN_EVALUACION + plazo EVALUACION (AC055=5) + asignación;
+  candidatos = usuarios activos del rol vía (`SorteoAlgorithmService:83-89`) →
+  semilla con UN SOLO AUD_FINANCIERO; `otroAuditor` (RF-03) se crea DESPUÉS del sorteo;
+  3) `POST .../evaluacion` → 201 JSON plano `{resumen.resultado: ACT_ADMISION,...}`
+  (NO es Resource); requisitos = exactamente los activos del reglamento leídos de DB;
+  → EN_PLANIFICACION + plazo PLANIFICACION (AC055=2);
+  4) `POST .../planificacion` (auditor; descripcion min:10,
+  fecha_limite_propuesta=2026-10-16, adjunto pdf) → 201; ACT_MPA → PENDIENTE_VISTO_BUENO;
+  cierra plazo PLANIFICACION (`PlanificacionService:75,223-230`);
+  5) `POST .../planificacion/visto-bueno` (ENCARGADA; descripcion min:5) → 201 →
+  EN_EJECUCION; plazo EJECUCION con fecha límite explícita MPA, dias_otorgados=0
+  (AC055 sin parámetro EJECUCION; `ActuadoService:197-210`); bandeja → operador original;
+  6) `POST .../descargos/comunicar` (descripcion min:5 + adjunto) → 201; estado no-op;
+  EJECUCION→SUSPENDIDO (fecha_pausa) + sub-reloj DESCARGOS 5 días; exige AC055 +
+  reloj EJECUCION VIGENTE + sin descargos previos (422 `expediente` si no);
+  7) `POST .../descargos/recibir` (descripcion min:5 + adjunto) → 201;
+  DESCARGOS→CUMPLIDO con actuado_cierre_id; EJECUCION→VIGENTE con fecha_reanudacion;
+  8) `POST .../actuados` (catalogo=ACT_INFORME_AUDITORIA_FINANCIERA_SIN_RESPONSABILIDAD,
+  descripcion min:5, adjunto) → 201 → PENDIENTE_VISTO_BUENO_FINAL;
+  sin descargos previos → 422 key `catalogo_actuado_id` (Bloqueo de Salida RN-09,
+  `StoreActuadoRequest:62` → `DescargoFinancieroService:165-168`);
+  9) `POST .../cierre/visto-bueno` (ENCARGADA; descripcion min:10) → 201 →
+  LISTO_PARA_REPARTO;
+  10) `POST .../cierre/reparto` (destino='Juzgado Disciplinario' ∈ DESTINOS_REPARTO,
+  justificacion min:10) → 201 → CONCLUIDO_REMITIDO + cierra bandeja.
+- Infraestructura a usar: semilla en LOOP de `$test->seed(Clase)` una por una (NO array:
+  `db:seed --class` es de valor único) con Rol/CatalogoEstado/Reglamento/
+  CatalogoRequisito/ParametroPlazo/Feriado/CatalogoActuadoSeeder; usuarios por factory;
+  `Carbon::setTestNow('2026-10-05 10:00:00')` + `Feriado::create(['fecha'=>'2026-10-07',...])`
+  (no existe en FeriadoSeeder) → límites EVALUACION/DESCARGOS=2026-10-13,
+  PLANIFICACION=2026-10-08, EJECUCION=2026-10-16; `Storage::fake('local')`;
+  helpers prefijo `fi*` (sin colisión); hash de custodia lo resuelve trigger BEFORE INSERT
+  (`2026_08_28_182631`) → assert final de cadena sobre 10 actuados en orden
+  REGISTRO→SORTEO→ADMISION→MPA→VB_PLANIF→COMUNICACION→RECEPCION→INFORME_SIN→VB_FINAL→REPARTO;
+  bandeejas asertir vía DB (`Asignacion.activa`), no via shape de Resources.
+
+**Decisiones/observaciones a informar (no auto-registradas):**
+- Candidato a **AUD-0068**: `evaluar()` NO cierra el plazo EVALUACION al admitir
+  (solo se cierra en RECHAZO, `EvaluacionAdmisibilidadService:156-159`) → quedan 2 plazos
+  VIGENTE simultáneos; ANTES de fichar verificar si `MATRIZ_PLAZOS`/cron F13 ya lo cubre.
+- Alcance admin: F16 solo GET web `/administrador/*` (MAPA_FUNCIONAL:196);
+  los 6 mutations `/api/admin/*` quedan para F17 según `MATRIZ_SEGURIDAD.md:85` →
+  documentar conflicto de asignación en §8 de `MATRIZ_PRUEBAS.md` e informar.
+  MAPA dice "0 tests" pero GET `/api/admin/*` ya cubiertos
+  (`ReportesAdminTest:122-197`, `SeguridadIdorTest:212-240`) → documentar.
+- `ADMITIDO` sin actuado con estado_origen=ADMITIDO (dead-end impugnación) → §4
+  limitaciones + reportar.
+
+**Pendiente (pasos 2-6):** (2) crear `tests/Feature/FlujoIntegralTest.php` — 3 tests:
+happy path completo (estado/plazos/actuados/hash/bandejas por etapa), seguridad en flujo
+(otroAuditor 403 RF-03, tecnico 403 VB final, IDOR entre expedientes), negativas de orden
+(informe sin descargos 422, reparto antes de VB final 403, doble comunicación 422) y
+correrlo ajustando SOLO el test si falla; (2b) `AdminHttpCoverageTest` web GET acotado;
+(3-4) solo brechas reales; (5) `MATRIZ_PRUEBAS.md` §5-§12 con `archivo:línea`;
+(6) gates `vendor/bin/pint --dirty --format agent` + `php artisan test --compact`
+(documentar 296 → nueva cantidad), PLAN §5 F16 → **ENTREGADA — PENDIENTE DE VALIDACIÓN**,
+cierre en PROGRESO. Cero cambios de producto; próximo hallazgo desde **AUD-0068**;
+NO iniciar F17.
+
+---
+
+## Ejecución F16 — Pruebas integrales (ENTREGADA, 2026-10-02, previa a validación)
+
+**Estado (al momento de la entrega):** F16 **ENTREGADA — pendiente de validación del usuario**. Pasos 2-6
+completados. Cero cambios de producto: solo se agregaron 2 archivos de test nuevos y se
+documentó el cierre (`MATRIZ_PRUEBAS.md` §5-§12, `PLAN_EJECUCION_AUDITORIA.md` §5 y esta
+entrada). **Ningún test preexistente fue modificado, reescrito ni omitido.** *La validación
+posterior y el cierre formal figuran en la sección final.*
+
+**Hecho:**
+
+- **`tests/Feature/FlujoIntegralTest.php` (3 tests, 140 aserciones, helpers `fi*`).**
+  - `:271` — **E2E real de 10 etapas sobre el mismo expediente**, sin sembrar estado, con
+    el grafo real de catálogos (7 seeders del proyecto en bucle): apertura → sorteo →
+    admisión → MPA → VB planificación → comunicar → recibir → informe → VB final →
+    reparto. Aserciones por etapa (no todas combinan las 4 dimensiones): etapas 1-5 y 8-10
+    asertan estado + banda activa vía `Asignacion.activa` + shape de respuesta; la
+    **etapa 6** aserta estado + shape + plazos **pero no banda**; la **etapa 7** aserta
+    shape + plazos, **ni estado ni banda**. Plazos: EVALUACION 2026-10-13 · PLANIFICACION 2026-10-08 ·
+    EJECUCION 2026-10-16 con `parametro_plazo_id=null` y `dias_habiles_otorgados=0` ·
+    DESCARGOS 2026-10-13, todos con feriado real 2026-10-07. Final: **10 actuados en orden
+    exacto** + **cadena de custodia completa** (`hash_anterior` null en el primero,
+    encadenado y `sha256` reproducido contra la fila cruda de BD para los 10).
+  - `:470` — **RF-03 en flujo**: 2.º auditor (creado después del sorteo) 403 en
+    GET/evaluación/comunicar; Técnico creador pierde acceso al sortear y 403 en VB final;
+    Encargada 403 en descargos AC055; **IDOR cruzado entre dos expedientes**; el
+    asignatario legítimo sí opera su causa; VB final solo Encargada (201).
+  - `:557` — **negativas de orden**: informe sin descargos → 422 (clave
+    `catalogo_actuado_id`) sin crear actuado; doble comunicación → 422 (clave
+    `expediente`); roles equivocados → 403; reparto antes del VB final → 403; cierre
+    correcto en orden; NUREJ `CONCLUIDO_REMITIDO` rechaza nuevo reparto y nuevo VB final.
+- **`tests/Feature/AdminHttpCoverageTest.php` (4 tests, 20 aserciones, helpers `ahc*`).**
+  Las 4 rutas web `/administrador/*` × {sin sesión → 302 a
+  `route('login')`, rol no ADMIN → 403, ADMIN inactivo → 403 (`EnsureAdmin.php:20-22`),
+  ADMIN activo → 200}. **Cobertura previa (no era cero):** solo
+  `SeguridadIdorTest.php:230-236` hacía un GET a `/administrador/dashboard` (1 ruta × 1 rol
+  esperando 403); F16 añade las 4 rutas × 4 escenarios.
+- **`MATRIZ_PRUEBAS.md` §5-§12** completados con evidencia `archivo:línea` (resultados,
+  tests agregados, cobertura por frente, brechas, gates, hallazgos, archivos, conclusiones).
+- **PLAN §5:** fila F16 → **ENTREGADA (2026-10-02, pendiente validación)**.
+- **Gates de cierre:** `vendor/bin/pint --dirty --format agent` → `fixed` 1 archivo
+  (`AdminHttpCoverageTest`, fixer `blank_line_between_import_groups`); y
+  `php artisan test --compact` → **303 tests · 296 OK · 1 fallo (AUD-0001, deuda
+  preexistente) · 0 errores · 6 omitidos · 1309 aserciones** (baseline 296 · 289 · 1 · 0 · 6
+  → **+7 tests, sin regresiones**).
+
+**Decisiones/observaciones a informar (no auto-registradas):**
+
+- **AUD-0068 NO creada: es duplicado exacto de AUD-0030.** El candidato detectado
+  (`evaluar()` no cierra EVALUACION al admitir → 2 plazos VIGENTE simultáneos) está
+  textualmente en `BACKLOG_AUDITORIA.md:386-392` ("**No cierran: EVALUACION tras
+  ADMISION/OBSERVACION, EJECUCION tras VB final/reparto**"), estado OPEN/P1/NO aplicar.
+  Confirmado en flujo (`FlujoIntegralTest.php:333`). **`BACKLOG_AUDITORIA.md` sin cambios**
+  (no hay hallazgo nuevo); el próximo ID sigue siendo AUD-0068.
+- **Conflicto de asignación admin (para decidir):** `MATRIZ_SEGURIDAD.md:85` deja las 6
+  mutations `/api/admin/*` para **F17**; `MAPA_FUNCIONAL.md:196` decía "0 tests" pero los
+  GET `/api/admin/*` ya estaban cubiertos (`ReportesAdminTest:122-197`,
+  `SeguridadIdorTest:212-240`). F16 agregó solo los GET **web** `/administrador/*`; las
+  mutations quedan intactas para F17. Documentado en `MATRIZ_PRUEBAS.md` §8.1.
+- **`MAPA_FUNCIONAL.md:196` desactualizado** → informar; no editado (artefacto de F5,
+  fuera del alcance de F16).
+- **2 ajustes de test al comportamiento real (nunca producción):** (a) el sub-reloj
+  `DESCARGOS` no tiene `fecha_pausa` — solo se pausa el reloj `EJECUCION`
+  (`DescargoFinancieroService:243-253`); (b) el Bloqueo de Salida lanza bajo la clave
+  `catalogo_actuado_id`, no `expediente`.
+- **Observación informativa:** AC055 no tiene `ParametroPlazo` de `EJECUCION`
+  (`ParametroPlazoSeeder:29-31`) → reloj con parámetro null y 0 días, límite explícito del
+  MPA: comportamiento previsto por RN-05, no defecto.
+- `ADMITIDO` sin actuado con `estado_origen=ADMITIDO` (dead-end de impugnación) confirmado
+  como limitación de cobertura en `MATRIZ_PRUEBAS.md` §4.2 (no se modifica producción).
+
+**Pendiente (al momento de la entrega):** validación del usuario sobre F16 y decisión sobre
+los puntos anteriores. *Validación ejecutada el 2026-10-02 → ver "## Cierre formal de F16"
+más abajo; las decisiones sobre los puntos anteriores siguen pendientes.*
+*CORTE HISTÓRICO / PRE-VALIDACIÓN (marcado 2026-10-02): la instrucción de no iniciar
+F17 de esta entrega previa quedó superada — F17 ejecutada el 2026-10-02; ver
+"## Fase 17 - Hardening" al final de este archivo.*
+
+---
+
+## Cierre formal de F16 — VALIDADA Y CERRADA (2026-10-02)
+
+**Estado:** F16 **VALIDADA Y CERRADA (2026-10-02)**. Validación de cierre ejecutada sobre
+los entregables de la fase; correcciones documentales aplicadas **solo** en
+`MATRIZ_PRUEBAS.md`, `PROGRESO.md` y `PLAN_EJECUCION_AUDITORIA.md`.
+
+**Correcciones aplicadas (coherentes con lo verificado en la validación):**
+
+1. `MATRIZ_PRUEBAS.md` §1: `tests/Feature/` **47** archivos (no 50); helpers globales
+   **139** al cierre de F16 = 122 previos + 17 de F16 (declaraciones `function` de nivel
+   superior: 134 en `tests/Feature` + 5 en `tests/Unit`).
+2. `MATRIZ_PRUEBAS.md` §6: helpers `fi*` **15** funciones (no 14); bucle de seeders en
+   **`:37-47`** (no `:35-64`).
+3. `MATRIZ_PRUEBAS.md` §6 + §7 y esta sección: cobertura HTTP **previa** a F16 reconocida
+   (`SeguridadIdorTest.php:230-236`, 1 ruta × 1 rol) — se elimina la afirmación falsa de
+   "ningún test HTTP"; se conserva la distinción entre cobertura previa y cobertura añadida.
+4. `MATRIZ_PRUEBAS.md` §6: rama de **ADMIN inactivo → `EnsureAdmin.php:20-22`**; rama de
+   rol → `EnsureAdmin.php:24-26` (sin alterar su referencia).
+5. `MATRIZ_PRUEBAS.md` §6/§12 y esta sección: aserciones por etapa descritas como realmente
+   implementadas — etapas 1-5 y 8-10 (estado + banda + shape); **etapa 6**: estado + shape +
+   plazos, **sin banda**; **etapa 7**: shape + plazos, **ni estado ni banda**.
+6. `PROGRESO.md`: la "Nota de continuidad F16" queda marcada como **CORTE HISTÓRICO /
+   PRE-EJECUCIÓN** (trazabilidad conservada, sin borrado).
+
+**Gates de verificación del cierre (sin alterar el baseline):**
+
+- `vendor/bin/pint --dirty --test --format agent` → `passed` (dry-run, sin cambios).
+- `php artisan test --compact` → **303 tests · 296 OK · 1 fallo (AUD-0001, deuda conocida,
+  `SecurityCompartimentosTest`) · 0 errores · 6 omitidos · 1309 aserciones**.
+- Comparación con baseline 296 · 289 · 1 · 0 · 6 → **+7 tests, +7 OK, +160 aserciones,
+  sin regresiones nuevas** (mismo único fallo, mismo mensaje).
+- Los 6 omitidos siguen siendo los env-gated preexistentes (5 `RUN_STRESS_TESTS` +
+  1 `RUN_CONCURRENCY_TEST`); ninguno de F16.
+
+**Confirmaciones del cierre:**
+
+- **Sin cambios de producción** (`app/`, `routes/`, `database/`, `resources/`, config).
+- **Sin tests preexistentes modificados**; solo los 2 archivos nuevos de F16.
+- **Sin creación de AUD-0068**: sigue descartada por duplicación exacta con **AUD-0030**
+  (`BACKLOG_AUDITORIA.md:386-392`); el próximo ID disponible sigue siendo AUD-0068.
+- `BACKLOG_AUDITORIA.md`, `MATRIZ_SEGURIDAD.md` y `MAPA_FUNCIONAL.md` **intactos**.
+- **Sin resolver** (para sus fases/decisiones correspondientes): AUD-0030; asignación de
+  las 6 mutaciones `/api/admin/*` a F17 (`MATRIZ_SEGURIDAD.md:85`); `MAPA_FUNCIONAL.md:196`
+  desactualizado; ADMITIDO sin transición entrante (§4.2).
+
+**NO iniciar F17.** — *CORTE HISTÓRICO (marcado 2026-10-02): F17 ejecutada el
+2026-10-02; ver la sección siguiente.*
+
+---
+
+## Fase 17 - Hardening (entrada 2026-10-02)
+
+### Alcance (NO redefinido - plan existente)
+
+- `PLAN_EJECUCION_AUDITORIA.md:84`: "F17 Hardening: secretos, `dd()`/debug, rate
+  limiting, exposición de datos, logs".
+- Artefacto nuevo: `docs/auditoria/MATRIZ_HARDENING.md` (fila añadida en §1 del plan).
+- Corrección documental aprobada dentro de F17: `PLAN_EJECUCION_AUDITORIA.md:121` —
+  Fase 13 pasó de "ENTREGADA (pendiente)" a **VALIDADA Y CERRADA (2026-09-30)**;
+  `PROGRESO.md:652` ya decía "VALIDADA Y CERRADA", verificado por grep (ambas fuentes
+  coinciden; no se tocó nada más del histórico).
+
+### Método
+
+- Verificación **estática** (grep recursivo sobre `app/`, `routes/`, `config/`, `database/`,
+  `resources/` y sobre lo trackeado en git) + verificación **dinámica** (tests feature).
+- **Solo tests + documentación**: cero cambios de producción.
+- Se cubre únicamente lo no cubierto por fases anteriores: las 7 mutaciones `/api/admin/*`
+  y los 2 gaps de hardening reales; el resto se **referencia** (F3, F14, F16) sin repetir.
+- 4 condiciones de autorización por mutación (401 / 403 rol distinto de ADMIN / 403 ADMIN
+  inactivo / éxito con efecto persistido), siempre con payloads válidos porque los
+  FormRequests devuelven `authorize(): true` (la validación 422 iría antes que el 403).
+
+### Resultados
+
+- **Estática:** 0 `dd()/dump()/var_dump()/print_r()`; 0 `Log::` en `app/`; 0 secretos
+  hardcodeados (solo lectura de cookie `XSRF-TOKEN` en cliente); `.env` no trackeado
+  (solo `.env.example` con `APP_KEY=` vacío y plantillas de entorno local); ningún `.log`
+  en el repo (`storage/logs/.gitignore:1`).
+- **Rate limiting:** login 5/min por IP (previo, `AuthFeatureTest.php:219` → 429) +
+  **API 60/min (`AppServiceProvider.php:27`) nuevo: 60 requests 200 seguidas y la 61ª → 429**.
+- **Exposición de datos:** `GET /api/me` **sin `password_hash`** (test con `assertJsonMissingPath`
+  + verificación de cuerpo crudo), respaldado por `Usuario.php:27-28` (`$hidden`) y
+  `UsuarioResource.php:21-34`; el único `console.log` del frontend
+  (`monitoreo.blade.php:469`) es **AUD-0058 (F14)**, referenciado sin duplicar.
+- **Mutaciones admin:** 7/7 cubiertas × 4 condiciones = **28 escenarios de autorización**,
+  con efectos persistidos (hash, `activo`, `AuditoriaUsuario`, alta/baja de feriados) y
+  **6 validaciones 422** (`ci`, `password`, `rol_id`, `fecha`).
+
+### Entregable
+
+- `docs/auditoria/MATRIZ_HARDENING.md` (§0-§9) + `tests/Feature/AdminMutacionesApiTest.php`
+  (5 tests) + `tests/Feature/HardeningApiTest.php` (2 tests).
+
+### Estado
+
+- **ENTREGADA — PENDIENTE DE VALIDACIÓN (2026-10-02).**
+- **Gates de entrega:** `vendor/bin/pint --dirty --format agent` → **passed**;
+  `php artisan test --compact` → **310 tests · 303 OK · 1 fallo (AUD-0001, deuda
+  conocida, `SecurityCompartimentosTest`) · 0 errores · 6 omitidos · 1453 aserciones**.
+  Delta vs baseline de F16 (303 · 296 · 1 · 0 · 6 · 1309): **+7 tests, +7 OK, +144
+  aserciones (las de los tests nuevos), 0 regresiones**, mismo fallo y mismos 6 omitidos
+  (5 `RUN_STRESS_TESTS` + 1 `RUN_CONCURRENCY_TEST`).
+- **Sin cambios de producción** y **sin tests preexistentes modificados** (solo los 2
+  archivos nuevos de F17 + documentación).
+- **0 hallazgos nuevos → AUD-0068 no creada** (sigue reservada); `MATRIZ_SEGURIDAD.md`,
+  `BACKLOG_AUDITORIA.md` y `MAPA_FUNCIONAL.md` intactos.
+- **Pendientes referenciados, no resueltos aquí:** AUD-0001 (`ExpedientePolicy.php:80-82`,
+  decisión de hardening en su fase); O-A superficie duplicada de `inactivar` (2 URIs para
+  la misma acción); O-B checklist de despliegue `APP_DEBUG=false` para F18; fila
+  `MATRIZ_SEGURIDAD.md:85` sin modificar (conflicto de asignación resuelto solo para
+  cobertura de pruebas).
+
+---
+
+## Cierre formal de F17 - VALIDADA Y CERRADA (2026-10-02)
+
+**Estado:** F17 **VALIDADA Y CERRADA (2026-10-02)**. Validación de consistencia y alcance
+(ejecución no repetida; suite no re-ejecutada por no haber modificación de PHP) sobre
+`MATRIZ_HARDENING.md`, la fila §5 del PLAN y la sección F17 de este archivo.
+
+**Correcciones del cierre (solo documentales, 4):**
+
+1. `MATRIZ_HARDENING.md` (§9) → cita de la corrección F13: `PLAN_EJECUCION_AUDITORIA.md:120`
+   → **`:121`**.
+2. `PROGRESO.md:1121` → misma cita corregida a `PLAN_EJECUCION_AUDITORIA.md:121`.
+3. `PROGRESO.md:1118` → cita del alcance F17 corregida a
+   `PLAN_EJECUCION_AUDITORIA.md:84`.
+4. `MATRIZ_HARDENING.md` (§3) → rango de rutas acotado a las líneas reales de las 7
+   mutaciones: `routes/api.php:99-102` (usuarios) y `routes/api.php:106-108` (feriados);
+   contenido funcional sin cambios.
+
+Causa de 1-3: la fila de artefacto añadida en §1 del PLAN (+1 línea) desplazó las
+referencias escritas antes de esa inserción.
+
+**Confirmaciones del cierre:**
+
+- **Cifras sin cambios** (última corrida, 2026-10-02): `vendor/bin/pint --dirty --test
+  --format agent` → **passed**; `php artisan test --compact` → **310 tests · 303 OK ·
+  1 fallo (AUD-0001, deuda conocida, `SecurityCompartimentosTest`) · 0 errores ·
+  6 omitidos · 1453 aserciones** (delta vs F16: +7/+7/+144, sin regresiones).
+- **Producción y tests intactos**: `git diff` vacío sobre `app/`, `routes/`, `config/`,
+  `database/`, `resources/`, `public/`, `bootstrap/` y `tests/`; los cambios del cierre
+  son solo .md (`MATRIZ_HARDENING.md`, `PROGRESO.md` y la fila §5 del PLAN).
+- **Hallazgos sin tocar**: AUD-0001 y AUD-0030 intactas; **AUD-0068 no creada**; O-A y O-B
+  siguen como observaciones pendientes; la cobertura de las 7 mutaciones
+  `/api/admin/*` queda **validada en F17**.
+- **F18 permanece PENDIENTE** (fila del PLAN §5), sin artefacto `MATRIZ_COBERTURA_FINAL.md`.
+
+**NO iniciar F18 hasta la validación de F17.** *(condición cumplida: F17 validada y
+cerrada el 2026-10-02; F18 autorizada posteriormente por el usuario.)*
+
+---
+
+## Fase 18 - Auditoría final - ENTREGADA - PENDIENTE DE VALIDACIÓN (2026-10-02)
+
+**Estado:** F18 **ENTREGADA — PENDIENTE DE VALIDACIÓN** (no cerrada; la validación
+corresponde al usuario).
+
+**Artefacto:** `docs/auditoria/MATRIZ_COBERTURA_FINAL.md` (§0-§8), fila ya declarada en
+`PLAN_EJECUCION_AUDITORIA.md:37`.
+
+**Método:** consolidación documental de F0-F17 (sin repetir sus auditorías) + **segunda
+ronda de re-verificación** de los 39 hallazgos P1/P2 abiertos reutilizando la evidencia
+citada en `BACKLOG_AUDITORIA.md`, confirmada con greps/consultas puntuales el
+2026-10-02. Sin implementación de cambios; sin creación de hallazgos (grep de duplicados:
+próximo ID AUD-0068 reservado por duplicado con AUD-0030, no usado).
+
+**Resultados clave:**
+
+- **§1 (19 requisitos + DT-01/DT-02):** 5 IMPLEMENTADA · 4 PARCIAL · 1 INCONSISTENTE
+  (RF-03/AUD-0001) · 8 FALTANTE (RF-05, RF-R01…R06, RF-R08) · 1 DIFERENCIA TECNOLÓGICA.
+- **§3 (checklist Plan §79, 20 ítems):** 9 CUMPLE · 4 PARCIAL · 6 NO CUMPLE ·
+  1 NO VERIFICABLE (backups). **`APP_DEBUG=true` documentado como incumplimiento
+  explícito** (`config:show app.debug` = true; `.env.example:APP_DEBUG=true`), conforme
+  a la instrucción del usuario; sin modificar configuración.
+- **§4 (release checklist Plan §116, 27 ítems):** 13 CUMPLE · 6 PARCIAL · 4 NO CUMPLE ·
+  4 NO VERIFICABLE (backup, rollback, build — no re-ejecutado por decisión del usuario —,
+  UAT).
+- **§5 (2ª ronda, 39 fichas):** 37 VIGENTE (AUD-0012/0017/0020 con drift u observación de
+  evidencia), 2 VIGENTE PARCIAL con propuesta de reevaluación (**AUD-0018**: las bandejas
+  sí tienen `paginate(15)` desde 2026-09-02 y F15 ya lo había documentado; queda sin
+  búsqueda — 0 rutas `buscar|search`; **AUD-0022**: `FlujoIntegralTest` y
+  `FlujoJuridicoTest` ya usan seeders reales), 0 dejaron de aplicar, 0 P0 nuevos.
+- **§6:** 10 decisiones bloqueantes D-1…D-10 (AUD-0001, alcance de AUD-0018/0022,
+  cadena de estados AUD-0021/0030-0033, O-A, O-B, `MAPA_FUNCIONAL.md:196` + ADMITIDO,
+  firma RF-06, DT-01/DT-02, RF-R05).
+- **§7:** veredicto documental **NOT READY FOR PRODUCTION** con 6 fundamentos y
+  condiciones mínimas de re-evaluación.
+- **§8 gates (2026-10-02):** `vendor/bin/pint --dirty --test --format agent` → **passed**;
+  `php artisan test --compact` → **310 tests · 303 OK · 1 fallo (AUD-0001,
+  `SecurityCompartimentosTest`) · 0 errores · 6 omitidos · 1453 aserciones** (línea base
+  intacta); `npm run build` **no ejecutado** (decisión del usuario: gates = pint + suite).
+
+**Alcance de cambios:** solo `.md` (`MATRIZ_COBERTURA_FINAL.md` nuevo, fila F18 del PLAN,
+esta sección). Sin cambios en `app/`, `routes/`, `config/`, `database/`, `resources/`,
+`public/`, `bootstrap/` ni `tests/`; `git status --porcelain` final comparado contra el
+baseline en memoria (12 líneas preexistentes de F13-F17: 4 `M` + 8 `??`), sin agregados
+fuera de `.md`.
+
+**Pendiente:** validación de F18 por el usuario (consistencia de la matriz, checklist
+§79/§116 y veredicto §7). **NO cerrar F18 hasta esa validación.**

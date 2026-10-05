@@ -1,6 +1,7 @@
 # Fase 13 — Jobs/cron: `plazos:verificar-vencidos`
 
-Estado: **ENTREGADA (2026-09-30), pendiente de validación del usuario.**
+Estado: **VALIDADA Y CERRADA (2026-09-30)** — decisiones del usuario sobre
+AUD-0042/AUD-0043 registradas en §9 (cierre de validación).
 
 Protocolo: toda referencia `archivo:línea` verificada antes de escribirse.
 Evidencia de BD dev = solo lectura salvo la ejecución del comando (ver §5:
@@ -54,9 +55,15 @@ falló antes de escribir nada).
 - Los tests preexistentes codifican esta semántica UTC (p. ej.
   `ArchivoPorAbandonoTest:115` congela `00:05` "día siguiente" en UTC).
 - **Corrección posible (NO aplicada):** fijar zona horaria institucional
-  (`app.timezone` + `Schedule`), decisión del usuario — cambio de configuración
+  (`app.timezone` + `Schedule`), decisión del usuario - cambio de configuración
   global con efecto en todo el sistema (plazos, semáforos, feriados) →
   requiere confirmación explícita antes de tocar.
+- **Decisión del usuario (2026-09-30):** se **confirma el SRS**: el
+  vencimiento/corte debe producirse a las **23:59 de la fecha
+  correspondiente, según la zona horaria institucional aplicable**, y no
+  anticiparse por ejecutar el scheduler a las 00:00 UTC. La corrección
+  queda como **pendiente de desarrollo (AUD-0043)**; **no implementar el
+  fix en esta etapa de auditoría**.
 
 ## §4 Duplicados / concurrencia — OBSERVACIÓN (O-10)
 
@@ -92,6 +99,11 @@ falló antes de escribir nada).
   dependencias al inicio y degradar controladamente (log de error +
   continuar con `marcarVencidos()` / abortar con mensaje explícito), en vez
   de excepción no capturada.
+- **Decisión del usuario (2026-09-30):** **AUD-0042 queda P2 OPEN como
+  pendiente de desarrollo.** Esta etapa es de auditoría: **no se implementa
+  ahora** la degradación controlada/log; la auditoría ya identificó y
+  documentó correctamente el problema. Registrar como backlog de
+  desarrollo posterior.
 
 ## §6 Comportamiento en fallo (nota, sin ficha)
 
@@ -111,6 +123,14 @@ salir en la consulta). Transacciones individuales por expediente
 
 Sin cambios de producto en la fase (solo tests + documentación).
 
+**Decisiones del usuario (2026-09-30):**
+- **AUD-0042 → P2 OPEN, pendiente de desarrollo.** No se implementa la
+  degradación controlada/log en auditoría; problema identificado y
+  documentado (§5) → backlog de desarrollo posterior.
+- **AUD-0043 → SRS confirmado:** corte a las **23:59 de la fecha
+  correspondiente según la zona horaria institucional aplicable**;
+  corrección pendiente de desarrollo. **No implementar el fix ahora.**
+
 ## §8 Gates
 
 - `vendor/bin/pint --dirty --format agent` → **OK**.
@@ -118,3 +138,24 @@ Sin cambios de producto en la fase (solo tests + documentación).
   deuda conocida aceptada en el cierre de F12) · 0 errores · 6 omitidos**
   (+3 tests nuevos: idempotencia, corte UTC, catálogo ausente — 17
   aserciones en el archivo nuevo).
+
+## §9 Cierre de validación (2026-09-30)
+
+- **Entregables:** `MATRIZ_JOBS_CRON.md` (§0-§8) +
+  `tests/Feature/VerificarVencimientoPlazosTest.php` (3 tests / 17
+  aserciones).
+- **Tests/gates:** pint OK; suite **296: 289 OK · 1 fallo (AUD-0001,
+  deuda aceptada en F12) · 0 errores · 6 omitidos** (re-ejecutados como
+  gate de este cierre; sin cambios de código en la fase).
+- **Decisiones del usuario:** **AUD-0042** → P2 OPEN, pendiente de
+  desarrollo (no implementar degradación/log en auditoría); **AUD-0043** →
+  SRS confirmado: corte a las **23:59 de la fecha correspondiente según la
+  zona horaria institucional aplicable**, fix pendiente de desarrollo, no
+  implementar ahora.
+- **Pasan a backlog de desarrollo:** **AUD-0042, AUD-0043** (+ relacionados
+  ya existentes: AUD-0023, AUD-0036, AUD-0037(b); O-10 ya decidida como
+  monitorización no elevada).
+- **Sin pendientes de auditoría que bloqueen F13** (O-10 y AUD-0037(b)
+  permanecen decididos/no bloqueantes; el resto son desarrollos futuros).
+
+**Fase 13 VALIDADA Y CERRADA (2026-09-30).**
