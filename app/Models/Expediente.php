@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use DomainException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -28,6 +29,24 @@ class Expediente extends Model
         'fecha_ingreso' => 'datetime',
         'created_at' => 'datetime',
     ];
+
+    /**
+     * RN-06 (inmutabilidad normativa): el reglamento se fija al crear la
+     * causa y no puede modificarse durante su vida. Bloquea cualquier
+     * actualización de `reglamento_id` (update(), forceFill()->save(),
+     * asignación directa + save()) sin afectar la creación de expedientes
+     * ni la de hijos mediante Expediente::create().
+     */
+    protected static function booted(): void
+    {
+        static::updating(function (Expediente $expediente): void {
+            if ($expediente->isDirty('reglamento_id')) {
+                throw new DomainException(
+                    'RN-06: el reglamento de una causa no puede modificarse después de su creación (inmutabilidad normativa).'
+                );
+            }
+        });
+    }
 
     public function padre(): BelongsTo
     {

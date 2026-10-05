@@ -1306,3 +1306,39 @@ CONOCIDA → 0; BLOQUEADO (TEST) 44 → 45 para mantener la suma 54), esta secci
 `MATRIZ_PRUEBAS.md:137,304`, `MATRIZ_HARDENING.md:105` y citas históricas de este
 archivo siguen mencionando AUD-0001 como abierta / "único fallo" (son registros
 de sus fases; actualizar solo si el usuario lo pide).
+
+---
+
+## Cierre de tarea B0.8 — Anexo SRS y diseño de unidades (2026-10-05)
+
+**Estado:** **B0.8 VALIDADA / CERRADA (2026-10-05)** — anexo de enmiendas
+arquitectónicas al SRS y diseño corto de unidades inter entregados. Sin cambios
+de código, BD ni tests.
+
+**Se crearon (únicos archivos del diff):**
+
+- `docs/auditoria/ANEXO_SRS_MODIFICACIONES.md`
+- `docs/plan/DISENO_UNIDADES_INTER.md`
+
+**Contenido:**
+
+- **AM-01:** MySQL 9.7.0/InnoDB frente a PostgreSQL del SRS (`SRS_EXTRAIDO.txt:61`,
+  `:116` RNF-04, `:187`), documentado como **diferencia tecnológica** (DT-01/DT-02 de
+  `MATRIZ_SRS_IMPLEMENTACION.md` §0), no brecha funcional; evidencia `SELECT VERSION()`
+  y `SHOW VARIABLES` en modo solo lectura.
+- **AM-02:** unidades organizacionales **sin `unidad_id` en `usuarios`** (la propuesta
+  original de D-5 queda descartada; refinada según COORDINACION §5.3), con diseño de
+  datos, flujo y contratos CTR-04/CTR-05 listo para la tarea **B2.1**. Distinción
+  explícita entre Unidades externas / `REMITIDO_UNIDAD_EXTERNA` y Reparto Institucional
+  (cierre definitivo, nunca transita por `REMITIDO_UNIDAD_EXTERNA`).
+
+**Validación:**
+
+- `php artisan test --compact` → **320 tests · 314 OK · 0 fallos · 6 omitidos**
+  (idéntico al baseline post-B0.3).
+- `vendor/bin/pint --dirty --format agent` → `passed` (sin PHP modificado).
+- **Sin cambios de código, BD ni tests.** `SRS_EXTRAIDO.txt` permaneció **intacto**
+  (solo se escribieron los 2 archivos nuevos; comandos ejecutados en solo lectura).
+
+**Pendiente de este cierre:** registro aquí mismo (realizado con esta entrada);
+la entrada se mantiene en diff aislado de la tarea.

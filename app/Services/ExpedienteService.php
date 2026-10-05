@@ -32,6 +32,10 @@ class ExpedienteService
      * Si algo falla, toda la operación se revierte (ni siquiera se quema un
      * número de NUREJ, porque el correlativo vive dentro de la transacción).
      *
+     * RN-06: `reglamento_id` se fija exclusivamente en este punto de creación;
+     * cualquier intento de modificarlo posteriormente lo bloquea el guard de
+     * `Expediente::updating()`.
+     *
      * @param  array{via: string, reglamento_id: int, resumen_hechos?: string|null, partes?: array<int, array{tipo: string, nombre_completo: string, documento_identidad?: string|null, cargo_institucion?: string|null}>}  $datos
      */
     public function aperturaCausa(
