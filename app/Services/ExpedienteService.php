@@ -46,7 +46,7 @@ class ExpedienteService
             $estadoPendiente = CatalogoEstado::where('codigo', 'PENDIENTE_SORTEO')->firstOrFail();
             $catalogoActuado = CatalogoActuado::where('codigo', 'ACT_REGISTRO_DIGITALIZACION')->firstOrFail();
 
-            $expediente = Expediente::create([
+            $expediente = Expediente::forceCreate([
                 'nurej_code' => $nurejCode,
                 'via' => $datos['via'],
                 'reglamento_id' => $datos['reglamento_id'],

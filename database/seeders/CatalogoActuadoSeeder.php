@@ -21,11 +21,11 @@ class CatalogoActuadoSeeder extends Seeder
      */
     public function run(): void
     {
-        $encargada = Rol::where('codigo', 'ENCARGADA')->firstOrFail();
-        $tecnico = Rol::where('codigo', 'TECNICO')->firstOrFail();
-        $audJuridico = Rol::where('codigo', 'AUD_JURIDICO')->firstOrFail();
-        $audFinanciero = Rol::where('codigo', 'AUD_FINANCIERO')->firstOrFail();
-        $admin = Rol::where('codigo', 'ADMIN')->firstOrFail();
+        $encargada = Rol::where('codigo', Rol::CODIGO_ENCARGADA)->firstOrFail();
+        $tecnico = Rol::where('codigo', Rol::CODIGO_TECNICO)->firstOrFail();
+        $audJuridico = Rol::where('codigo', Rol::CODIGO_AUD_JURIDICO)->firstOrFail();
+        $audFinanciero = Rol::where('codigo', Rol::CODIGO_AUD_FINANCIERO)->firstOrFail();
+        $admin = Rol::where('codigo', Rol::CODIGO_ADMIN)->firstOrFail();
 
         $pendiente = CatalogoEstado::where('codigo', 'PENDIENTE_SORTEO')->firstOrFail();
         $evaluacion = CatalogoEstado::where('codigo', 'EN_EVALUACION')->firstOrFail();

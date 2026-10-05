@@ -22,7 +22,6 @@ class Expediente extends Model
         'resumen_hechos',
         'fecha_ingreso',
         'creado_por',
-        'created_at',
     ];
 
     protected $casts = [
