@@ -40,6 +40,11 @@ class EvaluacionAdmisibilidadService
     public function evaluar(Expediente $expediente, Usuario $operador, array $requisitos, ?string $ipOrigen = null): array
     {
         return DB::transaction(function () use ($expediente, $operador, $requisitos, $ipOrigen) {
+            // D-6g (AUD-0033): bloqueo pesimista del expediente antes de
+            // validar EN_EVALUACION, para que dos evaluaciones concurrentes
+            // no puedan pasar ambas la validación sobre el mismo estado.
+            $expediente = Expediente::query()->lockForUpdate()->findOrFail($expediente->id);
+
             $this->verificarEstadoEnEvaluacion($expediente);
 
             $enviados = $this->indexarRequisitosEnviados($requisitos);

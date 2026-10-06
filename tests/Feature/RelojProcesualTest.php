@@ -10,6 +10,7 @@ use App\Models\Plazo;
 use App\Models\Reglamento;
 use App\Models\Rol;
 use App\Models\Usuario;
+use App\Services\ActuadoService;
 use App\Services\PlazoCalculatorService;
 use Laravel\Sanctum\Sanctum;
 
@@ -28,6 +29,7 @@ function relojProcesualSemilla(): array
 
     $evaluacion = CatalogoEstado::factory()->create(['codigo' => 'EN_EVALUACION']);
     $admitido = CatalogoEstado::factory()->create(['codigo' => 'ADMITIDO']);
+    $planificacion = CatalogoEstado::factory()->create(['codigo' => 'EN_PLANIFICACION']);
     $investigacion = CatalogoEstado::factory()->create(['codigo' => 'EN_INVESTIGACION']);
 
     $catalogoAdmision = CatalogoActuado::create([
@@ -52,6 +54,19 @@ function relojProcesualSemilla(): array
         'requiere_adjunto' => false,
     ]);
 
+    // D-6b: al aterrizar en ADMITIDO el expediente continúa automáticamente
+    // a EN_PLANIFICACION con este actuado del sistema.
+    $catalogoPaso = CatalogoActuado::create([
+        'codigo' => ActuadoService::CODIGO_PASO_PLANIFICACION,
+        'nombre' => 'Paso Automatico a Planificacion',
+        'fase' => 'ADMISIBILIDAD',
+        'rol_id' => $rolEncargada->id,
+        'estado_origen_id' => $admitido->id,
+        'estado_destino_id' => $planificacion->id,
+        'es_automatico' => true,
+        'requiere_adjunto' => false,
+    ]);
+
     ParametroPlazo::create([
         'reglamento_id' => $reglamento->id,
         'tipo_plazo' => 'PLANIFICACION',
@@ -73,8 +88,8 @@ function relojProcesualSemilla(): array
     return compact(
         'tecnico', 'encargada', 'auditor',
         'reglamento',
-        'evaluacion', 'admitido', 'investigacion',
-        'catalogoAdmision', 'catalogoVistoBueno',
+        'evaluacion', 'admitido', 'planificacion', 'investigacion',
+        'catalogoAdmision', 'catalogoVistoBueno', 'catalogoPaso',
     );
 }
 
@@ -116,6 +131,7 @@ it('la admision abre el plazo de PLANIFICACION, no el de EJECUCION', function ()
         'reglamento' => $reglamento,
         'evaluacion' => $evaluacion,
         'admitido' => $admitido,
+        'planificacion' => $planificacion,
         'catalogoAdmision' => $catalogoAdmision,
     ] = relojProcesualSemilla();
 
@@ -129,6 +145,12 @@ it('la admision abre el plazo de PLANIFICACION, no el de EJECUCION', function ()
         'descripcion' => 'Admision del expediente tras revisar requisitos.',
     ])->assertStatus(201)
         ->assertJsonPath('data.estado_nuevo.codigo', 'ADMITIDO');
+
+    // D-6b: ADMITIDO es transitorio; el paso automático deja el expediente
+    // en EN_PLANIFICACION con el actuado del sistema encadenado.
+    $expediente->refresh();
+    expect($expediente->estado_actual_id)->toBe($planificacion->id)
+        ->and($expediente->actuados()->whereHas('tipoActuado', fn ($q) => $q->where('codigo', 'ACT_PASO_PLANIFICACION'))->count())->toBe(1);
 
     $plazoPlanificacion = Plazo::where('expediente_id', $expediente->id)
         ->where('tipo_plazo', 'PLANIFICACION')

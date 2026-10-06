@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Actuado;
 use App\Models\Asignacion;
 use App\Models\CatalogoActuado;
+use App\Models\CatalogoEstado;
 use App\Models\Expediente;
 use App\Models\ParametroPlazo;
 use App\Models\Plazo;
@@ -16,6 +17,16 @@ use Illuminate\Validation\ValidationException;
 
 class ActuadoService
 {
+    /**
+     * Código del actuado automático que cierra el hueco AUD-0021 #2:
+     * toda transición que aterrice en ADMITIDO continúa a EN_PLANIFICACION.
+     */
+    public const CODIGO_PASO_PLANIFICACION = 'ACT_PASO_PLANIFICACION';
+
+    protected ?int $estadoAdmitidoId = null;
+
+    protected bool $estadoAdmitidoResuelto = false;
+
     public function __construct(
         protected PlazoCalculatorService $calculadoraPlazo,
         protected AdjuntoService $adjuntoService,
@@ -79,11 +90,18 @@ class ActuadoService
             $fechaLimiteExplicita,
             $estadoNuevoIdExplicito,
         ) {
+            // D-6g (AUD-0033): bloqueo pesimista del expediente antes de
+            // validar el estado origen, para que dos emisiones concurrentes
+            // no puedan pasar ambas la validación con un estado desactualizado.
+            $expediente = Expediente::query()->lockForUpdate()->findOrFail($expediente->id);
+
             if ($catalogoActuado->requiere_adjunto && $adjunto === null) {
                 throw ValidationException::withMessages([
                     'adjunto' => 'Este actuado exige adjuntar un documento.',
                 ]);
             }
+
+            $this->verificarEstadoOrigen($expediente, $catalogoActuado);
 
             $estadoAnteriorId = $expediente->estado_actual_id;
             $estadoNuevoId = $estadoNuevoIdExplicito ?? $catalogoActuado->estado_destino_id;
@@ -129,8 +147,86 @@ class ActuadoService
                 $this->adjuntoService->guardarParaActuado($actuado, $adjunto, $emisor);
             }
 
+            // D-6b (AUD-0033): el único camino real hacia ADMITIDO es la
+            // revocación del rechazo; en la misma transacción el expediente
+            // continúa a EN_PLANIFICACION con un actuado formal encadenado.
+            if ($estadoNuevoId !== null
+                && $estadoAnteriorId !== $estadoNuevoId
+                && $estadoNuevoId === $this->estadoAdmitidoId()) {
+                $this->registrarPasoPlanificacion($expediente, $emisor);
+            }
+
             return $actuado;
         }, 3);
+    }
+
+    /**
+     * D-6g (AUD-0033): valida que el estado actual del expediente coincida
+     * con el estado origen definido en el catálogo para el actuado. Un origen
+     * null significa que el actuado es aplicable desde cualquier estado
+     * (actuados no-op como la creación de NUREJ Hijo o el registro de
+     * digitalización). Debe invocarse siempre con el expediente bajo
+     * lockForUpdate para que la validación sea atómica frente a concurrencia.
+     *
+     * @throws ValidationException Cuando el estado actual no es el esperado.
+     */
+    protected function verificarEstadoOrigen(Expediente $expediente, CatalogoActuado $catalogoActuado): void
+    {
+        if ($catalogoActuado->estado_origen_id === null) {
+            return;
+        }
+
+        if ($catalogoActuado->estado_origen_id === $expediente->estado_actual_id) {
+            return;
+        }
+
+        $esperado = CatalogoEstado::find($catalogoActuado->estado_origen_id)?->codigo
+            ?? $catalogoActuado->estado_origen_id;
+        $actual = CatalogoEstado::find($expediente->estado_actual_id)?->codigo
+            ?? $expediente->estado_actual_id;
+
+        throw ValidationException::withMessages([
+            'estado_origen_id' => "El actuado {$catalogoActuado->codigo} solo puede emitirse desde el estado {$esperado}; el expediente está en {$actual}.",
+        ]);
+    }
+
+    /**
+     * D-6b (AUD-0033): emite el actuado automático ACT_PASO_PLANIFICACION
+     * dentro de la misma transacción que dejó el expediente en ADMITIDO.
+     * No lleva usuario_destino (la bandeja ya la reasignó la revocación) y
+     * no tiene entrada en MAPA_TIPO_PLAZO (el plazo PLANIFICACION lo abre
+     * la revocación).
+     */
+    protected function registrarPasoPlanificacion(Expediente $expediente, Usuario $emisor): Actuado
+    {
+        $catalogoPaso = CatalogoActuado::where('codigo', static::CODIGO_PASO_PLANIFICACION)->firstOrFail();
+
+        return $this->registerActuado(
+            expediente: $expediente,
+            catalogoActuado: $catalogoPaso,
+            emisor: $emisor,
+            descripcion: 'Paso automático a EN_PLANIFICACION tras aterrizar en ADMITIDO (AUD-0033, D-6b).',
+            metadatos: [
+                'tipo' => 'AUTOMATICO',
+                'motivo' => 'PASO_ADMITIDO_PLANIFICACION',
+            ],
+        );
+    }
+
+    /**
+     * ID del estado ADMITIDO, resuelto una sola vez por instancia. Devuelve
+     * null cuando el catálogo de estados no define ADMITIDO (fixtures de
+     * tests parciales): en ese caso ningún actuado puede aterrizar ahí y el
+     * paso automático no aplica.
+     */
+    protected function estadoAdmitidoId(): ?int
+    {
+        if (! $this->estadoAdmitidoResuelto) {
+            $this->estadoAdmitidoId = CatalogoEstado::where('codigo', 'ADMITIDO')->first()?->id;
+            $this->estadoAdmitidoResuelto = true;
+        }
+
+        return $this->estadoAdmitidoId;
     }
 
     /**

@@ -82,6 +82,18 @@ function impugnacionSemilla(): array
         'requiere_adjunto' => false,
     ]);
 
+    $actPasoPlanificacion = CatalogoActuado::create([
+        'codigo' => ActuadoService::CODIGO_PASO_PLANIFICACION,
+        'nombre' => 'Paso Automático a Planificación',
+        'fase' => 'ADMISIBILIDAD',
+        'rol_id' => $rolEncargada->id,
+        'reglamento_id' => null,
+        'estado_origen_id' => $admitido->id,
+        'estado_destino_id' => $planificacion->id,
+        'es_automatico' => true,
+        'requiere_adjunto' => false,
+    ]);
+
     ParametroPlazo::create([
         'reglamento_id' => $reglamento->id,
         'tipo_plazo' => 'IMPUGNACION_REMITIR',
@@ -113,7 +125,7 @@ function impugnacionSemilla(): array
         'encargada', 'tecnico', 'otroOperador',
         'reglamento',
         'evaluacion', 'rechazado', 'enImpugnacion', 'admitido', 'archivoDefinitivo', 'planificacion',
-        'actRechazo', 'actRemitir', 'actRatifica', 'actRevoca',
+        'actRechazo', 'actRemitir', 'actRatifica', 'actRevoca', 'actPasoPlanificacion',
     );
 }
 
@@ -282,7 +294,7 @@ it('ratifica el rechazo dejando el expediente en ARCHIVO_DEFINITIVO con la bande
     Carbon::setTestNow();
 });
 
-it('revoca el rechazo devolviendo el expediente a ADMITIDO con el operador original y plazo de planificación', function () {
+it('revoca el rechazo y pasa automáticamente a EN_PLANIFICACION con el operador original y plazo vigente (D-6b)', function () {
     Carbon::setTestNow('2026-09-10 10:00:00');
 
     $semilla = impugnacionSemilla();
@@ -306,7 +318,17 @@ it('revoca el rechazo devolviendo el expediente a ADMITIDO con el operador origi
 
     $expediente->refresh();
 
-    expect($expediente->estado_actual_id)->toBe($semilla['admitido']->id);
+    // D-6b: ADMITIDO es un estado transitorio; el paso automático continúa
+    // a EN_PLANIFICACION en la misma transacción de la revocación.
+    expect($expediente->estado_actual_id)->toBe($semilla['planificacion']->id);
+
+    $paso = $expediente->actuados()
+        ->whereHas('tipoActuado', fn ($query) => $query->where('codigo', ActuadoService::CODIGO_PASO_PLANIFICACION))
+        ->first();
+
+    expect($paso)->not->toBeNull()
+        ->and($paso->estado_anterior_id)->toBe($semilla['admitido']->id)
+        ->and($paso->estado_nuevo_id)->toBe($semilla['planificacion']->id);
 
     $asignacionActiva = $expediente->asignacionActiva()->first();
     expect($asignacionActiva)->not->toBeNull()

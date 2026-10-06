@@ -15,15 +15,15 @@ anteriores (que se conservan solo como registro de su momento).**
 |---|---|---|
 | AUD-0001 | **(cierre F12)** Deuda conocida **ACEPTADA**; F12 no lo introdujo ni agravó; sin cambio de código ni de test; semántica ADMIN (opciones A/B/C) → fase de hardening/seguridad; NO maquillar el test | OPEN/P1, deuda conocida |
 | AUD-0019 | P2 confirmado; parametrizar 3-5 días según complejidad (no asumir 5); antes: fuente de "complejidad" | DECIDIDO, fix no aplicado |
-| AUD-0020 | P1/OPEN; validar estado origen; antes: matriz `actuado→origen→destino` | DECIDIDO, fix no aplicado |
-| AUD-0021 | P1/OPEN; grafo actual NO aceptado; antes: matriz `estado→actuados→destinos→roles` (SRS, sin inventar) | DECIDIDO, fix no aplicado |
+| AUD-0020 | P1/OPEN; validar estado origen; antes: matriz `actuado→origen→destino` | **FIX APLICADO en B1.2 (2026-10-06)**: validación `estado_origen_id` en `registerActuado`/`evaluar` (422) + lock; matriz completa no requerida por decisión del usuario |
+| AUD-0021 | P1/OPEN; grafo actual NO aceptado; antes: matriz `estado→actuados→destinos→roles` (SRS, sin inventar) | **FIX PARCIAL en B1.2 (2026-10-06)**: D-6a informe → `PENDIENTE_VISTO_BUENO_FINAL`; D-6b `ADMITIDO` → `EN_PLANIFICACION`; matriz completa pendiente |
 | AUD-0023 | P2/OPEN; NO `db:seed` global; sync idempotente de catálogos; ejecución dev con autorización específica | DECIDIDO, fix no aplicado |
 | AUD-0024 | P1 confirmado, NO fuera de alcance; campo `naturaleza` (no `via`); antes: impacto de migración+tests | DECIDIDO, fix no aplicado |
 | AUD-0025 | P2 confirmado; AC022=2d, AC054/055 MPA sin reloj rígido; ejecución = fecha MPA; antes: cambio mínimo+tests | DECIDIDO, fix no aplicado |
 | AUD-0027 | P2/OPEN; validar destino (activo+rol+institucional) en servidor; antes: matriz `actuado→roles/destinos` | DECIDIDO, fix no aplicado |
 | AUD-0028 | P1/OPEN; dashboard agregado NO sustituye supervisión operativa; diseñar bandeja desde casos de uso | DECIDIDO, fix no aplicado |
 | AUD-0029 | P2/OPEN; reasignación explícita con actuado+trazabilidad, sin reasignación silenciosa; antes: flujo institucional | DECIDIDO, fix no aplicado |
-| AUD-0033 | P1/OPEN; NO `estado_nuevo_id` nullable; resolver en el grafo (destino informe → espera VB → verificar → cambio mínimo) | DECIDIDO, fix no aplicado |
+| AUD-0033 | P1/OPEN; NO `estado_nuevo_id` nullable; resolver en el grafo (destino informe → espera VB → verificar → cambio mínimo) | **FIX APLICADO en B1.2 (2026-10-06)**: D-6a destino del informe = `PENDIENTE_VISTO_BUENO_FINAL` en seeder (sin nullable); `FlujoJuridicoTest` sigue con fixture propia (comentario obsoleto sin tocar) |
 | AUD-0034 | P2 (funcional, no seguridad); fix conceptual autorizado (catálogo contextual + validación servidor); NO aplicar hasta AUD-0033/0020/0021 | DECIDIDO, fix no aplicado |
 | AUD-0035 | P1 confirmado; endpoints NO sustituyen UI; verificar conjunto de operaciones jurídicas y diseñar UI contra flujo normativo | DECIDIDO, fix no aplicado |
 | AUD-0039 | **Opción B adoptada** (`AUD-0039_DISENO.md` §7): `via_destino` explícito en servidor, mapeo vía→reglamento (JURIDICO→AC054, FINANCIERO→AC055), matriz normativa de combinaciones | DECIDIDO, fix no aplicado (pendiente matriz) |
@@ -1487,3 +1487,113 @@ UTC↔La Paz, `daysRemaining` consistente).
 con sesión `SYSTEM` (UTC-4 = La Paz en este entorno); en servidores con otra TZ
 sería necesario `'timezone'` en `config/database.php` (fuera de alcance,
 requiere autorización).
+
+---
+
+## Cierre de tarea B1.1 — Informes finales Técnico/Jurídico (2026-10-06)
+
+**Estado:** **B1.1 COMPLETADA / VALIDADA Y CERRADA (2026-10-06)** — registro
+retroactivo (la instrucción de la sesión fue cerrar sin git ni PROGRESO.md;
+se registra hoy por pedido explícito de actualizar el progreso al estado real).
+
+**Cambio de producción (único archivo):**
+
+- `database/seeders/CatalogoActuadoSeeder.php` — **+6 informes finales**:
+  4 Técnico (AC022, conforme SRS `:374-413`) + 2 Jurídico (AC054, CON/SIN
+  responsabilidad). Todos: fase `INVESTIGACION`, `estado_origen` =
+  `EN_EJECUCION`, `estado_destino` = `PENDIENTE_VISTO_BUENO_FINAL`,
+  `requiere_adjunto` y pivote por reglamento. `ACT_INFORME_FINAL` **intacto**
+  (destino `null` diferido a B1.2/D-6a).
+
+**Test nuevo:** `tests/Feature/ContratosAdmisibilidadTest.php` — **11 tests ·
+86 aserciones** (contratos CTR de informes contra la implementación real).
+
+**Validación (sin modificar ningún test existente):**
+
+- `php artisan test --compact` → **341 tests · 335 OK · 0 fallos · 6 omitidos**
+  (baseline +6 tests/+6 OK; los 6 omitidos: 5 `RUN_STRESS_TESTS` + 1
+  `RUN_CONCURRENCY_TEST`, preexistentes).
+- `vendor/bin/pint --dirty --format agent` → `passed`.
+
+**Contratos CTR verificados contra implementación real (sin cambios de código):**
+
+- **CTR-01:** divergencia — columnas `codigo`/`nombre`/`cumplido` del contrato
+  **ausentes** en la implementación (reportado, pendiente de decisión).
+- **CTR-02:** divergencia — payload/respuesta real ≠ contrato (reportado,
+  pendiente de decisión).
+- **CTR-03:** resuelta — sin cambios necesarios.
+
+**Alcance:** sin operaciones git; sin tocar `PROGRESO.md` en su momento.
+
+---
+
+## Cierre de tarea B1.2 — Huecos del grafo, lock pesimista y ADMITIDO→PLANIFICACIÓN (2026-10-06)
+
+**Estado:** **B1.2 COMPLETADA / VALIDADA Y CERRADA (2026-10-06)** — D-6a, D-6b
+y D-6g aplicados; sin migraciones, sin cambios de rutas y **sin tocar
+`app/Http/Requests/*`** (evitado el bloqueo histórico B0.2 de Brayan).
+
+**Decisiones del usuario aplicadas (4/4):** (1) seeder incluido en alcance;
+(2) actualizar los 3 tests afectados; (3) D-6g validando `estado_origen_id` en
+`registerActuado` para **todos** los llamadores; (4) hook auto-paso genérico en
+`ActuadoService` (no en `ImpugnacionService`).
+
+**Cambios de producción:**
+
+- `database/seeders/CatalogoActuadoSeeder.php` — **D-6a:** `ACT_INFORME_FINAL`
+  `estado_destino_id` `null` → `PENDIENTE_VISTO_BUENO_FINAL`; **D-6b:** fila
+  `ACT_PASO_PLANIFICACION` (`ADMITIDO` → `EN_PLANIFICACION`, `es_automatico`,
+  `rol_id` ADMIN, sin entrada en `MAPA_TIPO_PLAZO`, **sin pivote** — mismo
+  patrón que `ACT_ARCHIVO_POR_ABANDONO`).
+- `app/Services/ActuadoService.php` — constante
+  `CODIGO_PASO_PLANIFICACION`; `estadoAdmitidoId()` tolerante a ausencia de
+  estado ADMITIDO; al inicio de la transacción de `registerActuado`:
+  `Expediente::query()->lockForUpdate()->findOrFail()` + `verificarEstadoOrigen()`
+  → `ValidationException` 422 (key `estado_origen_id`; `null` = sin validación);
+  hook: si el estado nuevo es ADMITIDO → `registrarPasoPlanificacion()` en la
+  misma transacción (mismo emisor, metadatos `tipo: AUTOMATICO`, `motivo:
+  PASO_ADMITIDO_PLANIFICACION`, sin `usuario_destino`).
+- `app/Services/EvaluacionAdmisibilidadService.php` — `lockForUpdate` del
+  expediente al inicio de `evaluar()`.
+
+**Tests:**
+
+- Nuevo `tests/Feature/MaquinaEstadosTransicionesTest.php` — **5 tests** (4
+  ejecutados + 1 opt-in `RUN_CONCURRENCY_TEST` con subprocesos tinker,
+  verificado **5/5** en corrida dedicada; patrón heredado de
+  `CadenaHashConcurrenciaTest`).
+- Actualizados los 3 tests afectados: `ImpugnacionRechazoTest` (`:309`),
+  `RelojProcesualTest`, `ContratosAdmisibilidadTest` (+1 test D-6b).
+
+**Validación:**
+
+- `php artisan test --compact` → **347 tests · 340 OK · 0 fallos · 7 omitidos**
+  (delta vs B1.1: +6 tests, +5 OK, +1 omitido = nuevo opt-in concurrencia; los
+  7 omitidos: 5 `RUN_STRESS_TESTS` + 2 `RUN_CONCURRENCY_TEST`).
+- `vendor/bin/pint --dirty --format agent` → `passed`.
+
+**Hallazgos de ejecución (reportados, sin salir del alcance):**
+
+1. **Bug propio corregido en la tarea:** `estadoAdmitidoId()` con `firstOrFail`
+   reventaba el arranque de la suite cuando el estado ADMITIDO no existe en la
+   BD del test (30 fallos / 8 errores 404-ModelNotFound) → hecho tolerante
+   (retorna `null` = sin hook).
+2. **AUD-0031 no materializado:** archivo fuera de `EN_SUBSANACION` ahora
+   fallaría con 422 (validación D-6g) en vez de saltarse el estado;
+   `ArchivoPorAbandonoService` queda **sin filtro propio** — auditar en **B1.4**.
+3. **`ACT_PASO_PLANIFICACION` sin pivote** por reglamento (automático, igual
+   que `ACT_ARCHIVO_POR_ABANDONO`) — decisión tomada, documentada.
+4. **Comentario obsoleto** en `FlujoJuridicoTest` (`:63-81,:184`, "Réplica del
+   seeder") — el seeder ya difiere (D-6a); **sin tocar** (fuera de alcance).
+5. Re-bloqueo anidado del expediente (savepoint) **sin deadlock**; fixtures
+   propias de tests requirieron la fila `ACT_PASO_PLANIFICACION`.
+
+**Alcance del diff (sin commitear, sin stashes):** 5 `M`
+(`ActuadoService`, `EvaluacionAdmisibilidadService`, `CatalogoActuadoSeeder`,
+`ImpugnacionRechazoTest`, `RelojProcesualTest`) + 2 `??`
+(`MaquinaEstadosTransicionesTest`, `ContratosAdmisibilidadTest`).
+
+**Documentación actualizada en este cierre:** esta sección + filas
+AUD-0020/0021/0033 de «Decisiones del usuario — RESUELTAS» (arriba).
+`BACKLOG_AUDITORIA.md` **intacto** (sus fichas siguen diciendo "fix NO
+aplicado" — fuera de alcance, reportado).

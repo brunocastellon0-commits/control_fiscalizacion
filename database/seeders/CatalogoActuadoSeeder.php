@@ -59,7 +59,7 @@ class CatalogoActuadoSeeder extends Seeder
             ['codigo' => 'ACT_CRONOGRAMA_TRABAJO', 'nombre' => 'Cronograma de Trabajo', 'fase' => 'PLANIFICACION', 'rol_id' => $tecnico->id, 'reglamento_id' => null, 'estado_origen_id' => $planificacion->id, 'estado_destino_id' => $pendienteVistoBueno->id, 'es_automatico' => false, 'requiere_adjunto' => true, 'descripcion' => 'Carga del cronograma de trabajo por el Técnico (AC022)'],
             ['codigo' => 'ACT_MPA', 'nombre' => 'MPA (Programa de Auditoría)', 'fase' => 'PLANIFICACION', 'rol_id' => $audJuridico->id, 'reglamento_id' => null, 'estado_origen_id' => $planificacion->id, 'estado_destino_id' => $pendienteVistoBueno->id, 'es_automatico' => false, 'requiere_adjunto' => true, 'descripcion' => 'Carga del MPA con fecha límite propuesta (AC054/AC055)'],
             ['codigo' => 'ACT_DEVOLUCION_OBSERVACION', 'nombre' => 'Devolución por Observaciones', 'fase' => 'PLANIFICACION', 'rol_id' => $encargada->id, 'reglamento_id' => null, 'estado_origen_id' => $pendienteVistoBueno->id, 'estado_destino_id' => $planificacion->id, 'es_automatico' => false, 'requiere_adjunto' => false, 'descripcion' => 'La Encargada devuelve el Cronograma/MPA con observaciones; retorna a planificación y reabre su plazo (2 días hábiles)'],
-            ['codigo' => 'ACT_INFORME_FINAL', 'nombre' => 'Informe Final', 'fase' => 'INVESTIGACION', 'rol_id' => $audJuridico->id, 'reglamento_id' => null, 'estado_origen_id' => $ejecucion->id, 'estado_destino_id' => null, 'es_automatico' => false, 'requiere_adjunto' => true, 'descripcion' => 'Informe final de la investigación'],
+            ['codigo' => 'ACT_INFORME_FINAL', 'nombre' => 'Informe Final', 'fase' => 'INVESTIGACION', 'rol_id' => $audJuridico->id, 'reglamento_id' => null, 'estado_origen_id' => $ejecucion->id, 'estado_destino_id' => $pendienteVbFinal->id, 'es_automatico' => false, 'requiere_adjunto' => true, 'descripcion' => 'Informe final de la investigación; habilita el Visto Bueno Final de la Encargada (RN-09)'],
             // Ampliación de plazo en ejecución (US-2.6, solo AC022)
             ['codigo' => 'ACT_SOLICITAR_AMPLIACION', 'nombre' => 'Solicitud de Ampliación de Plazo', 'fase' => 'INVESTIGACION', 'rol_id' => $tecnico->id, 'reglamento_id' => null, 'estado_origen_id' => $ejecucion->id, 'estado_destino_id' => $pendienteAprobacionAmpliacion->id, 'es_automatico' => false, 'requiere_adjunto' => false, 'descripcion' => 'El Técnico solicita la única ampliación de 5 días hábiles del plazo de ejecución (AC022)'],
             ['codigo' => 'ACT_APROBAR_AMPLIACION', 'nombre' => 'Aprobación de Ampliación de Plazo', 'fase' => 'INVESTIGACION', 'rol_id' => $encargada->id, 'reglamento_id' => null, 'estado_origen_id' => $pendienteAprobacionAmpliacion->id, 'estado_destino_id' => $ejecucion->id, 'es_automatico' => false, 'requiere_adjunto' => false, 'descripcion' => 'La Encargada aprueba la ampliación; cierra el plazo original y abre EJECUCION_AMPLIADA por 5 días hábiles'],
@@ -68,6 +68,10 @@ class CatalogoActuadoSeeder extends Seeder
             ['codigo' => 'ACT_REMITIR_IMPUGNACION', 'nombre' => 'Remisión de Impugnación', 'fase' => 'ADMISIBILIDAD', 'rol_id' => $tecnico->id, 'reglamento_id' => null, 'estado_origen_id' => $rechazado->id, 'estado_destino_id' => $enImpugnacion->id, 'es_automatico' => false, 'requiere_adjunto' => false, 'descripcion' => 'El operador remite el expediente rechazado a la Encargada para su resolución (RN-08)'],
             ['codigo' => 'ACT_RESOLUCION_RATIFICA_RECHAZO', 'nombre' => 'Ratificación del Rechazo', 'fase' => 'ADMISIBILIDAD', 'rol_id' => $encargada->id, 'reglamento_id' => null, 'estado_origen_id' => $enImpugnacion->id, 'estado_destino_id' => $archivoDefinitivo->id, 'es_automatico' => false, 'requiere_adjunto' => false, 'descripcion' => 'La Encargada ratifica el rechazo; el expediente queda en ARCHIVO_DEFINITIVO (RN-08)'],
             ['codigo' => 'ACT_RESOLUCION_REVOCA_RECHAZO', 'nombre' => 'Revocación del Rechazo', 'fase' => 'ADMISIBILIDAD', 'rol_id' => $encargada->id, 'reglamento_id' => null, 'estado_origen_id' => $enImpugnacion->id, 'estado_destino_id' => $admitido->id, 'es_automatico' => false, 'requiere_adjunto' => false, 'descripcion' => 'La Encargada revoca el rechazo; el expediente retorna a ADMITIDO para su sustanciación (RN-08)'],
+            // Paso automático ADMITIDO → EN_PLANIFICACION (AUD-0033, D-6b): cierra el
+            // hueco AUD-0021 #2 (ADMITIDO sin salida). Sin entrada en MAPA_TIPO_PLAZO:
+            // el plazo PLANIFICACION ya lo abre la revocación.
+            ['codigo' => 'ACT_PASO_PLANIFICACION', 'nombre' => 'Paso Automático a Planificación', 'fase' => 'ADMISIBILIDAD', 'rol_id' => $admin->id, 'reglamento_id' => null, 'estado_origen_id' => $admitido->id, 'estado_destino_id' => $planificacion->id, 'es_automatico' => true, 'requiere_adjunto' => false, 'descripcion' => 'Evento automático del sistema: al aterrizar en ADMITIDO el expediente transiciona a EN_PLANIFICACION en la misma transacción (AUD-0033, D-6b)'],
             // Derivación NUREJ Hijo (E9-S1, RN-10)
             ['codigo' => 'ACT_CREACION_NUREJ_HIJO', 'nombre' => 'Creación de NUREJ Hijo', 'fase' => 'INVESTIGACION', 'rol_id' => $encargada->id, 'reglamento_id' => null, 'estado_origen_id' => null, 'estado_destino_id' => null, 'es_automatico' => false, 'requiere_adjunto' => false, 'descripcion' => 'La Encargada deriva un NUREJ Hijo a partir de un expediente padre; el padre conserva su estado (RN-10)'],
             // Cierre y salida institucional (E10-S1/S2, RN-09/RN-12)
@@ -81,6 +85,14 @@ class CatalogoActuadoSeeder extends Seeder
             ['codigo' => 'ACT_RECEPCION_DESCARGOS', 'nombre' => 'Recepción de Descargos', 'fase' => 'INVESTIGACION', 'rol_id' => $audFinanciero->id, 'reglamento_id' => null, 'estado_origen_id' => null, 'estado_destino_id' => null, 'es_automatico' => false, 'requiere_adjunto' => true, 'descripcion' => 'Recepción de los descargos presentados por los auditados (AC055); cierra el sub-reloj y reanuda el reloj de ejecución (RN-09)'],
             ['codigo' => 'ACT_INFORME_AUDITORIA_FINANCIERA_CON_RESPONSABILIDAD', 'nombre' => 'Informe Final con Responsabilidad', 'fase' => 'INVESTIGACION', 'rol_id' => $audFinanciero->id, 'reglamento_id' => null, 'estado_origen_id' => $ejecucion->id, 'estado_destino_id' => $pendienteVbFinal->id, 'es_automatico' => false, 'requiere_adjunto' => true, 'descripcion' => 'Informe final del auditor financiero con responsabilidad (AC055); exige la fase de descargos previa y habilita el cierre jerárquico (RN-09)'],
             ['codigo' => 'ACT_INFORME_AUDITORIA_FINANCIERA_SIN_RESPONSABILIDAD', 'nombre' => 'Informe Final sin Responsabilidad', 'fase' => 'INVESTIGACION', 'rol_id' => $audFinanciero->id, 'reglamento_id' => null, 'estado_origen_id' => $ejecucion->id, 'estado_destino_id' => $pendienteVbFinal->id, 'es_automatico' => false, 'requiere_adjunto' => true, 'descripcion' => 'Informe final del auditor financiero sin responsabilidad (AC055); exige la fase de descargos previa y habilita el cierre jerárquico (RN-09)'],
+            // Informes finales exclusivos del Técnico (SRS 374-391, AUD-0008, D-6d)
+            ['codigo' => 'ACT_INFORME_TECNICO_CON_RESPONSABILIDAD', 'nombre' => 'Informe Final Técnico con Responsabilidad', 'fase' => 'INVESTIGACION', 'rol_id' => $tecnico->id, 'reglamento_id' => null, 'estado_origen_id' => $ejecucion->id, 'estado_destino_id' => $pendienteVbFinal->id, 'es_automatico' => false, 'requiere_adjunto' => true, 'descripcion' => 'Informe final técnico con indicios de falta disciplinaria (AC022); pasa a Visto Bueno Final de la Encargada (RN-09)'],
+            ['codigo' => 'ACT_INFORME_TECNICO_SIN_RESPONSABILIDAD', 'nombre' => 'Informe Final Técnico sin Responsabilidad', 'fase' => 'INVESTIGACION', 'rol_id' => $tecnico->id, 'reglamento_id' => null, 'estado_origen_id' => $ejecucion->id, 'estado_destino_id' => $pendienteVbFinal->id, 'es_automatico' => false, 'requiere_adjunto' => true, 'descripcion' => 'Informe final técnico sin hallazgo de faltas (AC022); pasa a Visto Bueno Final de la Encargada (RN-09)'],
+            ['codigo' => 'ACT_INFORME_TECNICO_CON_RESPONSABILIDAD_RECOMENDACION', 'nombre' => 'Informe Final Técnico con Responsabilidad y Recomendación de Auditoría', 'fase' => 'INVESTIGACION', 'rol_id' => $tecnico->id, 'reglamento_id' => null, 'estado_origen_id' => $ejecucion->id, 'estado_destino_id' => $pendienteVbFinal->id, 'es_automatico' => false, 'requiere_adjunto' => true, 'descripcion' => 'Informe final técnico con falta disciplinaria y recomendación de auditoría de fondo (AC022); al recibir Visto Bueno cierra el NUREJ Padre y gatilla el NUREJ Hijo (RN-10)'],
+            ['codigo' => 'ACT_INFORME_TECNICO_SIN_RESPONSABILIDAD_RECOMENDACION', 'nombre' => 'Informe Final Técnico sin Responsabilidad y Recomendación de Auditoría', 'fase' => 'INVESTIGACION', 'rol_id' => $tecnico->id, 'reglamento_id' => null, 'estado_origen_id' => $ejecucion->id, 'estado_destino_id' => $pendienteVbFinal->id, 'es_automatico' => false, 'requiere_adjunto' => true, 'descripcion' => 'Informe final técnico sin falta pero con irregularidades de fondo (AC022); al recibir Visto Bueno archiva el Padre y gatilla el NUREJ Hijo (RN-10)'],
+            // Informes finales exclusivos del Auditor Jurídico (SRS 393-402, AUD-0008, D-6e)
+            ['codigo' => 'ACT_INFORME_AUDITORIA_JURIDICA_CON_RESPONSABILIDAD', 'nombre' => 'Informe de Auditoría Jurídica con Responsabilidad', 'fase' => 'INVESTIGACION', 'rol_id' => $audJuridico->id, 'reglamento_id' => null, 'estado_origen_id' => $ejecucion->id, 'estado_destino_id' => $pendienteVbFinal->id, 'es_automatico' => false, 'requiere_adjunto' => true, 'descripcion' => 'Informe de auditoría jurídica que establece fallos contra la ley o daño (AC054); pasa a Visto Bueno Final para remisión externa (RN-09)'],
+            ['codigo' => 'ACT_INFORME_AUDITORIA_JURIDICA_SIN_RESPONSABILIDAD', 'nombre' => 'Informe de Auditoría Jurídica sin Responsabilidad', 'fase' => 'INVESTIGACION', 'rol_id' => $audJuridico->id, 'reglamento_id' => null, 'estado_origen_id' => $ejecucion->id, 'estado_destino_id' => $pendienteVbFinal->id, 'es_automatico' => false, 'requiere_adjunto' => true, 'descripcion' => 'Informe de auditoría jurídica que desestima las irregularidades (AC054); pasa a Visto Bueno Final para archivo definitivo (RN-09)'],
         ];
 
         foreach ($actuados as $a) {
@@ -154,6 +166,24 @@ class CatalogoActuadoSeeder extends Seeder
             ],
             'ACT_INFORME_AUDITORIA_FINANCIERA_SIN_RESPONSABILIDAD' => [
                 ['rol_id' => $audFinanciero->id, 'reglamento_id' => $ac055->id],
+            ],
+            'ACT_INFORME_TECNICO_CON_RESPONSABILIDAD' => [
+                ['rol_id' => $tecnico->id, 'reglamento_id' => $ac022->id],
+            ],
+            'ACT_INFORME_TECNICO_SIN_RESPONSABILIDAD' => [
+                ['rol_id' => $tecnico->id, 'reglamento_id' => $ac022->id],
+            ],
+            'ACT_INFORME_TECNICO_CON_RESPONSABILIDAD_RECOMENDACION' => [
+                ['rol_id' => $tecnico->id, 'reglamento_id' => $ac022->id],
+            ],
+            'ACT_INFORME_TECNICO_SIN_RESPONSABILIDAD_RECOMENDACION' => [
+                ['rol_id' => $tecnico->id, 'reglamento_id' => $ac022->id],
+            ],
+            'ACT_INFORME_AUDITORIA_JURIDICA_CON_RESPONSABILIDAD' => [
+                ['rol_id' => $audJuridico->id, 'reglamento_id' => $ac054->id],
+            ],
+            'ACT_INFORME_AUDITORIA_JURIDICA_SIN_RESPONSABILIDAD' => [
+                ['rol_id' => $audJuridico->id, 'reglamento_id' => $ac054->id],
             ],
         ];
 
