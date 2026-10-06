@@ -64,6 +64,10 @@ class CatalogoActuadoSeeder extends Seeder
             ['codigo' => 'ACT_SOLICITAR_AMPLIACION', 'nombre' => 'Solicitud de Ampliación de Plazo', 'fase' => 'INVESTIGACION', 'rol_id' => $tecnico->id, 'reglamento_id' => null, 'estado_origen_id' => $ejecucion->id, 'estado_destino_id' => $pendienteAprobacionAmpliacion->id, 'es_automatico' => false, 'requiere_adjunto' => false, 'descripcion' => 'El Técnico solicita la única ampliación de 5 días hábiles del plazo de ejecución (AC022)'],
             ['codigo' => 'ACT_APROBAR_AMPLIACION', 'nombre' => 'Aprobación de Ampliación de Plazo', 'fase' => 'INVESTIGACION', 'rol_id' => $encargada->id, 'reglamento_id' => null, 'estado_origen_id' => $pendienteAprobacionAmpliacion->id, 'estado_destino_id' => $ejecucion->id, 'es_automatico' => false, 'requiere_adjunto' => false, 'descripcion' => 'La Encargada aprueba la ampliación; cierra el plazo original y abre EJECUCION_AMPLIADA por 5 días hábiles'],
             ['codigo' => 'ACT_ARCHIVO_POR_ABANDONO', 'nombre' => 'Archivo por Abandono', 'fase' => 'ADMISIBILIDAD', 'rol_id' => $admin->id, 'reglamento_id' => null, 'estado_origen_id' => $subsanacion->id, 'estado_destino_id' => $archivoAbandono->id, 'es_automatico' => true, 'requiere_adjunto' => false, 'descripcion' => 'Evento automático del sistema: archiva el expediente por caducidad del plazo de subsanación sin respuesta (RN-03)'],
+            // Salida de éxito de subsanación (RN-03 / AUD-0032, B1.4): única
+            // alternativa al archivo por abandono; cierra su reloj vía
+            // MAPA_CIERRA_PLAZO y retorna el expediente a evaluación.
+            ['codigo' => 'ACT_SUBSANACION_ACEPTADA', 'nombre' => 'Subsanación Aceptada', 'fase' => 'ADMISIBILIDAD', 'rol_id' => $audJuridico->id, 'reglamento_id' => null, 'estado_origen_id' => $subsanacion->id, 'estado_destino_id' => $evaluacion->id, 'es_automatico' => false, 'requiere_adjunto' => false, 'descripcion' => 'Aceptación de la subsanación presentada por el interesado; retorna el expediente a EN_EVALUACION y cierra el plazo de subsanación (RN-03)'],
             // Impugnaciones (RN-08)
             ['codigo' => 'ACT_REMITIR_IMPUGNACION', 'nombre' => 'Remisión de Impugnación', 'fase' => 'ADMISIBILIDAD', 'rol_id' => $tecnico->id, 'reglamento_id' => null, 'estado_origen_id' => $rechazado->id, 'estado_destino_id' => $enImpugnacion->id, 'es_automatico' => false, 'requiere_adjunto' => false, 'descripcion' => 'El operador remite el expediente rechazado a la Encargada para su resolución (RN-08)'],
             ['codigo' => 'ACT_RESOLUCION_RATIFICA_RECHAZO', 'nombre' => 'Ratificación del Rechazo', 'fase' => 'ADMISIBILIDAD', 'rol_id' => $encargada->id, 'reglamento_id' => null, 'estado_origen_id' => $enImpugnacion->id, 'estado_destino_id' => $archivoDefinitivo->id, 'es_automatico' => false, 'requiere_adjunto' => false, 'descripcion' => 'La Encargada ratifica el rechazo; el expediente queda en ARCHIVO_DEFINITIVO (RN-08)'],
@@ -107,6 +111,7 @@ class CatalogoActuadoSeeder extends Seeder
                 ['rol_id' => $encargada->id, 'reglamento_id' => null],
             ],
             'ACT_OBSERVACION' => $this->perfilesEvaluacion($tecnico, $audJuridico, $audFinanciero, $ac022, $ac054, $ac055),
+            'ACT_SUBSANACION_ACEPTADA' => $this->perfilesEvaluacion($tecnico, $audJuridico, $audFinanciero, $ac022, $ac054, $ac055),
             'ACT_ADMISION' => $this->perfilesEvaluacion($tecnico, $audJuridico, $audFinanciero, $ac022, $ac054, $ac055),
             'ACT_RECHAZO' => $this->perfilesEvaluacion($tecnico, $audJuridico, $audFinanciero, $ac022, $ac054, $ac055),
             'ACT_VISTO_BUENO_PLANIFICACION' => [

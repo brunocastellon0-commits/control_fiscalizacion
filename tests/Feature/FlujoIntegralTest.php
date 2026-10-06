@@ -329,8 +329,10 @@ it('recorre el ciclo completo AC055: sorteo, admisión, MPA, visto bueno, descar
     expect($plazoPlanificacion->estado)->toBe('VIGENTE')
         ->and($plazoPlanificacion->dias_habiles_otorgados)->toBe(2)
         ->and($plazoPlanificacion->fecha_limite->format('Y-m-d'))->toBe('2026-10-08')
-        // Evidencia de AUD-0030: la admisión NO cierra el plazo de EVALUACION.
-        ->and($plazoEvaluacion->refresh()->estado)->toBe('VIGENTE');
+        // B1.3 (AUD-0030): la admisión cierra el reloj de EVALUACION con
+        // evidencia del actuado de cierre.
+        ->and($plazoEvaluacion->refresh()->estado)->toBe('CERRADO')
+        ->and($plazoEvaluacion->actuado_cierre_id)->not->toBeNull();
 
     // ---- 4. Carga del MPA (Auditor asignado) -----------------------------
     $this->postJson("/api/expedientes/{$expediente->id}/planificacion", [

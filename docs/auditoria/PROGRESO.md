@@ -33,7 +33,8 @@ anteriores (que se conservan solo como registro de su momento).**
 | O-4 | Observación, NO elevada: verificado contra RF-03 → `bandejaOperador:72-76` filtra por usuario y `show:85` exige policy → sin lectura de expedientes ajenos | Resuelta (observación) |
 | O-6 | **(cierre F12) CERRADA: "Comportamiento aceptado provisionalmente; el SRS no establece prohibición explícita de autoasignación."** Sin exclusión del creador en esta fase; si se decide luego → cambio funcional separado con tests | Cerrada (aceptada provisionalmente) |
 | O-7 | **(cierre F12) CERRADA como sub-caso de AUD-0023** (sin ficha P2): BD dev sin `IMPUGNACION_RESOLVER` (0 filas) → fallback `now()` con límite inmediato; sin modificar; candidato de corrección en la sync de parámetros | Cerrada (asociada a AUD-0023) |
-| AUD-0030/0031/0032 | **(cierre F12) Incorporados formalmente a la lista de decisiones pendientes; NO aplicar.** Props: 0030 decidir cerrar plazos al salir de fase vs filtrar CRON/semáforo; 0031 condicionar archivo a `EN_SUBSANACION` y/o cierre del plazo; 0032 actuado de salida de subsanación (migración de catálogo sujeta a aprobación). No bloquean F12 | OPEN/P1, decisión pendiente |
+| AUD-0030 | **(cierre F12)** decidir: cerrar plazos al salir de fase vs filtrar CRON/semáforo. **(B1.3) Opción (i) aprobada (2026-10-06): cerrar al salir de fase, Opción A sin `fecha_cierre`** (fecha derivada de `actuados.fecha_hora`) | **CERRADO en B1.3 (2026-10-06)**: `MAPA_CIERRA_PLAZO` + `cerrarPlazosDeFase()` en la transacción de `registerActuado`; `CierrePlazosFasesTest` 7/7; `FlujoIntegralTest:333` actualizado; suite 354 · 347 OK · 0 fallos · 7 omitidos |
+| AUD-0031/0032 | **(cierre F12)** incorporados formalmente a la lista de decisiones pendientes; NO aplicar. **(B1.4) Resueltos (2026-10-06)** — 0031: filtro estricto `EN_SUBSANACION` + `try/catch` por expediente en `archivarVencidos()` (huérfanos fuera de alcance, decisión del usuario); 0032: actuado `ACT_SUBSANACION_ACEPTADA` en seeder aprobado (`EN_SUBSANACION → EN_EVALUACION`, sin reloj EVALUACION nuevo, sin adjunto, 422 si plazo vencido contra `today()` America/La_Paz o `VENCIDO`) | **CERRADO en B1.4 (2026-10-06)**: `SubsanacionExitoTest` 9/9; regresión 29/29; pint OK; suite 363 tests · 356 OK · 0 fallos · 7 omitidos |
 
 **`NEEDS_REVIEW` al cierre de F12: NINGUNO** (los cuatro elementos
 anteriores —AUD-0001, AUD-0040, O-6, O-7— quedaron resueltos con las
@@ -1597,3 +1598,149 @@ y D-6g aplicados; sin migraciones, sin cambios de rutas y **sin tocar
 AUD-0020/0021/0033 de «Decisiones del usuario — RESUELTAS» (arriba).
 `BACKLOG_AUDITORIA.md` **intacto** (sus fichas siguen diciendo "fix NO
 aplicado" — fuera de alcance, reportado).
+
+---
+
+## Cierre de tarea B1.3 — Cierre formal de plazos al transicionar entre fases (2026-10-06)
+
+**Estado:** **B1.3 COMPLETADA / VALIDADA Y CERRADA (2026-10-06)** — hallazgo
+**AUD-0030** (P1) cerrado; sin migraciones, sin cambios de rutas, sin tocar
+`PlazoCalculatorService`, `VerificarVencimientoPlazosCommand` ni
+`SemaforoPlazoService`.
+
+**Decisiones del usuario aplicadas (7/7):** (1) Opción A: `estado='CERRADO'` +
+`actuado_cierre_id`, sin columna `fecha_cierre` (fecha derivada de
+`actuados.fecha_hora`); (2) cierre dentro de `registerActuado()` en la misma
+transacción/lock de B1.2; (3) mapa limitado a los actuados de la fase (no cierra
+`SUSPENDIDO` ni pausas de descargos, no adelanta SUBSANACION); (4) sin tocar
+otros servicios (auditados con grep); (5) solo se actualizó el test que
+codificaba el bug; (6) gates; (7) cierre documental solo con todo en verde.
+
+**Cambios de producción:**
+
+- `app/Services/ActuadoService.php` — constante `MAPA_CIERRA_PLAZO` (13
+  entradas: `ACT_ADMISION`/`ACT_OBSERVACION` → `EVALUACION`; 9 informes
+  finales → `EJECUCION`/`EJECUCION_AMPLIADA`; `ACT_VISTO_BUENO_FINAL` y
+  `ACT_REPARTO_INSTITUCIONAL` → `EJECUCION`/`EJECUCION_AMPLIADA`); método
+  `cerrarPlazosDeFase()` (update idempotente, solo `VIGENTE` de los tipos del
+  mapa, con `actuado_cierre_id=$actuado->id`); llamada en `registerActuado`
+  antes de `abrirPlazoSiAplica`, dentro de la transacción.
+- `app/Services/CierreExpedienteService.php` — **sin cambios** (todo flujo ya
+  pasa por `registerActuado`).
+
+**Tests:**
+
+- Nuevo `tests/Feature/CierrePlazosFasesTest.php` — **7 tests** (admisión
+  cierra EVALUACION; observación cierra EVALUACION y abre SUBSANACION; informe
+  cierra EJECUCION + EJECUCION_AMPLIADA con evidencia; VB final cierra residual
+  y no toca `SUSPENDIDO`, reparto deja 0 VIGENTE; ampliación NO cierra; ciclo
+  AC055 pausa/reanudación intacta; CRON no estampa cerrados).
+- `tests/Feature/FlujoIntegralTest.php:333` — assertion actualizada de
+  `VIGENTE` → `CERRADO` + `actuado_cierre_id` no nulo (el test codificaba
+  AUD-0030: "la admisión NO cierra el plazo de EVALUACION"); comentario
+  actualizado. Único test tocado de la suite.
+
+**Validación:**
+
+- `php artisan test --compact --filter=CierrePlazosFasesTest` → **7/7 OK**.
+- `vendor/bin/pint --dirty --format agent` → `passed`.
+- `php artisan test --compact` → **354 tests · 347 OK · 0 fallos · 7 omitidos
+  · 1836 aserciones** (delta vs B1.2: +7 tests / +7 OK = `CierrePlazosFasesTest`;
+  los 7 omitidos: 5 `RUN_STRESS_TESTS` + 2 `RUN_CONCURRENCY_TEST`).
+
+**Hallazgos de ejecución (reportados, sin salir del alcance):**
+
+1. **Test propio corregido en la tarea:** `CierrePlazosFasesTest` usaba la misma
+   instancia de `Expediente` en dos llamadas seguidas y quedaba desactualizada
+   (en HTTP cada request reconsulta) → `refresh()` + comentario.
+2. **`FlujoIntegralTest` era el único test que codificaba el bug** (el resto de
+   aserciones `VIGENTE` de la suite corresponden a relojes vivos o a fases no
+   afectadas); se actualizó tras verificar que el fallo era de AUD-0030.
+
+**Alcance del diff (sin commitear, sin stashes):** 2 `M`
+(`ActuadoService`, `FlujoIntegralTest`) + 1 `??`
+(`CierrePlazosFasesTest`).
+
+**Documentación actualizada en este cierre:** esta sección + fila AUD-0030 de
+«Decisiones del usuario — RESUELTAS» (arriba) + fila y ficha AUD-0030 en
+`BACKLOG_AUDITORIA.md` (ambas CERRADO).
+
+---
+
+## Cierre de tarea B1.4 — Flujo de subsanación y protección del archivo por abandono (2026-10-06)
+
+**Estado:** **B1.4 COMPLETADA / VALIDADA Y CERRADA (2026-10-06)** — hallazgos
+**AUD-0031 y AUD-0032** (ambos P1) cerrados; sin migraciones, sin tocar
+`VerificarVencimientoPlazosCommand`, `MarcarPlazosVencidosService`,
+`SemaforoPlazoService`, controllers, requests ni frontend.
+
+**Decisiones del usuario aplicadas (5/5):** (1) seeder del catálogo incluido
+(fila + pivote, sin migración); (2) sin reloj EVALUACION nuevo al aceptar;
+(3) huérfanos de SUBSANACION fuera de alcance (solo filtro estricto);
+(4) aceptación con plazo vencido → **422** (vencimiento temporal
+independiente de la corrida del CRON); (5) `requiere_adjunto=false`.
+
+**Cambios de producción:**
+
+- `app/Services/ArchivoPorAbandonoService.php` — filtro estricto
+  `whereHas('expediente', estado_actual = EN_SUBSANACION)` (const
+  `ESTADO_EXPEDIENTE_SUBSANACION`) + `try/catch (\Throwable)` por expediente
+  dentro del bucle con `Log::error` (plazo_id, expediente_id, clase, mensaje)
+  y `continue` sin incrementar el contador — una falla no aborta la corrida.
+- `app/Services/ActuadoService.php` — const `CODIGO_ACEPTACION_SUBSANACION`;
+  entrada `'ACT_SUBSANACION_ACEPTADA' => ['SUBSANACION']` en
+  `MAPA_CIERRA_PLAZO` (cierre vía mecanismo B1.3, con `actuado_cierre_id`);
+  guard `verificarPlazoSubsanacionNoVencido()` tras `verificarEstadoOrigen()`:
+  422 (`plazo`) si el plazo SUBSANACION está `VENCIDO` o `fecha_limite` ya
+  superó `today()` — la columna es `date` sin hora y se compara contra la
+  fecha actual en `app.timezone` = **America/La_Paz** (verificado con
+  `php artisan config:show app.timezone`); sin plazo → permite.
+- `database/seeders/CatalogoActuadoSeeder.php` — fila
+  `ACT_SUBSANACION_ACEPTADA` (`EN_SUBSANACION → EN_EVALUACION`, fase
+  ADMISIBILIDAD, sin adjunto) + pivote `perfilesEvaluacion` (3 perfiles).
+
+**Tests:**
+
+- Nuevo `tests/Feature/SubsanacionExitoTest.php` — **9 tests**: flujo completo
+  observación → aceptación (HTTP 201) → admisión con cierre del reloj y sin
+  reloj EVALUACION nuevo; 403 sin pivot (Encargada) y sin asignación activa;
+  422 D-6g fuera de `EN_SUBSANACION`; 422 por `fecha_limite` superada; 422 por
+  plazo `VENCIDO`; aceptación permitida sin plazo parametrizado; AUD-0031
+  negativo (expediente fuera de fase → 0 archivados); corrida mixta (1 de 2);
+  aislamiento con mock de `ActuadoService` + `Log::spy()` (fallo en un
+  expediente no cancela al resto). Escritura en rojo primero: los tests 7/8/9
+  reproducían el aborte real del CRON post-D-6g.
+
+**Validación:**
+
+- `php artisan test --compact --filter=SubsanacionExitoTest` → **9/9 OK**.
+- Regresión dirigida (`ArchivoPorAbandonoTest`, `VerificarVencimientoPlazosTest`,
+  `SemaforoPenalizacionTest`, `EvaluacionAdmisibilidadTest`,
+  `CierrePlazosFasesTest`) → **29/29 OK**.
+- `vendor/bin/pint --dirty --format agent` → `passed` (formateó el test nuevo).
+- `php artisan test --compact` → **363 tests · 356 OK · 0 fallos · 7 omitidos
+  · 1885 aserciones** (delta vs B1.3: +9 tests / +9 OK = `SubsanacionExitoTest`;
+  los 7 omitidos: 5 `RUN_STRESS_TESTS` + 2 `RUN_CONCURRENCY_TEST`).
+
+**Hallazgos / residuales (reportados, fuera de alcance):**
+
+1. **Huérfanos SUBSANACION (decisión del usuario, no resueltos):** un plazo
+   SUBSANACION `VIGENTE` de un expediente que salió de la fase por un actuado
+   con `estado_origen_id = null` queda sin procesar para siempre
+   (`marcarVencidos` excluye SUBSANACION; el semáforo toma el VIGENTE más
+   antiguo). No mezclar con AUD-0042.
+2. **Plan §12** prevé "Subsanación → Planificación"; la tarea B1.4 define
+   retorno a **EN_EVALUACION** (se implementó lo segundo; re-evaluación
+   completa antes de admitir).
+3. El resto de salidas de fase con origen `null` (derivaciones, registro de
+   digitalización) sigue pudiendo sacar un expediente de `EN_SUBSANACION`
+   dejando reloj huérfano — cubierto por el residual 1.
+
+**Alcance del diff (sin commitear, sin stashes):** 3 `M` de B1.4
+(`ActuadoService`, `ArchivoPorAbandonoService`, `CatalogoActuadoSeeder`) +
+1 `??` (`SubsanacionExitoTest`), acumulado con los cambios de B1.3 aún sin
+commitear (`FlujoIntegralTest`, `CierrePlazosFasesTest` y este log).
+
+**Documentación actualizada en este cierre:** esta sección + fila
+AUD-0031/0032 de «Decisiones del usuario — RESUELTAS» (arriba) + filas y
+fichas AUD-0031 y AUD-0032 en `BACKLOG_AUDITORIA.md` (todas CERRADO).
