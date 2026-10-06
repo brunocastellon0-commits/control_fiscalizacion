@@ -118,7 +118,7 @@ salir en la consulta). Transacciones individuales por expediente
 | ID | Sev. | Resumen |
 |---|---|---|
 | **AUD-0042** | P2 | El job completo falla (exit 1, excepción no capturada) si falta el catálogo o un ADMIN activo; en BD dev **ya falla hoy** (evidencia §5) y ni RN-03 ni la marca de fuera de plazo corren. Fix propuesto: degradación controlada + log. **No aplicado (toca producto).** |
-| **AUD-0043** | P2 | Ejecución/corte a 00:00 UTC = 21:00 ART: archiva y marca hasta 3 h antes de la medianoche local (SRS pide medianoche). Fix = decisión de zona horaria institucional. **No aplicado (config global, requiere confirmación).** |
+| **AUD-0043** | P2 | Ejecución/corte a 00:00 UTC = 21:00 ART: archiva y marca hasta 3 h antes de la medianoche local (SRS pide medianoche). Fix = decisión de zona horaria institucional. **CERRADO (2026-10-05, tarea B3.3): `app.timezone` = `America/La_Paz` vía `env()`, verificado con `TimezoneBoliviaTest`.** |
 | **O-10** | obs. | Sin `withoutOverlapping()`/lock: corridas solapadas podrían duplicar el actuado de archivo. No reproducido → no elevado. |
 
 Sin cambios de producto en la fase (solo tests + documentación).

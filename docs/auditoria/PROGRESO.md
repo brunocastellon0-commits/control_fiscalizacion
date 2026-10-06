@@ -1342,3 +1342,148 @@ de código, BD ni tests.
 
 **Pendiente de este cierre:** registro aquí mismo (realizado con esta entrada);
 la entrada se mantiene en diff aislado de la tarea.
+
+---
+
+## Cierre de tarea B1.8 — Inmutabilidad normativa / RN-06 (2026-10-05)
+
+**Estado:** **B1.8 COMPLETADA / VALIDADA Y CERRADA (2026-10-05)** — garantía de
+inmutabilidad del reglamento procesal por expediente (RN-06): una causa nace y
+concluye bajo el mismo `reglamento_id`; sin cambios de BD, migraciones ni rutas.
+
+**Cambio de producción (mínimo):**
+
+- `app/Models/Expediente.php` — hook `static::updating()` en `booted()` que lanza
+  `DomainException` cuando `isDirty('reglamento_id')`, bloqueando cualquier
+  actualización posterior a la creación. Sin clase de excepción nueva y sin
+  tocar `bootstrap/app.php` (decisión del usuario: sin mapeo HTTP 422 porque no
+  existe endpoint que permita esa mutación).
+- `app/Services/ExpedienteService.php` — únicamente PHPDoc de trazabilidad
+  RN-06 en `aperturaCausa` (el servicio ya fija `reglamento_id` al crear y no lo
+  modifica); **sin cambio funcional**.
+
+**Test nuevo (único archivo `tests/` del diff):**
+
+- `tests/Feature/VersionadoNormativaTest.php` — **5 tests · 12 aserciones**:
+  cobertura de `update()`, `forceFill()->save()`, asignación directa + `save()`,
+  creación intacta de expediente (`aperturaCausa`) e hijo
+  (`Expediente::create` con `reglamento_id`) y consistencia downstream: tras el
+  intento fallido, `ParametroPlazo` se resuelve con el reglamento de origen
+  (misma query que `ActuadoService@abrirPlazoSiAplica`). Además verifica en
+  `Route::getRoutes()` que ninguna ruta de expedientes expone PUT/PATCH/DELETE.
+
+**Validación (sin modificar ningún test existente):**
+
+- `vendor/bin/pest tests/Feature/VersionadoNormativaTest.php` → **5/5 OK ·
+  12 aserciones.**
+- `php artisan test --compact` → **330 tests · 324 OK · 0 fallos · 6 omitidos ·
+  1617 aserciones** (baseline 325/319/6 + 5/12 nuevos; ningún test existente
+  afectado).
+- `vendor/bin/pint --dirty --format agent` → `passed` (sin archivos modificados
+  por Pint; re-test confirmó 5/5 OK).
+
+**Alcance de cambios:** solo `app/Models/Expediente.php`,
+`app/Services/ExpedienteService.php` (PHPDoc) y el test nuevo.
+`StoreExpedienteRequest` (B3.2), `NurejHijoService`, `routes/`, `bootstrap/`,
+`.env`/`config/`, `database/` (migraciones/seeders) y documentación **intactos**;
+sin operaciones git.
+
+**Límite conocido:** la protección es a nivel de **modelo Eloquent** — un
+`DB::table('expedientes')->update(...)` directo (query builder) la evadiría, pero
+está verificado que **no existe uso de query builder de escritura sobre
+`expedientes` en el proyecto**; sin trigger en BD por estar las migraciones fuera
+del alcance de la tarea.
+
+**No se registró como resuelto ningún otro hallazgo** (RN-06 "historial de
+versiones normativas" sigue PARCIAL según `MATRIZ_SRS_IMPLEMENTACION.md:73`;
+AUD-0039 y demás permanecen con su estado previo).
+
+---
+
+## Cierre de tarea B0.1 — Seguridad de modelos y loader de rutas (2026-10-05)
+
+**Estado:** **B0.1 COMPLETADA / VALIDADA Y CERRADA (2026-10-05)** — registro
+retroactivo del cierre validado en su día (los cierres de esta sesión se
+agrupan al final del archivo; los de más arriba son los originales).
+
+**Cambios de producción:**
+
+- `password_hash`, `hash_sha256` y `created_at` fuera de `$fillable` en
+  `Usuario`, `Adjunto` y `Expediente` (lista blanca de masa de asignación), +
+  trait `Notifiable`.
+- Call-sites adaptados a `forceCreate`/`unguarded` puntuales:
+  `AdminUsuariosController`, `ExpedienteService`, `AdjuntoService`,
+  `UsuarioSeeder`, `UsuariosExtraSeeder` y `SeguridadIdorTest:88`.
+- Loader de rutas refactorizado: `routes/api.php` + `routes/api/{core,
+  operativo, admin, reportes, notificaciones}.php` con **diff de
+  `php artisan route:list` vacío** (misma superficie de endpoints).
+- `app/Providers/AuditoriaServiceProvider.php` creado y registrado en
+  `bootstrap/providers.php`.
+
+**Test nuevo:** `tests/Unit/ModelSecurityTest.php` — 7 tests (superficie de
+`$fillable` de los modelos sensibles).
+
+**Validación:** suite **317 tests · 311 OK · 0 fallos · 6 omitidos**; Pint
+`passed`.
+
+---
+
+## Cierre de tarea B0.3 — Constantes de rol en seeders (2026-10-05)
+
+**Estado:** **B0.3 COMPLETADA / VALIDADA Y CERRADA (2026-10-05)** — registro
+retroactivo.
+
+**Cambios de producción:**
+
+- 25 literales de rol reemplazados por `Rol::CODIGO_*` en `RolSeeder`,
+  `CatalogoActuadoSeeder`, `UsuarioSeeder` y `UsuariosExtraSeeder`
+  (reemplazos byte-safe Latin1: bytes no-ASCII 10/20/24/136 preservados,
+  `php -l` limpio en los 4).
+- Literales fuera de alcance clasificados sin tocar: tokens
+  `responsable=TECNICO|AUDITOR` (`AdminMonitoreoController:72,136`), vías
+  (`StoreExpedienteRequest:22`, `SorteoAlgorithmService:31`), seeders demo y
+  usernames.
+
+**Test nuevo:** `tests/Feature/RolConstantesTest.php` — 3 tests.
+
+**Validación:** suite **320 tests · 314 OK · 0 fallos · 6 omitidos**; Pint
+`passed`.
+
+**Incidencia resuelta:** un `Set-Content -Encoding Byte` truncó
+`RolSeeder.php` a 0 bytes → restaurado byte-exacto (956 bytes) vía
+`git show HEAD:database/seeders/RolSeeder.php` (solo lectura); posteriormente
+los reemplazos se hicieron con round-trip Latin1.
+
+---
+
+## Cierre de tarea B3.3 — Timezone institucional America/La_Paz (2026-10-05)
+
+**Estado:** **B3.3 COMPLETADA / VALIDADA Y CERRADA (2026-10-05)** — registro
+retroactivo. Corrección de AUD-0043 (corte UTC prematuro) decidida por el
+usuario.
+
+**Cambios de producción (único archivo de código):**
+
+- `config/app.php:68` → `'timezone' => env('APP_TIMEZONE', 'America/La_Paz')`
+  (default La Paz garantiza el criterio sin tocar `.env`; `APP_TIMEZONE`
+  disponible para Brayan en `.env.example` — mensaje entregado, archivo no
+  modificado).
+
+**Test nuevo:** `tests/Feature/TimezoneBoliviaTest.php` — 5 tests · 20
+aserciones (config + TZ efectiva `-04:00`, cierre 23:59:59 La Paz, persistencia
+de expedientes/actuados/plazos sin corrimiento, transición de medianoche
+UTC↔La Paz, `daysRemaining` consistente).
+
+**Validación:** `config:show app.timezone` → **America/La_Paz**; suite
+**325 tests · 319 OK · 0 fallos · 6 omitidos · 1605 aserciones**; Pint
+`passed` (sin modificaciones). `routes/console.php` intacto: el schedule
+`->daily()` hereda la TZ → corte a medianoche boliviana.
+
+**Efecto documental registrado hoy:** cierre administrativo de **AUD-0043** en
+`BACKLOG_AUDITORIA.md` (fila + ficha), `MATRIZ_COBERTURA_FINAL.md` y
+`MATRIZ_JOBS_CRON.md` → CERRADA (2026-10-05, B3.3).
+
+**Límite documentado:** `actuados.fecha_hora` usa `CURRENT_TIMESTAMP` de MySQL
+con sesión `SYSTEM` (UTC-4 = La Paz en este entorno); en servidores con otra TZ
+sería necesario `'timezone'` en `config/database.php` (fuera de alcance,
+requiere autorización).
