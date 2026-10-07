@@ -16,7 +16,7 @@ anteriores (que se conservan solo como registro de su momento).**
 | AUD-0001 | **(cierre F12)** Deuda conocida **ACEPTADA**; F12 no lo introdujo ni agravó; sin cambio de código ni de test; semántica ADMIN (opciones A/B/C) → fase de hardening/seguridad; NO maquillar el test | OPEN/P1, deuda conocida |
 | AUD-0019 | P2 confirmado; parametrizar 3-5 días según complejidad (no asumir 5); antes: fuente de "complejidad" | DECIDIDO, fix no aplicado |
 | AUD-0020 | P1/OPEN; validar estado origen; antes: matriz `actuado→origen→destino` | **FIX APLICADO en B1.2 (2026-10-06)**: validación `estado_origen_id` en `registerActuado`/`evaluar` (422) + lock; matriz completa no requerida por decisión del usuario |
-| AUD-0021 | P1/OPEN; grafo actual NO aceptado; antes: matriz `estado→actuados→destinos→roles` (SRS, sin inventar) | **FIX PARCIAL en B1.2 (2026-10-06)**: D-6a informe → `PENDIENTE_VISTO_BUENO_FINAL`; D-6b `ADMITIDO` → `EN_PLANIFICACION`; matriz completa pendiente |
+| AUD-0021 | P1/OPEN; grafo actual NO aceptado; antes: matriz `estado→actuados→destinos→roles` (SRS, sin inventar) | **FIX PARCIAL en B1.2 (2026-10-06)**: D-6a informe → `PENDIENTE_VISTO_BUENO_FINAL`; D-6b `ADMITIDO` → `EN_PLANIFICACION`. **CERRADO en B1.6 (2026-10-07)**: evidencia 3 (estados huérfanos) resuelta con columna `activo` + migración condicionada a las 5 FK + sincronización en `CatalogoEstadoSeeder` + exclusión en `GET /api/estados`; `CONCLUIDO` activo por diseño (Reparto Institucional); suite 381 · 374 OK · 0 fallos · 7 omitidos · 1979 aserciones |
 | AUD-0023 | P2/OPEN; NO `db:seed` global; sync idempotente de catálogos; ejecución dev con autorización específica | DECIDIDO, fix no aplicado |
 | AUD-0024 | P1 confirmado, NO fuera de alcance; campo `naturaleza` (no `via`); antes: impacto de migración+tests | DECIDIDO, fix no aplicado |
 | AUD-0025 | P2 confirmado; AC022=2d, AC054/055 MPA sin reloj rígido; ejecución = fecha MPA; antes: cambio mínimo+tests | DECIDIDO, fix no aplicado |
@@ -1788,3 +1788,92 @@ fichas AUD-0031 y AUD-0032 en `BACKLOG_AUDITORIA.md` (todas CERRADO).
   `BACKLOG_AUDITORIA.md` (CERRADO) + `MATRIZ_DERIVACIONES.md` (estado
   APROBADA, §1 D-P3, §2 estado de implementación, §3 C4/C8/C9, §5 decisiones
   resueltas, §6 fuentes).
+
+---
+
+## Cierre de tarea B1.6 - Inactivación segura de estados huérfanos (2026-10-07)
+
+**Estado:** **B1.6 COMPLETADA / REVISADA Y APROBADA POR EL USUARIO
+(2026-10-07)** - hallazgo **AUD-0021** (P1) cerrado con esta tarea (evidencia
+3; las evidencias 1 y 2 ya estaban resueltas en B1.2). Sin tocar
+`app/Models/CatalogoEstado.php`, `MATRIZ_DERIVACIONES.md` ni ningún otro
+documento de auditoría.
+
+**Decisiones del usuario aplicadas (todas):** (1) columna `activo` aditiva
+por migración nueva, sin modificar migraciones existentes; solo se inactivan
+`EN_INVESTIGACION` y `EN_DESCARGOS`; condición limitada a las 5 FK
+operativas (`expedientes.estado_actual_id`, `actuados.estado_anterior_id`,
+`actuados.estado_nuevo_id`, `catalogo_actuados.estado_origen_id`,
+`catalogo_actuados.estado_destino_id`), **sin** contar
+`catalogo_estados.estado_padre_id`; (2) `GET /api/estados` dentro del alcance
+(excluir `activo=false`); (3) sin capa/servicio nuevo para re-ejecutar la
+lógica de la migración en tests (`require` del archivo); (4) el
+`CatalogoEstadoSeeder` aplica la **misma regla de 5 FK** (0 referencias →
+`activo=false`; ≥1 referencia → conservar `activo=true`), sin forzar `false`
+directo y manteniendo `updateOrCreate` del resto de estados - decisión 1.C;
+(5) fuera de alcance: modelo `CatalogoEstado`, vistas, archivos de Brayan,
+seeders ajenos, migraciones existentes y cualquier cambio de máquina de
+estados; (6) sin Git; (7) cierre documental solo tras aprobación.
+
+**Cambios de producción:**
+
+- `database/migrations/2026_10_07_100001_inactivar_estados_huerfanos.php`
+  (nuevo) - agrega `catalogo_estados.activo BOOLEAN NOT NULL DEFAULT true`
+  (guard `Schema::hasColumn`, idempotente) e inactiva los 2 huérfanos solo
+  con 0 referencias en las 5 FK; `down()` elimina la columna (aditiva).
+- `database/seeders/CatalogoEstadoSeeder.php` -
+  `sincronizarEstadosHuerfanos()` tras los upserts: misma regla de 5 FK,
+  idempotente, solo sobre los 2 códigos huérfanos (necesario para que una
+  instalación nueva también quede correcta: la migración corre antes que el
+  seed).
+- `app/Http/Controllers/CatalogoEstadoController.php` - `index()` añade
+  `->where('activo', true)` (1 línea); el catálogo operativo no devuelve
+  estados inactivos.
+- **`app/Services/EncargadaDashboardService.php` NO se tocó (decisión):**
+  su agregado `por_estado` sigue listando estados inactivos con conteo 0;
+  fuera del alcance aprobado de B1.6, registrado como riesgo residual.
+
+**Tests:**
+
+- **Nuevo** `tests/Feature/EstadosHuerfanosInactivacionTest.php` - **10
+  tests / 45 aserciones**: huérfanos sin referencias → `activo=false` tras
+  re-ejecutar la migración; `CONCLUIDO`, `ARCHIVO_DEFINITIVO`,
+  `ARCHIVO_POR_ABANDONO`, `LISTO_PARA_REPARTO`, `CONCLUIDO_REMITIDO`,
+  `DERIVADO_TRANSPARENCIA` jamás se inactivan; dataset de las 5 FK (estado
+  referenciado se conserva activo); seed fresh → 2 huérfanos inactivos y el
+  resto activos; seed con referencia existente → no lo desactiva; 0 filas de
+  `catalogo_actuados.estado_destino_id` apuntando a un estado inactivo.
+- `tests/Feature/CatalogoEstadoControllerTest.php` - **+1 test**: `GET
+  /api/estados` devuelve `activo=true` y excluye `activo=false` (7/7 en el
+  archivo).
+
+**Validación:**
+
+- Tests específicos B1.6 → **10/10 (45)** + endpoint **7/7 (22)**.
+- Regresión dirigida (7 archivos que seedean `CatalogoEstadoSeeder`, usan
+  `/api/estados` o el dashboard) → **51 OK · 1 omitido · 0 fallos**.
+- `vendor/bin/pint --dirty --format agent` → aplicó 1 fix
+  (`no_unused_imports` en el test nuevo) → limpio.
+- `php artisan test --compact` → **381 tests · 374 OK · 0 fallos · 7
+  omitidos · 1979 aserciones** (baseline B1.5: 370 · 363 OK · 0 fallos · 7
+  omitidos · 1931; delta +11 tests / +11 OK; los 7 omitidos = stress y
+  concurrency de siempre).
+
+**Hallazgos de ejecución (reportados, corregidos dentro del alcance):**
+
+1. **Bug propio invertido en el primer pase del seeder** (`activo => !...`)
+   detectado por los tests de B1.6 y corregido antes de los gates.
+2. **`CatalogoActuado` no expone `HasFactory`** (el factory existe pero el
+   modelo no lo usa) → los tests de B1.6 usan inserts crudos (`DB::table`);
+   el modelo **no** se tocó (fuera de alcance).
+
+**Alcance del diff (sin commitear, sin Git por decisión del usuario):** 3 `M`
+(`CatalogoEstadoController`, `CatalogoEstadoSeeder`,
+`CatalogoEstadoControllerTest`) + 2 `??`
+(`2026_10_07_100001_inactivar_estados_huerfanos.php`,
+`EstadosHuerfanosInactivacionTest.php`).
+
+**Documentación actualizada en este cierre:** esta sección + fila AUD-0021
+de «Decisiones del usuario» (arriba) + fila y ficha AUD-0021 en
+`BACKLOG_AUDITORIA.md` (CERRADO). `MATRIZ_DERIVACIONES.md` y el resto de
+documentos de auditoría **intactos**.

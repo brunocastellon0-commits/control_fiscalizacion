@@ -4,9 +4,31 @@ namespace Database\Seeders;
 
 use App\Models\CatalogoEstado;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class CatalogoEstadoSeeder extends Seeder
 {
+    /**
+     * Estados huérfanos sin uso normativo (mismo criterio que la migración
+     * 2026_10_07_100001_inactivar_estados_huerfanos): solo estos dos códigos
+     * pueden alternar su marca `activo`.
+     */
+    private const ESTADOS_HUERFANOS = ['EN_INVESTIGACION', 'EN_DESCARGOS'];
+
+    /**
+     * Columnas con FK operativa real hacia catalogo_estados (no incluye
+     * catalogo_estados.estado_padre_id).
+     *
+     * @var list<array{tabla: string, columna: string}>
+     */
+    private const REFERENCIAS_OPERATIVAS = [
+        ['tabla' => 'expedientes', 'columna' => 'estado_actual_id'],
+        ['tabla' => 'actuados', 'columna' => 'estado_anterior_id'],
+        ['tabla' => 'actuados', 'columna' => 'estado_nuevo_id'],
+        ['tabla' => 'catalogo_actuados', 'columna' => 'estado_origen_id'],
+        ['tabla' => 'catalogo_actuados', 'columna' => 'estado_destino_id'],
+    ];
+
     /**
      * Catálogo de estados del expediente (con subestados bajo EN_EVALUACION).
      */
@@ -60,5 +82,46 @@ class CatalogoEstadoSeeder extends Seeder
                 );
             }
         }
+
+        $this->sincronizarEstadosHuerfanos();
+    }
+
+    /**
+     * Marca activo=false los estados huérfanos sin ninguna referencia en las
+     * cinco FK operativas, y activo=true los que sí tienen referencias (para
+     * no ocultar un estado en uso). No toca el resto de los estados.
+     */
+    private function sincronizarEstadosHuerfanos(): void
+    {
+        foreach (self::ESTADOS_HUERFANOS as $codigo) {
+            $estado = CatalogoEstado::where('codigo', $codigo)->first();
+
+            if ($estado === null) {
+                continue;
+            }
+
+            CatalogoEstado::where('id', $estado->id)->update([
+                'activo' => $this->tieneReferenciasOperativas((int) $estado->id),
+            ]);
+        }
+    }
+
+    /**
+     * Determina si el estado tiene al menos una fila que lo referencie en
+     * cualquiera de las cinco FK operativas.
+     */
+    private function tieneReferenciasOperativas(int $estadoId): bool
+    {
+        foreach (self::REFERENCIAS_OPERATIVAS as $referencia) {
+            $existe = DB::table($referencia['tabla'])
+                ->where($referencia['columna'], $estadoId)
+                ->exists();
+
+            if ($existe) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
