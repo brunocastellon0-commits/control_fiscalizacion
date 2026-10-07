@@ -26,7 +26,7 @@ anteriores (que se conservan solo como registro de su momento).**
 | AUD-0033 | P1/OPEN; NO `estado_nuevo_id` nullable; resolver en el grafo (destino informe → espera VB → verificar → cambio mínimo) | **FIX APLICADO en B1.2 (2026-10-06)**: D-6a destino del informe = `PENDIENTE_VISTO_BUENO_FINAL` en seeder (sin nullable); `FlujoJuridicoTest` sigue con fixture propia (comentario obsoleto sin tocar) |
 | AUD-0034 | P2 (funcional, no seguridad); fix conceptual autorizado (catálogo contextual + validación servidor); NO aplicar hasta AUD-0033/0020/0021 | DECIDIDO, fix no aplicado |
 | AUD-0035 | P1 confirmado; endpoints NO sustituyen UI; verificar conjunto de operaciones jurídicas y diseñar UI contra flujo normativo | DECIDIDO, fix no aplicado |
-| AUD-0039 | **Opción B adoptada** (`AUD-0039_DISENO.md` §7): `via_destino` explícito en servidor, mapeo vía→reglamento (JURIDICO→AC054, FINANCIERO→AC055), matriz normativa de combinaciones | DECIDIDO, fix no aplicado (pendiente matriz) |
+| AUD-0039 | **Opción B adoptada** (`AUD-0039_DISENO.md` §7): `via_destino` explícito en servidor, mapeo vía→reglamento (JURIDICO→AC054, FINANCIERO→AC055), matriz normativa de combinaciones. **(B1.5) Implementado (2026-10-06)** tras aprobar `MATRIZ_DERIVACIONES.md` (D-P1/D-P2 aplicadas, D-P3 descartada): whitelist estricta M1-M4 + informe técnico habilitante, hijo sin herencia de `via`/`reglamento_id`, C8 vía metadatos existentes | **CERRADO en B1.5 (2026-10-06)**: `NurejHijoEspecialidadTest` 7/7; suite 370 · 363 OK · 0 fallos · 7 omitidos · 1931 aserciones |
 | AUD-0040 | **(cierre F12)** Opción (a): **MONITORIZAR** — flake/no reproducido, causa raíz abierta; sin cambio en helper ni producto sin reproducción fiable o evidencia de causa raíz | OPEN/P3, monitorización |
 | AUD-0041 | P2; fix AUTORIZADO y **APLICADO**: check `activo`+rol en `AdminDashboardController` (patrón Monitoreo) + test; gates OK | **CERRADO (2026-09-30, con validación de F12)** |
 | AUD-0038 | Autorización mantenida (ya aplicada en Fase 11): 422 controlado + test; sin cambios relacionados con AUD-0039 | CERRADO |
@@ -1744,3 +1744,47 @@ commitear (`FlujoIntegralTest`, `CierrePlazosFasesTest` y este log).
 **Documentación actualizada en este cierre:** esta sección + fila
 AUD-0031/0032 de «Decisiones del usuario — RESUELTAS» (arriba) + filas y
 fichas AUD-0031 y AUD-0032 en `BACKLOG_AUDITORIA.md` (todas CERRADO).
+
+## Cierre de tarea B1.5 — Derivación de NUREJ Hijo con especialidad de destino (2026-10-06)
+
+- **Estado:** **TÉCNICA Y DOCUMENTALMENTE CERRADA (2026-10-06)** — revisión
+  y aceptación del usuario ("B1.5 técnica revisada y aceptada").
+- **Hallazgo:** **AUD-0039** (P2) cerrado. **Errata registrada:**
+  `TAREAS_BRUNO.md` referenciaba AUD-0035; el hallazgo correcto es
+  AUD-0039 (AUD-0035, UI de impugnación, sin cambios).
+- **Decisiones implementadas** (todas en `MATRIZ_DERIVACIONES.md` §5):
+  - **D-P1 (SÍ):** el servidor exige informe técnico habilitante previo en
+    el padre (M1-M4, `ACT_INFORME_TECNICO_CON/SIN_RESPONSABILIDAD_RECOMENDACION`)
+    y `padre.via = TECNICO`; si no → 422 y 0 hijos.
+  - **D-P2 (SÍ):** whitelist estricta `DESTINOS_PERMITIDOS = [JURIDICO,
+    FINANCIERO]`; M5 (TECNICO), M6/M7/M8 y cualquier combinación no
+    contemplada → 422.
+  - **D-P3 (NO):** no se implementa regla global "destino ≠ padre"; **la
+    matriz es la autoridad**.
+  - **C8:** `via_destino` y `reglamento_destino_id` en los `metadatos`
+    existentes de `registerActuado()` → columna `contenido` del actuado
+    `ACT_CREACION_NUREJ_HIJO` (sin columnas ni estructuras nuevas).
+  - Reglamento destino server-side `MAPA_VIA_DESTINO_REGLAMENTO`:
+    JURIDICO→`AC_054_2018`, FINANCIERO→`AC_055_2018` (TECNICO→`AC_022_2018`
+    para el caso heredado); guard RN-10 de AUD-0038 **antes** de la matriz.
+- **Archivos modificados (código):** `app/Services/NurejHijoService.php`
+  (consts de matriz, `crearHijo(+viaDestino)`, `verificarDerivable()`, C8),
+  `app/Http/Requests/DerivarNurejHijoRequest.php` (`via_destino` sintaxis),
+  `app/Http/Controllers/ExpedienteController.php` (pasa `via_destino`).
+- **Tests:** **nuevo** `tests/Feature/NurejHijoEspecialidadTest.php` (7
+  tests: M1, M2, M3, M5, M6, M8, sintaxis); actualizados
+  `NurejHijoTest` y `FlujoNurejTest` (semillas con habilitantes + payloads
+  `via_destino`, aserciones JURIDICO/`AC_054_2018`, contadores +1 por el
+  actuado habilitante).
+- **Gates:** tests nuevos 7/7 (46 aserciones) → regresión dirigida
+  `NurejHijoTest|FlujoNurejTest|NurejGeneratorServiceTest` 15/15 (82) →
+  `pint --dirty` (solo estilo en `NurejHijoService`) → **suite completa
+  370 tests · 363 OK · 0 fallos · 7 omitidos · 1931 aserciones**
+  (baseline B1.4: 363 · 356 OK · 7 omitidos · 1885).
+- **Sin:** migraciones, cambios en seeders/policies/sorteo/estados/plazos,
+  frontend, configuración ni Git.
+- **Documentación actualizada en este cierre:** esta sección + fila
+  AUD-0039 de «Decisiones del usuario» (arriba) + fila y ficha AUD-0039 en
+  `BACKLOG_AUDITORIA.md` (CERRADO) + `MATRIZ_DERIVACIONES.md` (estado
+  APROBADA, §1 D-P3, §2 estado de implementación, §3 C4/C8/C9, §5 decisiones
+  resueltas, §6 fuentes).

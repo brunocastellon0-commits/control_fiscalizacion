@@ -141,10 +141,12 @@ class ExpedienteController extends Controller
 
     /**
      * E9-S1 (RN-10): la Encargada deriva un NUREJ Hijo a partir de un
-     * expediente padre. El hijo hereda los metadatos informativos (via,
-     * reglamento, resumen de hechos, partes) pero nace en PENDIENTE_SORTEO
-     * con su línea de tiempo en cero: sin actuados, plazos ni asignaciones
-     * del padre. El padre conserva su estado actual.
+     * expediente padre. El hijo nace con la especialidad de destino
+     * indicada (`via_destino`, validada contra la matriz de derivaciones)
+     * y su reglamento correspondiente — no hereda la vía ni el
+     * reglamento del padre — en PENDIENTE_SORTEO con su línea de tiempo
+     * en cero: sin actuados, plazos ni asignaciones del padre. El padre
+     * conserva su estado actual.
      */
     public function derivarNurejHijo(DerivarNurejHijoRequest $request, Expediente $expediente): JsonResponse
     {
@@ -152,6 +154,7 @@ class ExpedienteController extends Controller
             padre: $expediente,
             encargada: $request->user(),
             motivo: $request->input('motivo'),
+            viaDestino: $request->input('via_destino'),
             ipOrigen: $request->ip(),
         );
 
