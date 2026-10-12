@@ -10,6 +10,7 @@ use App\Services\AmpliacionService;
 use App\Services\CierreExpedienteService;
 use App\Services\DescargoFinancieroService;
 use App\Services\PlanificacionService;
+use App\Services\TransferenciaUnidadService;
 use App\Services\TransparenciaService;
 
 class ExpedientePolicy
@@ -289,12 +290,13 @@ class ExpedientePolicy
     }
 
     /**
-     * E5-S5 (RN-09): derivación por incompetencia vía Transparencia. Cualquier
-     * operador operativo (Técnico, Auditor Jurídico, Auditor Financiero) activo
-     * con el expediente en su bandeja; transversal a los acuerdos (pivote con
-     * reglamento_id null). La Encargada lo recibe, no lo puede autogenerar.
+     * CTR-10 / B2.2 (RN-09 Fase 5): solicitud de incompetencia. Cualquier
+     * operador operativo (Técnico, Auditor Jurídico, Auditor Financiero)
+     * activo con el expediente en su bandeja; transversal a los acuerdos
+     * (pivote con reglamento_id null). Nunca sobre una causa final ni ya
+     * remitida a unidad externa; la Encargada no solicita.
      */
-    public function derivarPorIncompetencia(Usuario $user, Expediente $expediente): bool
+    public function solicitarIncompetencia(Usuario $user, Expediente $expediente): bool
     {
         if (! $user->activo) {
             return false;
@@ -304,7 +306,15 @@ class ExpedientePolicy
             return false;
         }
 
-        $catalogo = CatalogoActuado::where('codigo', TransparenciaService::CODIGO_ACT_DERIVACION)->first();
+        $estado = $expediente->estadoActual;
+
+        if ($estado === null
+            || $estado->es_final
+            || $estado->codigo === TransferenciaUnidadService::ESTADO_REMITIDO_UNIDAD_EXTERNA) {
+            return false;
+        }
+
+        $catalogo = CatalogoActuado::where('codigo', TransparenciaService::CODIGO_ACT_SOLICITUD)->first();
 
         return $catalogo?->perteneceAlRolConReglamento(
             rolId: $user->rol_id,
@@ -313,14 +323,44 @@ class ExpedientePolicy
     }
 
     /**
-     * E5-S5 (RN-09): remisión a Transparencia. Solo la Encargada activa sobre
-     * un expediente en PENDIENTE_REMISION_TRANSPARENCIA emite la salida.
+     * CTR-10 / B2.2: visto bueno de la solicitud de incompetencia. Solo la
+     * Encargada activa y mientras la causa espera en EN_EVALUACION; la
+     * existencia de la solicitud abierta la valida el service (422).
      */
-    public function remitirTransparencia(Usuario $user, Expediente $expediente): bool
+    public function vistoBuenoIncompetencia(Usuario $user, Expediente $expediente): bool
     {
         return $user->activo
             && ($user->rol?->codigo ?? null) === Rol::CODIGO_ENCARGADA
-            && $expediente->estadoActual?->codigo === TransparenciaService::ESTADO_PENDIENTE_REMISION;
+            && $expediente->estadoActual?->codigo === TransparenciaService::ESTADO_ESPERA_VB;
+    }
+
+    /**
+     * RF-05 / CTR-04 (B2.1): remisión a unidad externa. Solo la Encargada
+     * activa y nunca sobre una causa ya remitida ni en un estado final
+     * (el Reparto Institucional jamás transita por REMITIDO_UNIDAD_EXTERNA).
+     */
+    public function remitirUnidad(Usuario $user, Expediente $expediente): bool
+    {
+        if (! $user->activo || ($user->rol?->codigo ?? null) !== Rol::CODIGO_ENCARGADA) {
+            return false;
+        }
+
+        $estado = $expediente->estadoActual;
+
+        return $estado !== null
+            && $estado->codigo !== TransferenciaUnidadService::ESTADO_REMITIDO_UNIDAD_EXTERNA
+            && ! $estado->es_final;
+    }
+
+    /**
+     * RF-05 / CTR-05 (B2.1): recepción desde unidad externa. Solo la
+     * Encargada activa y solo mientras la causa esté remitida.
+     */
+    public function registrarRecepcion(Usuario $user, Expediente $expediente): bool
+    {
+        return $user->activo
+            && ($user->rol?->codigo ?? null) === Rol::CODIGO_ENCARGADA
+            && $expediente->estadoActual?->codigo === TransferenciaUnidadService::ESTADO_REMITIDO_UNIDAD_EXTERNA;
     }
 
     /**

@@ -61,6 +61,10 @@ class CatalogoEstadoSeeder extends Seeder
             ['codigo' => 'DERIVADO_TRANSPARENCIA', 'nombre' => 'Derivado a Transparencia', 'padre' => null, 'es_final' => true],
             ['codigo' => 'ARCHIVO_POR_ABANDONO', 'nombre' => 'Archivo por Abandono', 'padre' => null, 'es_final' => true],
             ['codigo' => 'EN_IMPUGNACION', 'nombre' => 'En Impugnación', 'padre' => null, 'es_final' => false],
+            // Unidades inter (RF-05 / DISENO_UNIDADES_INTER §3, B2.1): estado
+            // no final, fuera de bandejas operativas; la recepción (CTR-05)
+            // restaura el estado_previo_id de la remisión abierta.
+            ['codigo' => 'REMITIDO_UNIDAD_EXTERNA', 'nombre' => 'Remitido a Unidad Externa', 'padre' => null, 'es_final' => false],
         ];
 
         foreach ($estados as $e) {

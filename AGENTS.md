@@ -29,6 +29,27 @@ Detente y pregunta. No "rellenes huecos" por tu cuenta en temas de:
 seguridad, autenticación, autorización, estructura de base de datos, o
 borrado/alteración de datos existentes.
 
+## Retomar una sesión (sin repetir investigación)
+1. Leer `docs/plan/ESTADO_BRUNO.md` (archivo corto con el estado real: tareas
+   cerradas, pendientes, orden, baseline de tests y decisiones abiertas).
+2. Trabajo sobre la rama `bruno`. Brayan trabaja en su propia rama: no tocar
+   sus archivos, no esperar sus tareas ni integrar su rama.
+3. `docs/auditoria/PROGRESO.md` (2 286 líneas) y `docs/plan/TAREAS_BRUNO.md`
+   (803 líneas) **NO se leen completos**: usar `grep` dirigido por ID de tarea
+   (p. ej. `B2.3`) o leer solo la sección de cierre relevante.
+4. `PROGRESO.md` solo se modifica cuando la tarea lo autoriza explícitamente.
+
+## Uso eficiente de contexto (obligatorio)
+- Prohibido listado recursivo de la raíz del proyecto. Excluir siempre
+  `vendor/`, `node_modules/`, `.git/`, `storage/`, `bootstrap/cache/`,
+  `public/build/`. Usar rutas concretas o `--depth`.
+- `grep`/búsqueda siempre con `path` = carpeta o archivo concreto del asunto;
+  nunca con alcance amplio "por si acaso".
+- Leer skills (`SKILL.md`, `rules/*.md`) solo cuando la tarea aplique a esa
+  materia; no cargarlas para "tener contexto".
+- No re-leer en el mismo hilo archivos ya leídos ni re-mostrar código
+  inalterado. Ir directo a lo específico antes de explorar.
+
 ===
 
 <laravel-boost-guidelines>

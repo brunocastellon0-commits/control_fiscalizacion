@@ -3,7 +3,8 @@
 /**
  * Núcleo del dominio — propiedad de BRUNO (COORDINACION §2.1).
  * Auth me/logout, bandejas, catálogos de soporte, adjuntos, expedientes,
- * actuados, sorteo, NUREJ Hijo y dashboard de la Encargada (CTR-07).
+ * actuados, sorteo, NUREJ Hijo, unidades inter (CTR-04/CTR-05) y dashboard
+ * de la Encargada (CTR-07).
  */
 
 use App\Http\Controllers\ActuadoController;
@@ -14,6 +15,7 @@ use App\Http\Controllers\CatalogoEstadoController;
 use App\Http\Controllers\Encargada\EncargadaDashboardController;
 use App\Http\Controllers\ExpedienteController;
 use App\Http\Controllers\ReglamentoController;
+use App\Http\Controllers\TransferenciaUnidadController;
 use Illuminate\Support\Facades\Route;
 
 // Sesión de usuario (Sanctum)
@@ -45,6 +47,10 @@ Route::post('/expedientes/{expediente}/actuados', [ActuadoController::class, 'st
 
 // Derivación NUREJ Hijo (E9-S1, RN-10)
 Route::post('/expedientes/{expediente}/nurej-hijo', [ExpedienteController::class, 'derivarNurejHijo']);
+
+// Unidades inter: par Remisión/Recepción (RF-05 / CTR-04 y CTR-05, solo Encargada)
+Route::post('/expedientes/{expediente}/remitir-unidad', [TransferenciaUnidadController::class, 'remitir']);
+Route::post('/expedientes/{expediente}/registrar-recepcion', [TransferenciaUnidadController::class, 'registrarRecepcion']);
 
 // Dashboard operativo de la Encargada
 Route::get('/encargada/dashboard', [EncargadaDashboardController::class, 'index']);

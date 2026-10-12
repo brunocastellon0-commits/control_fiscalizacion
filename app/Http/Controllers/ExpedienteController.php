@@ -11,6 +11,7 @@ use App\Models\CatalogoEstado;
 use App\Models\Expediente;
 use App\Services\ExpedienteService;
 use App\Services\NurejHijoService;
+use App\Services\TransferenciaUnidadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -65,12 +66,15 @@ class ExpedienteController extends Controller
     }
 
     /**
-     * Bandeja del operador: expedientes con asignación activa para el usuario.
+     * Bandeja del operador: expedientes con asignación activa para el
+     * usuario. Las causas en REMITIDO_UNIDAD_EXTERNA quedan fuera hasta su
+     * recepción (RF-05 / CTR-05, B2.1); la asignación no se toca.
      */
     public function bandejaOperador(Request $request): AnonymousResourceCollection
     {
         return ExpedienteResource::collection(
             Expediente::whereHas('asignacionActiva', fn ($q) => $q->where('usuario_id', $request->user()->id))
+                ->whereDoesntHave('estadoActual', fn ($q) => $q->where('codigo', TransferenciaUnidadService::ESTADO_REMITIDO_UNIDAD_EXTERNA))
                 ->with($this->relacionesDetalle())
                 ->orderBy('fecha_ingreso', 'desc')
                 ->paginate(15),

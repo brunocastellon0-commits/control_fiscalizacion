@@ -9,6 +9,7 @@
 use App\Http\Controllers\AmpliacionController;
 use App\Http\Controllers\CierreExpedienteController;
 use App\Http\Controllers\DescargoFinancieroController;
+use App\Http\Controllers\EnmiendaController;
 use App\Http\Controllers\EvaluacionAdmisibilidadController;
 use App\Http\Controllers\ImpugnacionController;
 use App\Http\Controllers\PlanificacionController;
@@ -36,10 +37,14 @@ Route::post('/expedientes/{expediente}/ampliacion/aprobar', [AmpliacionControlle
 Route::post('/expedientes/{expediente}/cierre/visto-bueno', [CierreExpedienteController::class, 'aprobarVistoBueno']);
 Route::post('/expedientes/{expediente}/cierre/reparto', [CierreExpedienteController::class, 'ejecutarReparto']);
 
-// Derivación por incompetencia vía Transparencia (E5-S5, RN-09)
-Route::post('/expedientes/{expediente}/derivacion-transparencia', [TransparenciaController::class, 'derivar']);
-Route::post('/expedientes/{expediente}/transparencia/remitir', [TransparenciaController::class, 'remitir']);
+// Incompetencia procesal: solicitud del operador + visto bueno de la
+// Encargada (E5-S5, RN-09 Fase 5, CTR-10) — reemplaza al flujo B1.3
+Route::post('/expedientes/{expediente}/incompetencia/solicitar', [TransparenciaController::class, 'solicitar']);
+Route::post('/expedientes/{expediente}/incompetencia/visto-bueno', [TransparenciaController::class, 'vistoBueno']);
 
 // Descargos de auditoría financiera (E7-S*, RN-09, AC055)
 Route::post('/expedientes/{expediente}/descargos/comunicar', [DescargoFinancieroController::class, 'comunicar']);
 Route::post('/expedientes/{expediente}/descargos/recibir', [DescargoFinancieroController::class, 'recibir']);
+
+// Actuado de Enmienda (RF-02, CTR-09)
+Route::post('/expedientes/{expediente}/enmienda', [EnmiendaController::class, 'store']);

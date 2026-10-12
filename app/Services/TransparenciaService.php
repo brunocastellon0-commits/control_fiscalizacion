@@ -3,107 +3,223 @@
 namespace App\Services;
 
 use App\Models\Actuado;
-use App\Models\Asignacion;
 use App\Models\CatalogoActuado;
+use App\Models\CatalogoEstado;
 use App\Models\Expediente;
-use App\Models\Plazo;
-use App\Models\Rol;
+use App\Models\Unidad;
 use App\Models\Usuario;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class TransparenciaService
 {
-    public const CODIGO_ACT_DERIVACION = 'ACT_DERIVACION_INCOMPETENCIA';
+    public const CODIGO_ACT_SOLICITUD = 'ACT_SOLICITUD_INCOMPETENCIA';
 
-    public const CODIGO_ACT_REMISION = 'ACT_REMISION_TRANSPARENCIA';
+    public const CODIGO_ACT_VB = 'ACT_VB_INCOMPETENCIA';
 
-    public const ESTADO_PENDIENTE_REMISION = 'PENDIENTE_REMISION_TRANSPARENCIA';
-
-    public const ESTADO_DERIVADO_TRANSPARENCIA = 'DERIVADO_TRANSPARENCIA';
-
-    public const ESTADO_PLAZO_SUSPENDIDO = 'SUSPENDIDO';
+    /**
+     * Estado de espera de visto bueno del flujo CTR-10 (respuesta literal del
+     * contrato al solicitar; la causa vuelve a su estado original al rechazo
+     * o con la recepción CTR-05).
+     */
+    public const ESTADO_ESPERA_VB = 'EN_EVALUACION';
 
     public function __construct(
         protected ActuadoService $actuadoService,
+        protected TransferenciaUnidadService $transferenciaUnidadService,
     ) {}
 
     /**
-     * E5-S5 (RN-09): el operador deriva el NUREJ a la Encargada por
-     * incompetencia de la vía penal. Transaccional:
+     * CTR-10 / B2.2 (RN-09 Fase 5): el operador solicita incompetencia y el
+     * caso pasa a espera de visto bueno de la Encargada. Transaccional:
      *
-     * 1. Resuelve la Encargada activa (destino de la bandeja).
-     * 2. Congela todos los relojes VIGENTES del expediente (estado
-     *    SUSPENDIDO): el motor de cálculo los ignora, el NUREJ deja de correr.
-     * 3. Emite ACT_DERIVACION_INCOMPETENCIA vía ActuadoService con el adjunto
-     *    probatorio (obligatorio): transiciona a
-     *    PENDIENTE_REMISION_TRANSPARENCIA y reasigna la bandeja a la Encargada.
+     * 1. Bloquea el expediente (lockForUpdate, patrón D-6g) y valida en
+     *    profundidad que pueda solicitar (no final, no remitido) y que no
+     *    haya una solicitud abierta (una sola solicitud a la vez).
+     * 2. Emite ACT_SOLICITUD_INCOMPETENCIA con estadoNuevoIdExplicito =
+     *    EN_EVALUACION; el estado_anterior_id del actuado conserva el estado
+     *    original de la causa para restaurarlo en el rechazo o la recepción.
+     * 3. No congela relojes, no crea transferencia y no toca la asignación:
+     *    la causa sigue en la bandeja del operador hasta el visto bueno.
      */
-    public function derivarPorIncompetencia(
+    public function solicitarIncompetencia(
         Expediente $expediente,
         Usuario $operador,
-        string $justificacion,
-        ?UploadedFile $adjunto,
+        int $unidadDestinoId,
+        string $motivo,
         ?string $ipOrigen = null,
     ): Actuado {
-        return DB::transaction(function () use ($expediente, $operador, $justificacion, $adjunto, $ipOrigen) {
-            $encargada = $this->resolverEncargada();
+        return DB::transaction(function () use ($expediente, $operador, $unidadDestinoId, $motivo, $ipOrigen) {
+            $expediente = Expediente::query()->lockForUpdate()->findOrFail($expediente->id);
 
-            $this->congelarPlazos($expediente);
+            $this->validarSolicitudHabilitada($expediente);
+
+            if ($this->solicitudAbierta($expediente) !== null) {
+                throw ValidationException::withMessages([
+                    'expediente' => 'Ya existe una solicitud de incompetencia pendiente de visto bueno.',
+                ]);
+            }
+
+            $unidad = Unidad::query()
+                ->where('id', $unidadDestinoId)
+                ->where('activa', true)
+                ->first();
+
+            if ($unidad === null) {
+                throw ValidationException::withMessages([
+                    'unidad_destino_id' => 'La unidad indicada no existe o no está activa.',
+                ]);
+            }
+
+            $estadoEspera = CatalogoEstado::where('codigo', self::ESTADO_ESPERA_VB)->firstOrFail();
 
             return $this->actuadoService->registerActuado(
                 expediente: $expediente,
-                catalogoActuado: $this->catalogoPorCodigo(static::CODIGO_ACT_DERIVACION),
+                catalogoActuado: $this->catalogoPorCodigo(self::CODIGO_ACT_SOLICITUD),
                 emisor: $operador,
-                descripcion: $justificacion,
-                usuarioDestinoId: $encargada->id,
+                descripcion: $motivo,
                 metadatos: [
-                    'tipo' => 'DERIVACION_TRANSPARENCIA',
-                    'motivo' => 'INCOMPETENCIA',
+                    'tipo' => 'SOLICITUD_INCOMPETENCIA',
+                    'unidad_destino_id' => $unidad->id,
                 ],
                 ipOrigen: $ipOrigen,
-                adjunto: $adjunto,
+                estadoNuevoIdExplicito: (int) $estadoEspera->id,
             );
         }, 3);
     }
 
     /**
-     * E5-S5 (RN-09): la Encargada remite el NUREJ a Transparencia, salida
-     * excepcional que deja el expediente fuera del circuito. Transaccional:
+     * CTR-10 / B2.2: la Encargada resuelve la solicitud de incompetencia.
+     * Transaccional:
      *
-     * 1. Valida que el expediente esté en PENDIENTE_REMISION_TRANSPARENCIA.
-     * 2. Emite ACT_REMISION_TRANSPARENCIA vía ActuadoService: transiciona a
-     *    DERIVADO_TRANSPARENCIA (estado final) conservando los relojes
-     *    congelados.
-     * 3. Desactiva la asignación activa: el NUREJ desaparece de los tableros.
+     * 1. Bloquea el expediente, exige estado EN_EVALUACION (defensa frente a
+     *    la política) y una solicitud abierta (último ACT_SOLICITUD sin VB
+     *    posterior).
+     * 2. Aprobado: congela los relojes vigentes y remite a la unidad destino
+     *    de la solicitud vía TransferenciaUnidadService (unidad en metadatos
+     *    de la remisión con estado_previo_id = estado original pre-solicitud);
+     *    la recepción CTR-05 restaura ese estado exacto y reanuda los relojes.
+     * 3. Rechazado: emite ACT_VB_INCOMPETENCIA con estadoNuevoIdExplicito =
+     *    estado original pre-solicitud, sin transferencia ni congelación.
+     * 4. En ningún caso se toca la asignación: la causa vuelve sola a la
+     *    bandeja del operador asignado.
      */
-    public function remitirTransparencia(
+    public function vistoBuenoIncompetencia(
         Expediente $expediente,
         Usuario $encargada,
-        string $notaRemision,
+        bool $aprobado,
+        ?string $observaciones,
         ?string $ipOrigen = null,
-    ): Actuado {
-        return DB::transaction(function () use ($expediente, $encargada, $notaRemision, $ipOrigen) {
-            $this->validarEstado($expediente, static::ESTADO_PENDIENTE_REMISION);
+    ): void {
+        DB::transaction(function () use ($expediente, $encargada, $aprobado, $observaciones, $ipOrigen) {
+            $expediente = Expediente::query()->lockForUpdate()->findOrFail($expediente->id);
 
-            $actuado = $this->actuadoService->registerActuado(
+            $this->validarEstado($expediente, self::ESTADO_ESPERA_VB);
+
+            $solicitud = $this->solicitudAbierta($expediente);
+
+            if ($solicitud === null) {
+                throw ValidationException::withMessages([
+                    'aprobado' => 'No hay una solicitud de incompetencia pendiente de visto bueno.',
+                ]);
+            }
+
+            $estadoOriginalId = $solicitud->estado_anterior_id;
+
+            if ($estadoOriginalId === null) {
+                throw ValidationException::withMessages([
+                    'aprobado' => 'La solicitud de incompetencia no registra el estado original a restaurar.',
+                ]);
+            }
+
+            $estadoOriginalId = (int) $estadoOriginalId;
+
+            if ($aprobado) {
+                $unidadDestinoId = (int) ($solicitud->contenido['unidad_destino_id'] ?? 0);
+
+                if ($unidadDestinoId <= 0) {
+                    throw ValidationException::withMessages([
+                        'unidad_destino_id' => 'La solicitud de incompetencia no registra una unidad destino válida.',
+                    ]);
+                }
+
+                $this->transferenciaUnidadService->remitirPorIncompetencia(
+                    expediente: $expediente,
+                    encargada: $encargada,
+                    catalogoActuado: $this->catalogoPorCodigo(self::CODIGO_ACT_VB),
+                    unidadId: $unidadDestinoId,
+                    estadoPrevioId: $estadoOriginalId,
+                    motivo: (string) ($solicitud->contenido['descripcion'] ?? 'Remisión por incompetencia procesal.'),
+                    metadatos: [
+                        'tipo' => 'REMISION_UNIDAD_INCOMPETENCIA',
+                        'via' => 'INCOMPETENCIA',
+                        'solicitud_actuado_id' => $solicitud->id,
+                        'aprobado' => true,
+                        'observaciones' => $observaciones,
+                    ],
+                    ipOrigen: $ipOrigen,
+                );
+
+                return;
+            }
+
+            $this->actuadoService->registerActuado(
                 expediente: $expediente,
-                catalogoActuado: $this->catalogoPorCodigo(static::CODIGO_ACT_REMISION),
+                catalogoActuado: $this->catalogoPorCodigo(self::CODIGO_ACT_VB),
                 emisor: $encargada,
-                descripcion: $notaRemision,
-                usuarioDestinoId: null,
+                descripcion: $observaciones ?? 'Rechazo de la solicitud de incompetencia procesal.',
                 metadatos: [
-                    'tipo' => 'REMISION_TRANSPARENCIA',
-                    'via' => 'PENAL',
+                    'tipo' => 'INCOMPETENCIA',
+                    'solicitud_actuado_id' => $solicitud->id,
+                    'aprobado' => false,
+                    'observaciones' => $observaciones,
                 ],
                 ipOrigen: $ipOrigen,
+                estadoNuevoIdExplicito: $estadoOriginalId,
             );
-
-            $this->cerrarBandejaActiva($expediente);
-
-            return $actuado;
         }, 3);
+    }
+
+    /**
+     * Última solicitud de incompetencia sin visto bueno posterior (solicitud
+     * abierta), o null si no hay ninguna en curso.
+     */
+    protected function solicitudAbierta(Expediente $expediente): ?Actuado
+    {
+        $ultimaSolicitud = Actuado::query()
+            ->where('expediente_id', $expediente->id)
+            ->whereHas('tipoActuado', fn ($query) => $query->where('codigo', self::CODIGO_ACT_SOLICITUD))
+            ->orderByDesc('id')
+            ->first();
+
+        if ($ultimaSolicitud === null) {
+            return null;
+        }
+
+        $vistoBuenoPosterior = Actuado::query()
+            ->where('expediente_id', $expediente->id)
+            ->where('id', '>', $ultimaSolicitud->id)
+            ->whereHas('tipoActuado', fn ($query) => $query->where('codigo', self::CODIGO_ACT_VB))
+            ->exists();
+
+        return $vistoBuenoPosterior ? null : $ultimaSolicitud;
+    }
+
+    /**
+     * Defensa en profundidad de la política solicitarIncompetencia: nunca un
+     * estado final ni una causa ya remitida a unidad externa.
+     */
+    protected function validarSolicitudHabilitada(Expediente $expediente): void
+    {
+        $estado = CatalogoEstado::find($expediente->estado_actual_id);
+
+        if ($estado === null
+            || $estado->es_final
+            || $estado->codigo === TransferenciaUnidadService::ESTADO_REMITIDO_UNIDAD_EXTERNA) {
+            throw ValidationException::withMessages([
+                'expediente' => 'El expediente no puede iniciar una solicitud de incompetencia desde su estado actual.',
+            ]);
+        }
     }
 
     /**
@@ -118,43 +234,6 @@ class TransparenciaService
                 'expediente' => "El expediente debe estar en {$codigoEsperado}.",
             ]);
         }
-    }
-
-    /**
-     * Congela los relojes vigentes del expediente: los plazos pasan a
-     * SUSPENDIDO y el motor de cálculo (marcarVencidos/semáforo) los ignora.
-     */
-    protected function congelarPlazos(Expediente $expediente): void
-    {
-        Plazo::where('expediente_id', $expediente->id)
-            ->where('estado', 'VIGENTE')
-            ->update([
-                'estado' => static::ESTADO_PLAZO_SUSPENDIDO,
-                'fecha_pausa' => now(),
-            ]);
-    }
-
-    /**
-     * Encargada activa de la unidad (sistema no depende de IDs hardcodeados).
-     */
-    protected function resolverEncargada(): Usuario
-    {
-        return Usuario::query()
-            ->where('activo', true)
-            ->whereHas('rol', fn ($query) => $query->where('codigo', Rol::CODIGO_ENCARGADA))
-            ->orderBy('id')
-            ->firstOrFail();
-    }
-
-    /**
-     * Desactiva la bandeja activa del expediente (el NUREJ sale de los
-     * tableros al quedar en DERIVADO_TRANSPARENCIA).
-     */
-    protected function cerrarBandejaActiva(Expediente $expediente): void
-    {
-        Asignacion::where('expediente_id', $expediente->id)
-            ->where('activa', true)
-            ->update(['activa' => false]);
     }
 
     /**

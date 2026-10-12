@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             UsuarioSeeder::class,
             UsuariosExtraSeeder::class,
             CatalogoActuadoSeeder::class,
+            UnidadSeeder::class,
             ExpedienteDemoSeeder::class,
             ExpedienteDemoSorteoSeeder::class,
             ExpedienteMasaSorteoSeeder::class,

@@ -39,10 +39,10 @@ function modelSecurityForbiddenGlobally(): array
     return ['id', 'created_at', 'updated_at'];
 }
 
-it('carga al menos los 22 modelos esperados', function () {
+it('carga al menos los 24 modelos esperados', function () {
     $classes = modelSecurityClasses();
 
-    expect($classes)->toHaveCount(22);
+    expect($classes)->toHaveCount(24);
 
     foreach ($classes as $class) {
         expect(class_exists($class))->toBeTrue("No existe la clase {$class}");

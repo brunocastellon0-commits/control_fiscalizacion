@@ -29,8 +29,8 @@
 | AUD-0006 | CDNs públicos (no air-gapped) en layout | P2 | 0 | OPEN |
 | AUD-0007 | Doble mecanismo de auditoría de sesiones | P3 | 0 | OPEN |
 | AUD-0008 | Informes finales Técnico/Jurídico faltantes (E5-S3) | P1 | 0 | OPEN |
-| AUD-0009 | Catálogo de actuados incompleto + sin Enmienda (RF-02) | P1 | 0 | OPEN |
-| AUD-0010 | Transferencias de expediente sin endpoints (RF-05) | P1 | 0 | OPEN |
+| AUD-0009 | Catálogo de actuados incompleto + sin Enmienda (RF-02) | P1 | 0 | **CERRADO (2026-10-07, B1.7 + B2.1 + B2.2)** — `ACT_ENMIENDA` + CTR-09 (B1.7), `ACT_REMISION_UNIDAD`/`ACT_RECEPCION_UNIDAD` con pivote solo-ENCARGADA (B2.1) y `ACT_SOLICITUD_INCOMPETENCIA`/`ACT_VB_INCOMPETENCIA` con pivotes 3 roles / solo-Encargada (B2.2); A20/A21 del flujo B1.3 dados de baja. Catálogo: 36 tipos |
+| AUD-0010 | Transferencias de expediente sin endpoints (RF-05) | P1 | 0 | **CERRADO/RESUELTO POR DISEÑO (2026-10-07, B2.1)** — RF-05 implementado según `DISENO_UNIDADES_INTER.md`: tablas nuevas `unidades` + `transferencias_unidad` (con `estado_previo_id`), endpoints CTR-04/CTR-05 (solo Encargada) y estado `REMITIDO_UNIDAD_EXTERNA`. La tabla legacy `transferencias` y `app/Models/Transferencia.Php` quedan **intactos y sin uso** por estos endpoints (AUD-0016 sigue OPEN) |
 | AUD-0011 | Reportes RF-R01…R09 / Carátula PDF / exportaciones inexistentes | P1 | 0 | OPEN (Fase 12 confirma: 0/9 Excel, 0/9 PDF, ver `MATRIZ_REPORTES.md` §1) |
 | AUD-0012 | Sin CRUD `suspensiones_plazo` ni recálculo retroactivo (RF-07) | P1 | 0 | OPEN |
 | AUD-0013 | Administración de catálogos/parámetros incompleta en Admin | P2 | 0 | OPEN |
@@ -200,18 +200,24 @@
 ### AUD-0009 — Catálogo de actuados incompleto + sin Enmienda (RF-02)
 - **Severidad:** P1
 - **Fase:** 0
-- **Estado:** OPEN
+- **Estado:** **CERRADO (2026-10-07, B1.7 + B2.1 + B2.2)** — ver "Resolución parcial B1.7", la nota B2.1 y el cierre B2.2 abajo. Los 4 tipos pendientes del RF-02 fueron dados de alta (2 RF-05 en B2.1, 2 CTR-10 en B2.2).
 - **Evidencia:** tabla `actuados` + seeder/enum de tipos verificados contra RF-02 del SRS: faltan tipos (incluido Enmienda).
 - **Impacto:** No se pueden registrar actuaciones requeridas por el RF-02.
 - **Acción propuesta:** comparar catálogo real vs lista RF-02 en Fase 2; migración de catálogo con confirmación previa.
+- **Resolución parcial B1.7 (2026-10-07):**
+  - **Resuelto:** `ACT_ENMIENDA` alta en `CatalogoActuadoSeeder` (origen/destino null, `requiere_adjunto=false`, pivote de 4 roles con `reglamento_id=NULL`) + endpoint `POST /api/expedientes/{e}/enmienda` (CTR-09) con whitelist de campos (`resumen_hechos` y `parte.{DENUNCIANTE,DENUNCIADO}.{nombre_completo,documento_identidad,cargo_institucion}`), payload `datos_anteriores`/`datos_nuevos`/`motivo`, versionado de `partes` y no-op de estado (RF-02 cumplido). Catálogo total: 34 tipos.
+  - **Comparación vs catálogo oficial del SRS (`SRS_EXTRAIDO.txt:301-443`):** todos los tipos del capítulo están presentes en el seeder, **excepto** los que dependen de otras tareas aún no ejecutadas: Remisión/Recepción inter-unidad (RF-05 `:110` → B2.1) y Solicitud/VB de Incompetencia (CTR-10 → B2.2); "Sorteo Derivado" (`:311`) queda cubierto por `ACT_SORTEO_INICIAL` + `ACT_CREACION_NUREJ_HIJO` (RN-10).
+  - **Pendiente para cerrar:** confirmar al ejecutar B2.1 y B2.2 que esos 4 tipos fueron dados de alta. **B2.1 (2026-10-07) confirmado:** `ACT_REMISION_UNIDAD` y `ACT_RECEPCION_UNIDAD` dados de alta en `CatalogoActuadoSeeder` (pivote exclusivo ENCARGADA, sin entrada en `MAPA_TIPO_PLAZO`/`MAPA_CIERRA_PLAZO`); catálogo total: **36 tipos**.
+  - **Cierre B2.2 (2026-10-07):** `ACT_SOLICITUD_INCOMPETENCIA` (pivote TECNICO/AUD_JUR/AUD_FIN) y `ACT_VB_INCOMPETENCIA` (pivote solo ENCARGADA) dados de alta con `requiere_adjunto=false` y sin efectos de reloj; A20/A21 (`ACT_DERIVACION_INCOMPETENCIA`/`ACT_REMISION_TRANSPARENCIA`) dados de baja del seeder (pivotes y fila). Catálogo total: **36 tipos** (−2 +2). **Auditoría completada → AUD-0009 CERRADO.** Divergencias abiertas asociadas (documentadas en `PROGRESO.md` B2.2): los 2 tipos nuevos siguen expuestos en `POST /actuados` genérico (AUD-0033) y las matrices de auditoría citan todavía A20/A21.
 
 ### AUD-0010 — Transferencias de expediente sin endpoints (RF-05)
 - **Severidad:** P1
 - **Fase:** 0
-- **Estado:** OPEN
-- **Evidencia:** tabla `transferencias` existe; sin rutas/controller/lógica de transferencia (verificado en `routes/*.php`).
-- **Impacto:** RF-05 no implementado; la tabla está huérfana de API.
-- **Acción propuesta:** diseñar en Fase 6+ con transacción, audit log y autorización; no inventar flujo sin SRS.
+- **Estado:** **CERRADO/RESUELTO POR DISEÑO (2026-10-07, B2.1)**
+- **Evidencia (original):** tabla `transferencias` existe; sin rutas/controller/lógica de transferencia (verificado en `routes/*.php`).
+- **Impacto (original):** RF-05 no implementado; la tabla estaba huérfana de API.
+- **Resolución B2.1 (2026-10-07):** RF-05 implementado siguiendo `docs/plan/DISENO_UNIDADES_INTER.md` (espec. aprobada en B0.8): migraciones nuevas `unidades` y `transferencias_unidad` (FK reales, `estado_previo_id` → `catalogo_estados`), modelos `Unidad`/`TransferenciaUnidad`, `UnidadSeeder` (3 unidades), estado `REMITIDO_UNIDAD_EXTERNA`, actuados `ACT_REMISION_UNIDAD`/`ACT_RECEPCION_UNIDAD` (pivote solo ENCARGADA) y endpoints CTR-04 `POST /api/expedientes/{e}/remitir-unidad` / CTR-05 `POST /api/expedientes/{e}/registrar-recepcion` en `routes/api/core.php` (solo Encargada vía `ExpedientePolicy::remitirUnidad`/`registrarRecepcion`), con `DB::transaction`, congelación/reanudación de relojes (días hábiles restantes conservados) y cadena de custodia. Tests: `TransferenciaUnidadesTest` (7).
+- **Nota (tabla legacy):** la tabla `transferencias` y `app/Models/Transferencia.Php` **no se modifican ni se eliminan**; quedan **sin uso** por estos endpoints (el flujo nuevo opera 100% sobre `transferencias_unidad`). El hallazgo de nomenclatura `Transferencia.Php` (AUD-0016) queda OPEN y separado.
 
 ### AUD-0011 — Reportes y exportaciones inexistentes
 - **Severidad:** P1 (RF-R01…R09, carátula PDF)

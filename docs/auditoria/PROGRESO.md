@@ -1877,3 +1877,410 @@ estados; (6) sin Git; (7) cierre documental solo tras aprobación.
 de «Decisiones del usuario» (arriba) + fila y ficha AUD-0021 en
 `BACKLOG_AUDITORIA.md` (CERRADO). `MATRIZ_DERIVACIONES.md` y el resto de
 documentos de auditoría **intactos**.
+
+---
+
+## Cierre de tarea B1.7 - Actuado de Enmienda RF-02 / CTR-09 (2026-10-07)
+
+**Estado:** **B1.7 COMPLETADA** - hallazgo **AUD-0009** marcado **PARCIAL**
+(Enmienda resuelta; tipos RF-05/CTR-10 pendientes de B2.1/B2.2, ver ficha).
+Sin migraciones ni cambios de BD fuera del seeder; sin tocar `ActuadoService`,
+modelos, `resources/views/**` ni archivos de Brayan; sin Git (ramas/commits
+bajo pedido del usuario).
+
+**Decisiones aplicadas (todas aprobadas por el usuario antes de ejecutar):**
+
+1. **Whitelist única de `campo_modificado` (7 valores):** `resumen_hechos`;
+   `parte.DENUNCIANTE.{nombre_completo,documento_identidad,cargo_institucion}`;
+   `parte.DENUNCIADO.{nombre_completo,documento_identidad,cargo_institucion}`.
+   Excluidos: `via`, `nurej_code`, `reglamento_id`, `fecha_ingreso` y estado
+   procesal (afectan plazos, reglamento o identificadores).
+2. **Formato `parte.TIPO.columna` = contrato interno de B1.7** a publicar a
+   Brayan para el modal de B4.2 (CTR-09 no cambia de forma).
+3. **Estado no-op:** `ACT_ENMIENDA` con `estado_origen_id=null`,
+   `estado_destino_id=null`; el actuado se registra con
+   `estadoNuevoIdExplicito = estado_actual_id` (`actuados.estado_nuevo_id` es
+   NOT NULL). Sin entradas en `MAPA_TIPO_PLAZO`/`MAPA_CIERRA_PLAZO` → cero
+   efectos sobre relojes.
+4. **CTR-09 exacto:** `200 {actuado_enmienda_id, expediente_actualizado}`
+   (`ExpedienteResource` con las mismas relaciones del detalle de causa).
+5. Enmienda con valor idéntico al actual → **422** (evita actuados vacíos en
+   la cadena de custodia).
+
+**Cambios de producción:**
+
+- `database/seeders/CatalogoActuadoSeeder.php` (+14) - `ACT_ENMIENDA` en
+  `$actuados` (fase REGISTRO, `requiere_adjunto=false`, sin estados) + 4 filas
+  en `$pivotes` (TECNICO/AUD_JURIDICO/AUD_FINANCIERO/ENCARGADA,
+  `reglamento_id=NULL`). Patrón `updateOrCreate` + delete/insert de pivote
+  (idempotente). Catálogo total: **34 tipos**.
+- `app/Http/Requests/EnmiendaRequest.php` (nuevo) - `authorize()` →
+  `ExpedientePolicy::crearActuado` sobre `ACT_ENMIENDA` (asignación activa o
+  Encargada; ADMIN fuera del pivote ⇒ 403) + `rules()` con `Rule::in` sobre
+  `EnmiendaService::camposPermitidos()` y longitud máxima **por columna**
+  (200/30/150/16000).
+- `app/Services/EnmiendaService.php` (nuevo) - whitelist única (fuente de
+  verdad, la consume el FormRequest) + transacción: lock del expediente →
+  lectura de `datos_anteriores` → `registerActuado` con metadatos
+  `{campo_modificado, datos_anteriores, datos_nuevos, motivo}` → aplicación
+  del cambio (update de `resumen_hechos`, o cierre de versión
+  `es_version_actual=false`/`vigente_hasta` + inserción de la fila nueva con
+  `actuado_origen_id` para `partes`).
+- `app/Http/Controllers/EnmiendaController.php` (nuevo) - `store()` devuelve
+  el contrato CTR-09 con `expediente_actualizado` (mismo set de relaciones de
+  `ExpedienteController::relacionesDetalle()`).
+- `routes/api/operativo.php` (+4) - `POST /expedientes/{expediente}/enmienda`.
+
+**Tests:** `tests/Feature/ActuadoEnmiendaTest.php` (nuevo) - **16 tests / 60
+aserciones**: enmienda de `resumen_hechos` (200 + payload anterior/nuevo +
+hash encadenado sobre el actuado base + estado sin cambio + 0 plazos);
+versionado de `parte` (versión vieja cerrada, nueva con `actuado_origen_id`
+y columnas copiadas); Encargada sin asignación → 200; operador ajeno → 403;
+ADMIN → 403; dataset de 5 campos estructurales (`via`, `nurej_code`,
+`reglamento_id`, `fecha_ingreso`, `estado_actual_id`) → 422; sin `motivo` →
+422; valor que excede la columna → 422; valor idéntico → 422; parte sin
+versión vigente → 422; inmutabilidad del actuado (UPDATE/DELETE →
+`QueryException` por trigger); sin sesión → 401.
+
+**Validación (gates):**
+
+- Tests nuevos → **16/16 (60 aserciones)**.
+- Regresión dirigida (10 archivos: actuados, catálogo, máquina de estados,
+  FormRequests, policies/seguridad, cadena de custodia) → **66 OK · 1
+  omitido · 0 fallos (270 aserciones)**. *Nota:* el primer intento reportó
+  3 errores `Call to undefined function paso7CrearExpedienteConEstado()` -
+  es una dependencia **preexistente** entre archivos de tests (la función
+  está en `ExpedienteControllerTest.php`); al incluir ambos archivos todo
+  pasa (13/13). No está relacionado con B1.7.
+- `vendor/bin/pint --dirty --format agent` → aplicó 1 fix
+  (`concat_space` en `EnmiendaRequest`) → re-ejecución limpia.
+- `php artisan test --compact` → **397 tests · 390 OK · 0 fallos · 7
+  omitidos · 2039 aserciones** (baseline B1.6: 381 · 374 OK · 0 fallos · 7
+  omitidos · 1979; delta +16 tests / +16 OK / +60 aserciones; los 7
+  omitidos = stress y concurrency de siempre).
+
+**Divergencias y pendientes (reportados, sin improvisar cambios):**
+
+1. **Endpoint genérico puede emitir `ACT_ENMIENDA` "vacío":** el nuevo tipo
+   aparece en `GET /api/catalogo/actuados` (filtrado por rol) y por lo tanto
+   en el modal genérico "Emitir Actuado" (`POST /api/expedientes/{id}/actuados`),
+   que solo recibe `descripcion` → permitiría crear un actuado de enmienda sin
+   `datos_anteriores`/`datos_nuevos`. No se tocó (`ActuadoController` /
+   `CatalogoActuadoController` fuera del alcance aprobado). Mitigación
+   propuesta (requiere aprobación): excluir `ACT_ENMIENDA` del catálogo
+   genérico o rechazarlo en `StoreActuadoRequest`.
+2. **BD de desarrollo:** el alta del seeder aplica en seeds nuevos; para
+   sincronizar la BD dev existente hace falta ejecutar
+   `db:seed --class=CatalogoActuadoSeeder` (autorización específica pendiente
+   según AUD-0023).
+3. **AUD-0009 PARCIAL:** cerrar recién al confirmar en B2.1 y B2.2 el alta de
+   `ACT_REMISION_UNIDAD`, `ACT_RECEPCION_UNIDAD`, `ACT_SOLICITUD_INCOMPETENCIA`
+   y `ACT_VB_INCOMPETENCIA`.
+
+**Alcance del diff (sin commitear):** 2 `M` (`CatalogoActuadoSeeder`,
+`operativo.php`) + 4 `??` (`EnmiendaService`, `EnmiendaRequest`,
+`EnmiendaController`, `ActuadoEnmiendaTest`) + 2 docs (`PROGRESO.md`,
+`BACKLOG_AUDITORIA.md`).
+
+**Documentación actualizada en este cierre:** esta sección + fila y ficha
+AUD-0009 en `BACKLOG_AUDITORIA.md` (PARCIAL). El resto de hallazgos y
+documentos de auditoría **intactos**.
+## Cierre de tarea B2.1 - Catálogo unidades, transferencias_unidad y estado REMITIDO_UNIDAD_EXTERNA / RF-05 / CTR-04 y CTR-05 (2026-10-07)
+
+**Estado:** **B2.1 COMPLETADA** - hallazgo **AUD-0010 CERRADO/RESUELTO POR DISEÑO**
+(tabla legacy `transferencias` intacta y sin uso); **AUD-0009 sigue PARCIAL/OPEN**
+(los 2 tipos RF-05 dados de alta en B2.1; restan los 2 de CTR-10 en B2.2).
+Migraciones nuevas reversibles; sin `db:seed` en BD de desarrollo (AUD-0023);
+sin tocar `resources/views/**`, `remision-unidad.blade.php` ni archivos de
+Brayan; sin operaciones Git (bajo pedido del usuario); tabla/modelo legacy
+`transferencias`/`Transferencia.Php` sin modificar.
+
+**Decisiones aplicadas (aprobadas por el usuario antes de ejecutar):**
+
+1. **Bandeja por exclusión de estado:** `ExpedienteController@bandejaOperador`
+   añade `whereDoesntHave('estadoActual', codigo = REMITIDO_UNIDAD_EXTERNA)`.
+   La causa remitida desaparece de la bandeja del operador y reaparece sola al
+   recibir; **no se modifica `asignaciones.activa`** (sin efectos en dashboards
+   ni en la semántica de la asignación histórica).
+2. **`UnidadSeeder` con 3 unidades** (aprobado): `TRANSPARENCIA` (Unidad de
+   Transparencia, Ley N° 974), `MINISTERIO_PUBLICO`, `REGIMEN_DISCIPLINARIO`.
+   Idempotente por `codigo`, no altera `activa` existente.
+3. **Convención FK verificada antes de escribir:** `foreignId()->constrained()`
+   sin `onDelete` (RESTRICT) como las tablas base y la legacy `transferencias`;
+   `estado_previo_id` como `unsignedSmallInteger` porque `catalogo_estados.id`
+   es `smallint unsigned` (error 3780 detectado en el primer intento de suite y
+   corregido contra la convención real, no asumida).
+4. **Validación:** `unidad_id`/`unidad_origen_id` `exists` + `activa` (422),
+   `motivo` `min:20`/`max:5000` (alineado a la nota de remisión a
+   Transparencia), `adjunto` PDF opcional `max:20480`.
+5. **Plazos sin lógica nueva:** congelación = patrón
+   `TransparenciaService::congelarPlazos` (VIGENTE → SUSPENDIDO +
+   `fecha_pausa=now()`), capturando los IDs en
+   `contenido.plazos_suspendidos` del actuado de remisión; reanudación = patrón
+   `DescargoFinancieroService::reanudarRelojEjecucion` (`businessDaysBetween`
+   entre `fecha_pausa` y `fecha_limite` + `calculateDueDate`), aplicado solo a
+   los IDs que esa remisión congeló. Días hábiles restantes conservados exactos.
+6. **Recepción sin estado fijo:** exige causa en `REMITIDO_UNIDAD_EXTERNA` con
+   **remisión abierta** (el último movimiento de `transferencias_unidad` debe
+   ser tipo `REMISION` con `estado_previo_id`); `unidad_origen_id` debe
+   coincidir con la unidad destino de esa remisión (**422 en recepción
+   cruzada**); restaura el estado vía `estadoNuevoIdExplicito` en
+   `registerActuado` (mismo mecanismo de destino no-op de B1.7).
+7. **Autorización exclusiva Encargada** (`ExpedientePolicy`, patrón
+   `remitirTransparencia`): `remitirUnidad` (activo + ENCARGADA + estado no
+   final y no ya remitido) y `registrarRecepcion` (activo + ENCARGADA + estado
+   `REMITIDO_UNIDAD_EXTERNA`). Operadores y ADMIN → 403 en CTR-04 y CTR-05.
+8. **Fuera de alcance deliberado:** la regla de "solo lectura mientras
+   REMITIDO" queda para **B2.3**; CTR-10 / incompetencia para **B2.2** (el
+   service queda reutilizable: constantes públicas + `registrarRecepcion`
+   expuesta).
+
+**Cambios de producción:**
+
+- `database/migrations/2026_10_07_122830_create_unidades_table.php` (nueva) -
+  `unidades` (`codigo` unique, `nombre`, `activa` default true, timestamps).
+- `database/migrations/2026_10_07_122832_create_transferencias_unidad_table.php`
+  (nueva) - `transferencias_unidad` (`expediente_id`, `unidad_id`, `tipo` enum
+  `REMISION|RECEPCION`, `actuado_id` nullable, `motivo` text, `fecha` datetime
+  `useCurrent` anti-2038, `estado_previo_id` smallint nullable, timestamps),
+  índices `idx_transferencias_unidad_{expediente,unidad,tipo}` declarados antes
+  de las FK (InnoDB los reutiliza), 4 FKs RESTRICT, `down()` con
+  `dropIfExists`.
+- `app/Models/Unidad.php`, `app/Models/TransferenciaUnidad.php` (nuevos) -
+  `$table` explícito (la pluralización española no la infiere Laravel),
+  `$fillable` estricto B0.1, casts y relaciones verificadas contra la migración.
+- `database/seeders/UnidadSeeder.php` (nuevo) + registro en
+  `DatabaseSeeder.php` (+1).
+- `database/seeders/CatalogoEstadoSeeder.php` (+1) - `REMITIDO_UNIDAD_EXTERNA`
+  (padre null, `es_final=false`, activo por default); no toca
+  `ESTADOS_HUERFANOS` de B1.6.
+- `database/seeders/CatalogoActuadoSeeder.php` (+2) - `ACT_REMISION_UNIDAD`
+  (origen null, destino `REMITIDO_UNIDAD_EXTERNA`) y `ACT_RECEPCION_UNIDAD`
+  (origen `REMITIDO_UNIDAD_EXTERNA`, destino null → `estadoNuevoIdExplicito`
+  en runtime), `requiere_adjunto=false`, **pivote exclusivo ENCARGADA** y sin
+  entradas en `MAPA_TIPO_PLAZO`/`MAPA_CIERRA_PLAZO` (cero efectos de reloj por
+  sí mismos). Catálogo total: **36 tipos**.
+- `app/Policies/ExpedientePolicy.php` (+2 habilidades) - `remitirUnidad`,
+  `registrarRecepcion`.
+- `app/Http/Requests/RemitirUnidadRequest.php`,
+  `app/Http/Requests/RegistrarRecepcionRequest.php` (nuevos) - `authorize()`
+  vía `can:` + rules/messages (patrón `RemitirTransparenciaRequest`).
+- `app/Services/TransferenciaUnidadService.php` (nuevo) - `remitir()` y
+  `registrarRecepcion()`, ambos `DB::transaction(..., 3)` con lock pesimista
+  del expediente (patrón D-6g), defensa en profundidad de estado, actuados vía
+  `ActuadoService::registerActuado` (hash encadenado + adjunto) y gestión de
+  relojes descrita arriba.
+- `app/Http/Controllers/TransferenciaUnidadController.php` (nuevo) -
+  `remitir` → `201 {transferencia_id, estado}`; `registrarRecepcion` →
+  `200 {estado restaurado}` (contratos CTR-04/CTR-05 exactos).
+- `routes/api/core.php` (+2) - `POST /expedientes/{expediente}/remitir-unidad`
+  y `POST /expedientes/{expediente}/registrar-recepcion` (grupo
+  `auth:sanctum`, propiedad Bruno).
+- `app/Http/Controllers/ExpedienteController.php` (+1 cláusula) - exclusión
+  por estado en `bandejaOperador`.
+
+**Tests:** `tests/Feature/TransferenciaUnidadesTest.php` (nuevo) - **7 tests /
+87 aserciones**: CTR-04 feliz (201, `estado_previo_id` guardado, transferencia
++ actuado con hash y `plazos_suspendidos`, relojes SUSPENDIDO con `fecha_pausa`
+y sin cierre, asignación intacta, causa fuera de la bandeja del operador);
+CTR-05 feliz (200 con estado restaurado exacto, transferencia RECEPCION,
+actuado encadenado `hash_anterior` = `hash_actuado` previo, relojes VIGENTE con
+`fecha_reanudacion` y `fecha_limite` recalculada exacta vía
+`PlazoCalculatorService`, causa de vuelta en la bandeja); restauración a un
+estado distinto (`EN_PLANIFICACION`, sin estado fijo); 403 de operador y ADMIN
+en ambos endpoints; 403 de remitir ya remitido y de recibir sin remisión
+abierta; 422 de unidad inexistente/inactiva, motivo corto y recepción cruzada
+(+ recepción correcta posterior); pivote solo-ENCARGADA de los 2 actuados.
+
+**Validación (gates):**
+
+- Tests nuevos → **7/7 (87 aserciones)**.
+- Regresión dirigida (actuados, plazos, derivaciones, flujo, bandeja,
+  policies/seguridad, catálogos y máquina de estados: 28 archivos) → **175 OK
+  · 1 omitido · 0 fallos**. *Nota:* el primer intento reportó 3 errores
+  `Call to undefined function paso7CrearExpedienteConEstado()` - dependencia
+  **preexistente** entre archivos de test (la función vive en
+  `ExpedienteControllerTest.php`); al incluir ese archivo todo pasa. No está
+  relacionado con B2.1.
+- `vendor/bin/pint --dirty --format agent` → aplicó 1 fix
+  (`ExpedientePolicy`: espaciado de `!` + orden de imports) → re-ejecución
+  limpia.
+- `php artisan test --compact` → **404 tests · 397 OK · 0 fallos · 7
+  omitidos · 2138 aserciones** (baseline B1.7: 397 · 390 OK · 0 fallos · 7
+  omitidos · 2039; delta +7 tests / +7 OK / +99 aserciones; los 7 omitidos =
+  stress y concurrency de siempre).
+- `tests/Unit/ModelSecurityTest.php` - conteo de inventario de modelos
+  **22 → 24** (alta de `Unidad` y `TransferenciaUnidad`; ajuste de inventario,
+  las aserciones de seguridad iteran dinámicamente sobre todos los modelos).
+
+**Divergencias y pendientes (reportados, sin improvisar cambios):**
+
+1. **Endpoint genérico y los nuevos actuados (misma clase que la divergencia
+   B1.7 #1):** `ACT_REMISION_UNIDAD` tiene destino `REMITIDO_UNIDAD_EXTERNA` y
+   pivote que incluye a la Encargada, por lo que
+   `POST /api/expedientes/{id}/actuados` podría transicionar la causa a
+   REMITIDO **sin crear la fila en `transferencias_unidad`** (después CTR-05
+   fallaría 422 por no encontrar remisión abierta); `ACT_RECEPCION_UNIDAD`
+   genérico no transiciona (destino null) pero dejaría un actuado en la cadena.
+   No se tocó `StoreActuadoRequest`/catálogo genérico (fuera del alcance
+   aprobado). Mitigación propuesta (requiere aprobación): excluir los 2 códigos
+   del catálogo genérico o rechazarlos en `StoreActuadoRequest`; la protección
+   amplia de emisión en estado REMITIDO llega con B2.3.
+2. **BD de desarrollo:** `UnidadSeeder`, `CatalogoEstadoSeeder` y
+   `CatalogoActuadoSeeder` aplican en seeds nuevos; sincronizar la BD dev
+   exige `migrate` + `db:seed --class=...` con autorización específica
+   (AUD-0023). No se ejecutó.
+3. **`fase` de los 2 actuados = `INVESTIGACION`** (criterio propio alineado al
+   actuado hermano `ACT_REMISION_TRANSPARENCIA`; es un agrupador libre del
+   catálogo, sin validación de dominio).
+
+**Alcance del diff (sin commitear):** 10 nuevos (2 migraciones, 2 modelos,
+`UnidadSeeder`, 2 FormRequests, service, controller, `TransferenciaUnidadesTest`)
++ 7 modificados de código/config (`DatabaseSeeder`, `CatalogoEstadoSeeder`,
+`CatalogoActuadoSeeder`, `ExpedientePolicy`, `core.php`, `ExpedienteController`,
+`ModelSecurityTest`) + 2 docs (`PROGRESO.md`, `BACKLOG_AUDITORIA.md`).
+(Sigue sin commitear el diff preexistente de B1.7.)
+
+**Documentación actualizada en este cierre:** esta sección + fila y ficha
+**AUD-0010 (CERRADO/RESUELTO POR DISEÑO)** y anotación de fila/ficha
+**AUD-0009 (mantiene PARCIAL/OPEN)** en `BACKLOG_AUDITORIA.md`. El resto de
+hallazgos y documentos de auditoría **intactos**.
+
+## Cierre de tarea B2.2 - Incompetencia procesal con Visto Bueno / RF-09 / CTR-10 (2026-10-07)
+
+**Estado:** **B2.2 COMPLETADA** - hallazgo **AUD-0009 CERRADO** (los 4 tipos
+del flujo quedan sembrados: 2 de RF-05 en B2.1 + 2 de CTR-10 en B2.2;
+los tipos A20/A21 de B1.3 dados de baja). Flujo B1.3
+(`derivacion-transparencia`/`transparencia/remitir`) **reemplazado por
+completo**. Sin `db:seed` en BD de desarrollo (AUD-0023); sin tocar
+`resources/views/**` ni archivos de Brayan; sin operaciones Git (bajo pedido
+del usuario); tabla legacy `transferencias`/`Transferencia` sin modificar.
+
+**Decisiones aplicadas (aprobadas por el usuario antes de ejecutar):**
+
+1. **Reemplazo total del flujo B1.3:** se eliminan rutas, métodos de policy,
+   FormRequests y el test `DerivacionTransparenciaTest` (10 tests, aprobación
+   explícita); `TransparenciaService` se reescribe; A20/A21
+   (`ACT_DERIVACION_INCOMPETENCIA`/`ACT_REMISION_TRANSPARENCIA`) se dan de baja
+   del seeder con `delete()` de pivotes primero y fila después (FK RESTRICT en
+   `actuados.catalogo_actuado_id`: en BD sucia el delete falla en voz alta).
+   Estados `PENDIENTE_REMISION_TRANSPARENCIA`/`DERIVADO_TRANSPARENCIA` se
+   conservan en el catálogo (B1.6 los preservó), quedan sin uso.
+2. **`solicitar` → `EN_EVALUACION` guardando el estado original X**
+   (`estado_anterior_id` del actuado de solicitud); **VB aprobado** → remisión
+   con `estado_previo_id = X` y recepción CTR-05 restaura X exacto; **VB
+   rechazado** → restaura X (`estadoNuevoIdExplicito`). El estado de remisión
+   puede diferir de la celda literal CTR-10 cuando X no es EN_EVALUACION
+   (divergencia #1, avisar en B4.2).
+3. **Sin adjunto** (estricto contrato CTR-10: `{unidad_destino_id, motivo}` y
+   `{aprobado, observaciones?}`); `requiere_adjunto=false`.
+
+**Cambios de producción:**
+
+- `database/seeders/CatalogoActuadoSeeder.php` (modificado) - −2 lookups y
+  entradas A20/A21; +`ACT_SOLICITUD_INCOMPETENCIA` y `ACT_VB_INCOMPETENCIA`
+  (fase `INVESTIGACION`, `estado_destino_id=null`, `requiere_adjunto=false`,
+  sin entradas en `MAPA_TIPO_PLAZO`/`MAPA_CIERRA_PLAZO`); bloque de baja de
+  A20/A21 tras el loop de `updateOrCreate` (pivotes con `DB::table` y luego la
+  fila); pivotes nuevos: solicitud → TECNICO/AUD_JUR/AUD_FIN (`reglamento_id`
+  null), VB → solo ENCARGADA. Catálogo total: **36 tipos** (−2 +2).
+- `app/Services/TransparenciaService.php` (reescrito) - constantes públicas
+  `CODIGO_ACT_SOLICITUD`, `CODIGO_ACT_VB`, `ESTADO_ESPERA_VB='EN_EVALUACION'`;
+  `solicitarIncompetencia()` (transacción + lock, 422 `expediente` si solicitud
+  abierta, 422 `unidad_destino_id` si unidad inactiva, sin congelar relojes ni
+  tocar `asignaciones.activa`) y `vistoBuenoIncompetencia()` (aprobado →
+  remisión congelando relojes; rechazado → restaura X); helpers
+  `solicitudAbierta`, `validarSolicitudHabilitada`, `validarEstado`,
+  `catalogoPorCodigo`; ctor con `ActuadoService` + `TransferenciaUnidadService`.
+- `app/Services/TransferenciaUnidadService.php` (+1 método) -
+  `remitirPorIncompetencia()` (misma estructura transaccional que `remitir()`:
+  `estado_previo_id = X`, actuado `explicito=REMITIDO_UNIDAD_EXTERNA`, metadatos
+  `via=INCOMPETENCIA` + `solicitud_actuado_id`, `plazos_suspendidos`,
+  `unidad_destino_id`); `remitir()`/`registrarRecepcion()` CTR-04/CTR-05
+  intactos.
+- `app/Policies/ExpedientePolicy.php` (+2 / −2) - `solicitarIncompetencia`
+  (activo + asignación activa propia + estado no final y no REMITIDO + pivote
+  `CODIGO_ACT_SOLICITUD`) y `vistoBuenoIncompetencia` (activo + ENCARGADA +
+  estado `ESTADO_ESPERA_VB`); −`derivarPorIncompetencia`, −`remitirTransparencia`.
+- `app/Http/Requests/SolicitarIncompetenciaRequest.php`,
+  `app/Http/Requests/VistoBuenoIncompetenciaRequest.php` (nuevos) - `can:` +
+  `unidad_destino_id` `exists` + `activa`, `motivo` `min:20`/`max:5000`,
+  `aprobado` boolean, `observaciones` nullable `min:20`/`max:5000`.
+- `app/Http/Requests/DerivarTransparenciaRequest.php`,
+  `app/Http/Requests/RemitirTransparenciaRequest.php` (borrados).
+- `app/Http/Controllers/TransparenciaController.php` (reescrito) - `solicitar`
+  y `vistoBueno` → `200 {estado}` (contrato CTR-10 exacto), sin recursos.
+- `routes/api/operativo.php` (+2 / −2) - `POST
+  /expedientes/{expediente}/incompetencia/solicitar` y `POST
+  /expedientes/{expediente}/incompetencia/visto-bueno` reemplazan a
+  `derivacion-transparencia` y `transparencia/remitir`.
+- `tests/Feature/DerivacionTransparenciaTest.php` (borrado, aprobado).
+
+**Tests:** `tests/Feature/IncompetenciaInterUnidadTest.php` (nuevo) - **8 tests
+/ 107 aserciones** (semilla vía seeders reales): solicitud feliz (200
+`EN_EVALUACION`, actuado con `estado_anterior`=X y metadatos, relojes VIGENTE,
+0 transferencias, bandeja intacta); VB aprobado (200 `REMITIDO_UNIDAD_EXTERNA`,
+transferencia `estado_previo`=X, actuado VB encadenado
+`hash_anterior`=`hash_actuado` de la solicitud, `plazos_suspendidos`, relojes
+SUSPENDIDO + `fecha_pausa`, fuera de la bandeja); round-trip CTR-05 con
+X=`EN_PLANIFICACION` (restaura X, `fecha_limite` recalculada exacta, vuelve a
+la bandeja); VB rechazado (restaura X, 0 transferencias, sin congelación,
+re-solicitar permitido); matriz 403 (Encargada/ADMIN/operador ajeno en
+solicitar; operador/ADMIN en VB; causa final y causa ya remitida); 422 (doble
+solicitud, VB sin solicitud, unidad inexistente/inactiva, motivo y
+observaciones cortos); 401 sin sesión en ambos endpoints; contenido del seeder
+(A20/A21 dados de baja, par CTR-10 con destino null y pivotes 3/1).
+
+**Validación (gates):**
+
+- Tests nuevos → **8/8 (107 aserciones)**.
+- Regresión dirigida (`TransferenciaUnidadesTest`, `ActuadoControllerTest`,
+  `CadenaCustodiaTest`, `CierrePlazosFasesTest`, `CatalogoActuadoControllerTest`,
+  `ContratosAdmisibilidadTest` [ejecuta el seeder modificado],
+  `ExpedienteControllerTest` [dependencia `paso7...` preexistente]) → **48 OK ·
+  0 fallos**.
+- `vendor/bin/pint --dirty --format agent` → `passed` (sin observaciones).
+- `php artisan test --compact` → **402 tests · 395 OK · 0 fallos · 7
+  omitidos · 2193 aserciones** (baseline B2.1: 404 · 397 OK · 0 fallos · 7
+  omitidos · 2138; delta −2 tests por −10 del test viejo borrado +8 nuevos,
+  +55 aserciones; los 7 omitidos = stress y concurrency de siempre).
+- `tests/Unit/ModelSecurityTest.php` sin cambios (**24 modelos**; B2.2 no añade
+  modelos).
+
+**Divergencias y pendientes (reportados, sin improvisar cambios):**
+
+1. **VB rechazado con estado original ≠ `EN_EVALUACION`:** la celda CTR-10
+   textual solo contempla `REMITIDO`/`EN_EVALUACION`; con X distinta la
+   respuesta `200 {estado: X}` queda fuera del texto literal. Decisión #2 del
+   usuario: restaurar X (los relojes/planificación no deben perderse). **Avisar
+   a Brayan en B4.2** para alinear contrato si hace falta.
+2. **Reloj corriendo durante la espera del VB:** `solicitar` no congela
+   plazos; entre solicitud y VB los plazos pueden vencer (el congelado ocurre
+   recién al aprobar VB). Sin congelación doble por diseño.
+3. **Endpoint genérico y los 2 tipos nuevos (misma clase AUD-0033/que
+   divergencia B1.7 #1):** `POST /api/expedientes/{id}/actuados` podría emitir
+   `ACT_SOLICITUD_INCOMPETENCIA`/`ACT_VB_INCOMPETENCIA` (destino null → no
+   transicionan, pero ensucian la cadena). Mitigación propuesta (requiere
+   aprobación aparte): excluir los códigos del catálogo genérico.
+4. **BD de desarrollo:** el `delete()` de A20/A21 y el alta del par CTR-10 se
+   aplican solo con `db:seed` autorizado (AUD-0023); hasta entonces las filas
+   viejas persisten y el delete puede fallar por FK RESTRICT si hay actuados
+   que las referencian. No se ejecutó.
+5. **Matrices de auditoría desactualizadas** (fuera del alcance de este cierre,
+   que solo toca `PROGRESO.md` + `BACKLOG_AUDITORIA.md`): `MATRIZ_ACTUADOS`
+   A20/A21, `MATRIZ_SEGURIDAD` 29/30, `MAQUINA_ESTADOS` (filas 20/21),
+   `MAPA_FUNCIONAL`, `MATRIZ_PRUEBAS`, `MATRIZ_BANDEJAS`, `MATRIZ_PLAZOS`,
+   `FLUJO_JURIDICO`/`FLUJO_FINANCIERO`/`FLUJO_TECNICO`, `MATRIZ_UX_FRONTEND`
+   y `doc_avances/BACKLOG_JIRA.md` siguen citando el flujo B1.3 y
+   `DerivacionTransparenciaTest`. Actualización pendiente de decisión.
+
+**Alcance del diff B2.2 (sin commitear):** 3 nuevos (2 FormRequests,
+`IncompetenciaInterUnidadTest`) + 7 modificados de código (`CatalogoActuadoSeeder`,
+`TransparenciaService`, `TransferenciaUnidadService`, `ExpedientePolicy`,
+`TransparenciaController`, `routes/api/operativo.php`) + 3 borrados
+(2 FormRequests, `DerivacionTransparenciaTest`) + 2 docs (`PROGRESO.md`,
+`BACKLOG_AUDITORIA.md`). (Siguen sin commitear los diffs de B1.7/B2.1.)
+
+**Documentación actualizada en este cierre:** esta sección + fila y ficha
+**AUD-0009 (CERRADO)** en `BACKLOG_AUDITORIA.md`. El resto de hallazgos y
+documentos de auditoría **intactos**.
