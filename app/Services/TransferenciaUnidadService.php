@@ -51,6 +51,12 @@ class TransferenciaUnidadService
      *    a REMITIDO_UNIDAD_EXTERNA. La asignación activa no se toca (B2.1):
      *    la causa sale de la bandeja del operador por estado (B2.3 añade la
      *    protección de emisión mientras esté remitida).
+     *
+     * Divergencia 1 (aprobada): mientras exista una solicitud de incompetencia
+     * abierta (espera de VB, CTR-10) la remisión directa se bloquea con 422:
+     * de lo contrario `congelarPlazos` devolvería [] (ya suspendidos en la
+     * solicitud) y la transferencia quedaría sin `plazos_suspendidos`,
+     * dejando los relojes suspendidos para siempre tras la recepción CTR-05.
      */
     public function remitir(
         Expediente $expediente,
@@ -64,6 +70,13 @@ class TransferenciaUnidadService
             $expediente = Expediente::query()->lockForUpdate()->findOrFail($expediente->id);
 
             $this->validarRemisible($expediente);
+
+            if (app(TransparenciaService::class)->haySolicitudAbierta($expediente)) {
+                throw ValidationException::withMessages([
+                    'expediente' => 'Existe una solicitud de incompetencia pendiente de visto bueno; la causa debe resolverse primero (aprobación o rechazo) antes de remitirse por otra vía.',
+                ]);
+            }
+
             $unidad = $this->unidadActiva($unidadId, 'unidad_id');
 
             $estadoPrevioId = (int) $expediente->estado_actual_id;
@@ -183,7 +196,13 @@ class TransferenciaUnidadService
      *    recepción CTR-05 devuelve la causa a su fase exacta pre-solicitud.
      * 3. Sin adjunto (contrato CTR-10: `{aprobado, observaciones?}`).
      *
+     * Divergencia 1 (aprobada): `plazosSuspendidosPrevios` conserva los IDs
+     * congelados al solicitar la incompetencia; se unen (sin duplicar) con
+     * cualquier reloj VIGENTE nuevo y se guardan en `plazos_suspendidos` del
+     * actuado del VB → la recepción CTR-05 reanuda exactamente esos.
+     *
      * @param  array<string, mixed>  $metadatos
+     * @param  array<int, int>  $plazosSuspendidosPrevios
      */
     public function remitirPorIncompetencia(
         Expediente $expediente,
@@ -194,14 +213,18 @@ class TransferenciaUnidadService
         string $motivo,
         array $metadatos = [],
         ?string $ipOrigen = null,
+        array $plazosSuspendidosPrevios = [],
     ): TransferenciaUnidad {
-        return DB::transaction(function () use ($expediente, $encargada, $catalogoActuado, $unidadId, $estadoPrevioId, $motivo, $metadatos, $ipOrigen) {
+        return DB::transaction(function () use ($expediente, $encargada, $catalogoActuado, $unidadId, $estadoPrevioId, $motivo, $metadatos, $ipOrigen, $plazosSuspendidosPrevios) {
             $expediente = Expediente::query()->lockForUpdate()->findOrFail($expediente->id);
 
             $this->validarRemisible($expediente);
             $unidad = $this->unidadActiva($unidadId, 'unidad_destino_id');
 
-            $plazosSuspendidos = $this->congelarPlazos($expediente);
+            $plazosSuspendidos = array_values(array_unique(array_merge(
+                array_map('intval', $plazosSuspendidosPrevios),
+                $this->congelarPlazos($expediente),
+            )));
 
             $transferencia = TransferenciaUnidad::create([
                 'expediente_id' => $expediente->id,
@@ -316,7 +339,7 @@ class TransferenciaUnidadService
      *
      * @return array<int, int>
      */
-    protected function congelarPlazos(Expediente $expediente): array
+    public function congelarPlazos(Expediente $expediente): array
     {
         $ids = Plazo::query()
             ->where('expediente_id', $expediente->id)
@@ -361,7 +384,7 @@ class TransferenciaUnidadService
      *
      * @param  array<int, int>  $plazoIds
      */
-    protected function reanudarPlazos(Expediente $expediente, array $plazoIds): void
+    public function reanudarPlazos(Expediente $expediente, array $plazoIds): void
     {
         if ($plazoIds === []) {
             return;

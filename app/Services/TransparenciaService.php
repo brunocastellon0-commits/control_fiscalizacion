@@ -39,8 +39,12 @@ class TransparenciaService
      * 2. Emite ACT_SOLICITUD_INCOMPETENCIA con estadoNuevoIdExplicito =
      *    EN_EVALUACION; el estado_anterior_id del actuado conserva el estado
      *    original de la causa para restaurarlo en el rechazo o la recepción.
-     * 3. No congela relojes, no crea transferencia y no toca la asignación:
-     *    la causa sigue en la bandeja del operador hasta el visto bueno.
+     * 3. Congela los relojes VIGENTES al solicitar y guarda sus IDs en
+     *    `plazos_suspendidos` del actuado de la solicitud: el rechazo del VB
+     *    los reanuda exactos y el VB aprobado los propaga a la remisión
+     *    (divergencia 1 aprobada). No crea transferencia ni toca la
+     *    asignación: la causa sigue en la bandeja del operador hasta el
+     *    visto bueno.
      */
     public function solicitarIncompetencia(
         Expediente $expediente,
@@ -73,6 +77,8 @@ class TransparenciaService
 
             $estadoEspera = CatalogoEstado::where('codigo', self::ESTADO_ESPERA_VB)->firstOrFail();
 
+            $plazos = $this->transferenciaUnidadService->congelarPlazos($expediente);
+
             return $this->actuadoService->registerActuado(
                 expediente: $expediente,
                 catalogoActuado: $this->catalogoPorCodigo(self::CODIGO_ACT_SOLICITUD),
@@ -81,6 +87,7 @@ class TransparenciaService
                 metadatos: [
                     'tipo' => 'SOLICITUD_INCOMPETENCIA',
                     'unidad_destino_id' => $unidad->id,
+                    'plazos_suspendidos' => $plazos,
                 ],
                 ipOrigen: $ipOrigen,
                 estadoNuevoIdExplicito: (int) $estadoEspera->id,
@@ -95,12 +102,14 @@ class TransparenciaService
      * 1. Bloquea el expediente, exige estado EN_EVALUACION (defensa frente a
      *    la política) y una solicitud abierta (último ACT_SOLICITUD sin VB
      *    posterior).
-     * 2. Aprobado: congela los relojes vigentes y remite a la unidad destino
-     *    de la solicitud vía TransferenciaUnidadService (unidad en metadatos
-     *    de la remisión con estado_previo_id = estado original pre-solicitud);
-     *    la recepción CTR-05 restaura ese estado exacto y reanuda los relojes.
+     * 2. Aprobado: remite a la unidad destino de la solicitud vía
+     *    TransferenciaUnidadService propagando los relojes ya congelados al
+     *    solicitar (`plazosSuspendidosPrevios`, sin re-congelar); la
+     *    recepción CTR-05 restaura el estado original pre-solicitud y reanuda
+     *    esos relojes exactos.
      * 3. Rechazado: emite ACT_VB_INCOMPETENCIA con estadoNuevoIdExplicito =
-     *    estado original pre-solicitud, sin transferencia ni congelación.
+     *    estado original pre-solicitud, sin transferencia, y reanuda
+     *    exactamente los relojes congelados en la solicitud.
      * 4. En ningún caso se toca la asignación: la causa vuelve sola a la
      *    bandeja del operador asignado.
      */
@@ -134,6 +143,8 @@ class TransparenciaService
 
             $estadoOriginalId = (int) $estadoOriginalId;
 
+            $plazos = array_map('intval', (array) ($solicitud->contenido['plazos_suspendidos'] ?? []));
+
             if ($aprobado) {
                 $unidadDestinoId = (int) ($solicitud->contenido['unidad_destino_id'] ?? 0);
 
@@ -158,6 +169,7 @@ class TransparenciaService
                         'observaciones' => $observaciones,
                     ],
                     ipOrigen: $ipOrigen,
+                    plazosSuspendidosPrevios: $plazos,
                 );
 
                 return;
@@ -177,6 +189,8 @@ class TransparenciaService
                 ipOrigen: $ipOrigen,
                 estadoNuevoIdExplicito: $estadoOriginalId,
             );
+
+            $this->transferenciaUnidadService->reanudarPlazos($expediente, $plazos);
         }, 3);
     }
 
@@ -203,6 +217,16 @@ class TransparenciaService
             ->exists();
 
         return $vistoBuenoPosterior ? null : $ultimaSolicitud;
+    }
+
+    /**
+     * Indica si el expediente tiene una solicitud de incompetencia abierta
+     * (espera de VB). Usado por TransferenciaUnidadService::remitir para
+     * bloquear CTR-04 mientras la solicitud siga pendiente (divergencia 1).
+     */
+    public function haySolicitudAbierta(Expediente $expediente): bool
+    {
+        return $this->solicitudAbierta($expediente) !== null;
     }
 
     /**

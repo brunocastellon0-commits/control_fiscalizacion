@@ -5,12 +5,29 @@ namespace App\Http\Requests;
 use App\Models\CatalogoActuado;
 use App\Models\Expediente;
 use App\Services\DescargoFinancieroService;
+use App\Services\EnmiendaService;
+use App\Services\TransferenciaUnidadService;
+use App\Services\TransparenciaService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
 class StoreActuadoRequest extends FormRequest
 {
+    /**
+     * Divergencia 2 (aprobada): los 5 tipos de flujo especializado solo se
+     * emiten por sus endpoints dedicados (CTR-04, CTR-05, CTR-09, CTR-10);
+     * el endpoint genérico los bloquea con 422 (segunda barrera) y
+     * CatalogoActuadoController los excluye del catálogo CTR-03.
+     */
+    public const TIPOS_FLUJO_ESPECIALIZADO = [
+        EnmiendaService::CODIGO_ACTUADO,
+        TransferenciaUnidadService::CODIGO_ACT_REMISION_UNIDAD,
+        TransferenciaUnidadService::CODIGO_ACT_RECEPCION_UNIDAD,
+        TransparenciaService::CODIGO_ACT_SOLICITUD,
+        TransparenciaService::CODIGO_ACT_VB,
+    ];
+
     public function authorize(): bool
     {
         $expediente = $this->expedienteDeRuta();
@@ -44,17 +61,27 @@ class StoreActuadoRequest extends FormRequest
     }
 
     /**
-     * Bloqueo de Salida (RN-09): la emisión de un Informe Final de auditoría
-     * financiera (AC055) a través del endpoint genérico exige que el NUREJ haya
-     * registrado previamente la recepción de descargos. Fallar aquí devuelve
-     * 422 (ValidationException), no 403, para no confundir una restricción de
-     * negocio con una de autorización.
+     * Bloqueos de negocio del endpoint genérico (422, no 403, para no
+     * confundir una restricción de negocio con una de autorización):
+     *
+     * 1. Bloqueo de Salida (RN-09): la emisión de un Informe Final de
+     *    auditoría financiera (AC055) exige que el NUREJ haya registrado
+     *    previamente la recepción de descargos.
+     * 2. Divergencia 2 (aprobada): los 5 tipos de flujo especializado solo
+     *    pueden emitirse por sus endpoints dedicados.
      */
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator) {
             $expediente = $this->expedienteDeRuta();
             $catalogo = CatalogoActuado::find((int) $this->input('catalogo_actuado_id'));
+
+            if ($catalogo !== null && in_array($catalogo->codigo, self::TIPOS_FLUJO_ESPECIALIZADO, true)) {
+                $validator->errors()->add(
+                    'catalogo_actuado_id',
+                    'Este tipo de actuado debe emitirse mediante su endpoint especializado.'
+                );
+            }
 
             if ($expediente !== null
                 && $catalogo !== null

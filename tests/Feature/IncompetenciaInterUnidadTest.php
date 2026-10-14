@@ -133,7 +133,7 @@ function incmpVistoBueno(Expediente $expediente, array $payload = [])
     ], $payload));
 }
 
-it('CTR-10 solicita incompetencia: pasa a EN_EVALUACION guardando el estado original sin congelar relojes ni tocar la bandeja', function () {
+it('CTR-10 solicita incompetencia: pasa a EN_EVALUACION guardando el estado original, congela los relojes y conserva la bandeja', function () {
     $semilla = incmpSemilla($this);
     $expediente = incmpCrearExpediente($semilla['planificacion']->id, $semilla['ac022']->id, $semilla['tecnico']->id);
     incmpAsignar($expediente, $semilla['tecnico']);
@@ -158,12 +158,13 @@ it('CTR-10 solicita incompetencia: pasa a EN_EVALUACION guardando el estado orig
         ->and($solicitud->estado_anterior_id)->toBe($semilla['planificacion']->id)
         ->and($solicitud->estado_nuevo_id)->toBe($semilla['evaluacion']->id)
         ->and($solicitud->contenido['unidad_destino_id'])->toBe($semilla['unidadDestino']->id)
+        ->and($solicitud->contenido['plazos_suspendidos'])->toBe([$plazo->id])
         ->and($solicitud->hash_anterior)->not->toBeNull()
         ->and($solicitud->hash_actuado)->toMatch('/^[0-9a-f]{64}$/');
 
     $plazo->refresh();
-    expect($plazo->estado)->toBe('VIGENTE')
-        ->and($plazo->fecha_pausa)->toBeNull();
+    expect($plazo->estado)->toBe(TransferenciaUnidadService::ESTADO_PLAZO_SUSPENDIDO)
+        ->and($plazo->fecha_pausa)->not->toBeNull();
 
     expect(TransferenciaUnidad::query()->where('expediente_id', $expediente->id)->count())->toBe(0);
 
@@ -184,6 +185,11 @@ it('CTR-10 con VB aprobado congela los relojes, remite a la unidad externa con e
 
     Sanctum::actingAs($semilla['tecnico'], ['*']);
     incmpSolicitar($expediente)->assertOk();
+
+    $plazo->refresh();
+    expect($plazo->estado)->toBe(TransferenciaUnidadService::ESTADO_PLAZO_SUSPENDIDO)
+        ->and($plazo->fecha_pausa)->not->toBeNull();
+
     $solicitud = Actuado::query()
         ->where('expediente_id', $expediente->id)
         ->whereHas('tipoActuado', fn ($query) => $query->where('codigo', TransparenciaService::CODIGO_ACT_SOLICITUD))
@@ -261,6 +267,10 @@ it('CTR-05 tras la incompetencia restaura el estado original pre-solicitud, rean
         ->firstOrFail();
     expect($recepcion->tipo)->toBe('RECEPCION');
 
+    $actuadoRecepcion = $recepcion->actuado;
+    expect($actuadoRecepcion)->not->toBeNull()
+        ->and($actuadoRecepcion->contenido['plazos_reanudados'])->toBe([$plazo->id]);
+
     $plazo->refresh();
     expect($plazo->estado)->toBe(TransferenciaUnidadService::ESTADO_PLAZO_VIGENTE)
         ->and($plazo->fecha_reanudacion)->not->toBeNull()
@@ -272,7 +282,7 @@ it('CTR-05 tras la incompetencia restaura el estado original pre-solicitud, rean
     expect(collect($bandeja->json('data'))->pluck('id'))->toContain($expediente->id);
 });
 
-it('CTR-10 con VB rechazado restaura el estado original sin transferencia ni congelación y permite re-solicitar', function () {
+it('CTR-10 con VB rechazado restaura el estado original, reanuda exactamente los relojes congelados y permite re-solicitar', function () {
     $semilla = incmpSemilla($this);
     $expediente = incmpCrearExpediente($semilla['planificacion']->id, $semilla['ac022']->id, $semilla['tecnico']->id);
     incmpAsignar($expediente, $semilla['tecnico']);
@@ -280,6 +290,14 @@ it('CTR-10 con VB rechazado restaura el estado original sin transferencia ni con
 
     Sanctum::actingAs($semilla['tecnico'], ['*']);
     incmpSolicitar($expediente)->assertOk();
+
+    $plazo->refresh();
+    expect($plazo->estado)->toBe(TransferenciaUnidadService::ESTADO_PLAZO_SUSPENDIDO)
+        ->and($plazo->fecha_pausa)->not->toBeNull();
+
+    $calculadora = app(PlazoCalculatorService::class);
+    $diasRestantes = $calculadora->businessDaysBetween($plazo->fecha_pausa, $plazo->fecha_limite);
+    $fechaLimiteEsperada = $calculadora->calculateDueDate(now(), $diasRestantes);
 
     Sanctum::actingAs($semilla['encargada'], ['*']);
     incmpVistoBueno($expediente, [
@@ -302,11 +320,51 @@ it('CTR-10 con VB rechazado restaura el estado original sin transferencia ni con
     expect(TransferenciaUnidad::query()->where('expediente_id', $expediente->id)->count())->toBe(0);
 
     $plazo->refresh();
-    expect($plazo->estado)->toBe('VIGENTE')
-        ->and($plazo->fecha_pausa)->toBeNull();
+    expect($plazo->estado)->toBe(TransferenciaUnidadService::ESTADO_PLAZO_VIGENTE)
+        ->and($plazo->fecha_reanudacion)->not->toBeNull()
+        ->and($plazo->fecha_pausa)->not->toBeNull()
+        ->and($plazo->fecha_limite->format('Y-m-d'))->toBe($fechaLimiteEsperada->format('Y-m-d'));
+
+    $pausaPrevia = $plazo->fecha_pausa;
 
     Sanctum::actingAs($semilla['tecnico'], ['*']);
     incmpSolicitar($expediente)->assertOk()->assertJson(['estado' => 'EN_EVALUACION']);
+
+    $plazo->refresh();
+    expect($plazo->estado)->toBe(TransferenciaUnidadService::ESTADO_PLAZO_SUSPENDIDO)
+        ->and($plazo->fecha_pausa->greaterThanOrEqualTo($pausaPrevia))->toBeTrue();
+});
+
+it('CTR-04 responde 422 mientras la solicitud de incompetencia siga abierta y vuelve a ser remitible tras el VB', function () {
+    $semilla = incmpSemilla($this);
+    $expediente = incmpCrearExpediente($semilla['planificacion']->id, $semilla['ac022']->id, $semilla['tecnico']->id);
+    incmpAsignar($expediente, $semilla['tecnico']);
+    $plazo = incmpAbrirPlazo($expediente);
+
+    Sanctum::actingAs($semilla['tecnico'], ['*']);
+    incmpSolicitar($expediente)->assertOk();
+
+    Sanctum::actingAs($semilla['encargada'], ['*']);
+    $this->postJson("/api/expedientes/{$expediente->id}/remitir-unidad", [
+        'unidad_id' => $semilla['unidadDestino']->id,
+        'motivo' => 'Remisión directa mientras la solicitud de incompetencia aguarda visto bueno.',
+    ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('expediente');
+
+    expect(TransferenciaUnidad::query()->where('expediente_id', $expediente->id)->count())->toBe(0);
+
+    $plazo->refresh();
+    expect($plazo->estado)->toBe(TransferenciaUnidadService::ESTADO_PLAZO_SUSPENDIDO);
+
+    incmpVistoBueno($expediente, ['aprobado' => false])->assertOk();
+
+    $this->postJson("/api/expedientes/{$expediente->id}/remitir-unidad", [
+        'unidad_id' => $semilla['unidadDestino']->id,
+        'motivo' => 'Remisión directa tras resolverse la solicitud de incompetencia por rechazo.',
+    ])->assertCreated();
+
+    expect($expediente->refresh()->estado_actual_id)->toBe($semilla['remitidoUnidad']->id);
 });
 
 it('CTR-10 devuelve 403 según rol y estado: solicitar es del operador asignado y el VB solo de la Encargada', function () {

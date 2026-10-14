@@ -21,6 +21,14 @@ class ExpedientePolicy
             return false;
         }
 
+        // B2.3 (RF-03): una causa remitida a unidad externa es de solo
+        // lectura; ningún rol (incluida la Encargada) emite actuados mientras
+        // permanezca en REMITIDO_UNIDAD_EXTERNA. También cubre la enmienda
+        // (CTR-09), que autoriza por esta misma ability.
+        if ($expediente->estadoActual?->codigo === TransferenciaUnidadService::ESTADO_REMITIDO_UNIDAD_EXTERNA) {
+            return false;
+        }
+
         $esRolDelCatalogo = $catalogoActuado->perteneceAlRolConReglamento(
             rolId: $user->rol_id,
             reglamentoId: $expediente->reglamento_id,

@@ -72,6 +72,8 @@ class ExpedienteController extends Controller
      */
     public function bandejaOperador(Request $request): AnonymousResourceCollection
     {
+        $this->authorize('operadorBandeja', Expediente::class);
+
         return ExpedienteResource::collection(
             Expediente::whereHas('asignacionActiva', fn ($q) => $q->where('usuario_id', $request->user()->id))
                 ->whereDoesntHave('estadoActual', fn ($q) => $q->where('codigo', TransferenciaUnidadService::ESTADO_REMITIDO_UNIDAD_EXTERNA))
