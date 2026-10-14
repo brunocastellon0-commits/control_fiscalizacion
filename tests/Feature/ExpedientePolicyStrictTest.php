@@ -269,3 +269,34 @@ it('delega la lectura del actuado en la politica del expediente contenedor sin b
         ->and($admin->can('view', $actuado))->toBeFalse()
         ->and($operadorAjeno->can('view', $actuado))->toBeFalse();
 });
+
+it('bloquea el sorteo individual y en lote a una Encargada inactiva aunque su token sea valido', function () {
+    $semilla = b23SemillaStrict();
+
+    $encargadaInactiva = Usuario::factory()->create([
+        'rol_id' => $semilla['rolEncargada']->id,
+        'activo' => false,
+    ]);
+
+    $expediente = b23CrearExpedienteStrict($semilla['evaluacion']->id, $semilla['operador']->id);
+
+    Sanctum::actingAs($encargadaInactiva, ['*']);
+
+    $this->postJson('/api/expedientes/'.$expediente->id.'/sortear', [])->assertForbidden();
+
+    $this->postJson('/api/bandeja/sorteo/todos')->assertForbidden();
+
+    $this->getJson('/api/bandeja/sorteo')->assertForbidden();
+});
+
+it('bloquea la apertura de causas a un tecnico inactivo aunque su token sea valido', function () {
+    $rolTecnico = Rol::factory()->create(['codigo' => Rol::CODIGO_TECNICO]);
+    $tecnicoInactivo = Usuario::factory()->create([
+        'rol_id' => $rolTecnico->id,
+        'activo' => false,
+    ]);
+
+    Sanctum::actingAs($tecnicoInactivo, ['*']);
+
+    $this->postJson('/api/expedientes', [])->assertForbidden();
+});

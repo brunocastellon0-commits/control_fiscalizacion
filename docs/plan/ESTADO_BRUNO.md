@@ -1,6 +1,6 @@
 # ESTADO — BRUNO (Dominio, Seguridad y Datos)
 
-> **Archivo de retomado entre chats.** Actualizado 2026-10-12. Reemplaza la
+> **Archivo de retomado entre chats.** Actualizado 2026-10-14. Reemplaza la
 > lectura completa de `PROGRESO.md`, `TAREAS_BRUNO.md` y `COORDINACION.md`.
 > Contexto completo y reglas de propiedad: `docs/plan/CONTEXTO_BRUNO.md`.
 
@@ -18,26 +18,27 @@
 - **Cerradas y commiteadas:** B2.0, B0.1, B0.3, B0.8, B3.3, B1.8, B1.1, B1.2,
   B1.3, B1.4, B1.5, B1.6.
 - **Cerradas pero SIN commitear** (diffs en el working tree): **B1.7, B2.1,
-  B2.2** (+ `docs/plan/DIVERGENCIAS.md` sin trackear).
+  B2.2, B2.3** (+ `docs/plan/DIVERGENCIAS.md` sin trackear).
+- **B2.3 (2026-10-14):** decisión del usuario **A** — sin middlewares `can:`
+  masivos; autorización vía FormRequest/`$this->authorize()`. Auditoría de las
+  33 rutas de `core.php`/`operativo.php` + 3 huecos corregidos (sorteo
+  individual, sorteo lote y apertura sin check de `activo`; fixes en
+  `ExpedienteController` y `StoreExpedienteRequest`) + 3 tests nuevos en
+  `ExpedientePolicyStrictTest`.
 - **Pendientes en orden de dependencias:**
-  1. Sprint 3: `B2.3` (Policies por asignación activa) → `B3.2` (naturaleza de
-     causa) → `B2.6` (CTR-06/CTR-07).
+  1. Sprint 3: `B3.2` (naturaleza de causa) → `B2.6` (CTR-06/CTR-07).
   2. Sprint 4: `B2.5` (guard inmutabilidad Actuado) → `B2.4` (auditoría
      append-only) → `B5.0` (9 reportes CTR-08 + ReportePolicy).
   3. Sprint 5: `B8.1`…`B8.7` (tests de dominio) → `B8.8` (cobertura > 40%).
 
-## 3. Baseline de tests (verificado 2026-10-12)
+## 3. Baseline de tests (verificado 2026-10-14)
 
-`php artisan test --compact` → **402 tests · 395 OK · 0 fallos · 7 omitidos ·
-2193 aserciones**. Cualquier tarea nueva parte de aquí y debe cerrar en 0 fallos.
+`php artisan test --compact` → **419 tests · 412 OK · 0 fallos · 7 omitidos ·
+2260 aserciones**. Cualquier tarea nueva parte de aquí y debe cerrar en 0 fallos.
 Formato: `vendor/bin/pint --dirty --format agent`.
 
 ## 4. Decisiones y bloqueos abiertos
 
-- **`docs/plan/DIVERGENCIAS.md` §7 — 3 decisiones sin aprobar** (correcciones de
-  B2.2: congelar plazos al solicitar incompetencia, bloquear CTR-04 durante
-  espera de VB, hacer públicos `congelarPlazos`/`reanudarPlazos`). Plan listo,
-  no ejecutado.
 - **B8.8 bloqueada por Brayan:** `app/Services/CatalogoCacheService.php` (B7.2)
   no existe en el repo.
 - **B8.3 desbloqueada:** `FeriadoSeeder` y `ParametroPlazoSeeder` ya existen.

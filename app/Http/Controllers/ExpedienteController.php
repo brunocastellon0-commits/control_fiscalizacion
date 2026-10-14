@@ -100,6 +100,10 @@ class ExpedienteController extends Controller
      */
     public function sortear(SortearExpedienteRequest $request, Expediente $expediente): JsonResponse
     {
+        // B2.3: defensa en profundidad — el FormRequest solo chequea el rol;
+        // la policy exige además usuario activo (estándar del sistema).
+        $this->authorize('bandejaSorteo', Expediente::class);
+
         $this->expedienteService->ejecutarSorteo(
             expediente: $expediente,
             encargada: $request->user(),
@@ -120,6 +124,10 @@ class ExpedienteController extends Controller
      */
     public function sortearTodos(SortearTodosRequest $request): JsonResponse
     {
+        // B2.3: defensa en profundidad — el FormRequest solo chequea el rol;
+        // la policy exige además usuario activo (estándar del sistema).
+        $this->authorize('bandejaSorteo', Expediente::class);
+
         $resultados = $this->expedienteService->sortearTodas(
             encargada: $request->user(),
             ipOrigen: $request->ip(),
