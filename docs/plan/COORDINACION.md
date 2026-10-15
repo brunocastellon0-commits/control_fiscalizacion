@@ -167,6 +167,53 @@ Para evitar que cambios masivos invaliden ramas paralelas, se establece una secu
        - Parciales Blade: `resources/views/expedientes/detalle/*.blade.php`, `resources/views/layouts/sidebar.blade.php`, `resources/views/layouts/notificaciones.blade.php`, `resources/views/layouts/buscador.blade.php`, vistas de reportes `resources/views/reportes/*.blade.php`, `resources/views/expedientes/caratula-pdf.blade.php`.
        - Tests unitarios y feature nuevos correspondientes a cada tarea (`tests/Unit/ModelSecurityTest.php`, `tests/Feature/TimezoneBoliviaTest.php`, etc.).
 
+### 5.4 B3.2 — Naturaleza de causa (EN CURSO, no mergeada)
+
+**Estado (verificado 2026-10-15):** la tarea B3.2 está **en curso** en la rama
+`bruno`; su implementación **no está commiteada ni mergeada**. **La suite de
+tests NO se ha ejecutado tras los cambios de B3.2** — no hay resultados de
+tests que reportar para este trabajo; cualquier resultado nuevo se compartirá
+cuando se corra la suite completa.
+
+**Hechos verificados:**
+
+1. **Concepto nuevo:** los expedientes incorporan `naturaleza` ∈
+   {`JURISDICCIONAL`, `ADMINISTRATIVA`} como propiedad del expediente
+   (RN-05 / AUD-0024), **distinta de `via`** y no derivable de ella.
+2. **Migración:** `database/migrations/2026_10_14_154521_add_naturaleza_to_expedientes_table.php`
+   existe en el working tree (sin trackear). Estado en la BD local
+   (`php artisan migrate:status`): **`Pending` — NO ejecutada**. La columna es
+   `nullable` de forma transitoria: **no existe backfill** (ni automático ni
+   manual) de expedientes históricos y **no se define ningún valor por
+   defecto**. Mientras la migración siga Pending, el esquema de la BD no
+   cambió.
+3. **Aperturas HTTP nuevas:** `POST /api/expedientes` exige `naturaleza`
+   presente y válida (`StoreExpedienteRequest`) → sin ella la respuesta es
+   `422`. La tarea **B3.5** (selector en `apertura.blade.php`, de Brayan)
+   deberá enviarla en el payload para que la apertura tenga éxito.
+4. **Expedientes históricos y NUREJ hijos:** pueden permanecer en `NULL` hasta
+   que se resuelvan las decisiones institucionales sobre su clasificación.
+5. **Reloj de ejecución:** no se abre un plazo `EJECUCION` si el expediente no
+   tiene naturaleza ni fecha límite explícita (rechazo `422`). Los flujos con
+   fecha límite explícita (MPA de auditorías, AC054/055) **no dependen del
+   subtipo y conservan su comportamiento actual**.
+
+**Implicaciones para el trabajo de Brayan:**
+
+- **Seeders y fixtures — PENDIENTE DE COORDINACIÓN:** los seeders que llaman
+  `ExpedienteService::aperturaCausa()` sin la clave `naturaleza`
+  (`ExpedienteDemoSeeder` — propiedad de Brayan —, `ExpedienteDemoSorteoSeeder`
+  y `ExpedienteMasaSorteoSeeder`) **no están resueltos**. Las opciones en
+  discusión (tolerancia en el servicio vs. edición de los seeders) **no están
+  implementadas ni decididas**: no se modificó ningún archivo de Brayan y
+  cualquier cambio en este punto exige coordinación explícita previa.
+- Cualquier fixture o test — propio o ajeno — que abra un reloj `EJECUCION`
+  sobre un expediente deberá asignarle `naturaleza`.
+- **UI que muestre la naturaleza:** requiere coordinar el contrato de
+  `app/Http/Resources/ExpedienteResource.php`, que **no se modifica** en B3.2.
+- Hitos futuros que exigirán coordinación: commit/merge de B3.2, ejecución de
+  la migración, clasificación de hijos NUREJ y contrato de lectura del campo.
+
 ---
 
 ## 6. MATRIZ DE CONTRATOS ENTRE DESARROLLADORES
