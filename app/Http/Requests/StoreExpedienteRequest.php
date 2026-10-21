@@ -24,6 +24,10 @@ class StoreExpedienteRequest extends FormRequest
     {
         return [
             'via' => ['required', 'string', Rule::in(['TECNICO', 'JURIDICO', 'FINANCIERO'])],
+            'naturaleza' => ['required', 'string', Rule::in([
+                Expediente::NATURALEZA_JURISDICCIONAL,
+                Expediente::NATURALEZA_ADMINISTRATIVA,
+            ])],
             'reglamento_id' => ['required', 'integer', 'exists:reglamentos,id'],
             'resumen_hechos' => ['required', 'string', 'min:10', 'max:5000'],
             'partes' => ['required', 'array', 'min:1'],

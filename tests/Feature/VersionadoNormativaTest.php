@@ -113,6 +113,7 @@ it('la creación de expedientes e hijos sigue funcionando con reglamento_id', fu
 
     $apertura = app(ExpedienteService::class)->aperturaCausa([
         'via' => 'TECNICO',
+        'naturaleza' => 'JURISDICCIONAL',
         'reglamento_id' => $semilla['reglamentoOrigen']->id,
         'resumen_hechos' => 'Apertura bajo RN-06.',
     ], $semilla['tecnico']);

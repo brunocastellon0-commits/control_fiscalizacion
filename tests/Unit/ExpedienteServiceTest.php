@@ -53,6 +53,7 @@ it('abre una causa registrando expediente, actuado y partes sin asignar bandeja'
 
         $expediente = app(ExpedienteService::class)->aperturaCausa([
             'via' => 'TECNICO',
+            'naturaleza' => 'JURISDICCIONAL',
             'reglamento_id' => $reglamento->id,
             'resumen_hechos' => 'Hechos denunciados.',
             'partes' => [
@@ -105,6 +106,7 @@ it('revierte toda la apertura si falla el registro del actuado', function () {
 
     expect(fn () => $service->aperturaCausa([
         'via' => 'TECNICO',
+        'naturaleza' => 'JURISDICCIONAL',
         'reglamento_id' => $reglamento->id,
         'partes' => [
             ['tipo' => 'DENUNCIANTE', 'nombre_completo' => 'Juan Pérez'],

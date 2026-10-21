@@ -65,6 +65,7 @@ function paso7PayloadApertura(int $reglamentoId): array
 {
     return [
         'via' => 'TECNICO',
+        'naturaleza' => 'JURISDICCIONAL',
         'reglamento_id' => $reglamentoId,
         'resumen_hechos' => 'Hechos denunciados ante la autoridad municipal.',
         'partes' => [

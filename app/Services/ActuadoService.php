@@ -357,6 +357,21 @@ class ActuadoService
             return;
         }
 
+        // B3.2 (RN-05 / AUD-0024): el subtipo del reloj de ejecución se
+        // deriva de la naturaleza del expediente. Un expediente sin
+        // naturaleza (histórico o NUREJ hijo pendiente de decisión
+        // institucional) no puede abrir EJECUCION con días parametrizados:
+        // se rechaza con 422 en lugar de asumir 10/15 días en silencio.
+        // El camino con fecha límite explícita (MPA de auditorías, AC054/055)
+        // no depende del subtipo y no se bloquea.
+        if ($tipoPlazo === 'EJECUCION'
+            && $expediente->naturaleza === null
+            && $fechaLimiteExplicita === null) {
+            throw ValidationException::withMessages([
+                'naturaleza' => 'El expediente no tiene naturaleza asignada; no es posible abrir el reloj de ejecución (B3.2).',
+            ]);
+        }
+
         $subtipo = $tipoPlazo === 'EJECUCION'
             ? $this->resolveSubtipoEjecucion($expediente)
             : null;
@@ -439,12 +454,16 @@ class ActuadoService
     }
 
     /**
-     * Resuelve el subtipo base del plazo de ejecución: JURISDICCIONAL (10 días
-     * hábiles) para todos los acuerdos. La ampliación de plazo (ADMINISTRATIVA,
-     * 15 días) es una historia futura y no se aplica en este reloj.
+     * Resuelve el subtipo del plazo de ejecución a partir de la naturaleza
+     * del expediente (B3.2, RN-05): JURISDICCIONAL (10 días hábiles) o
+     * ADMINISTRATIVA (15 en AC022). Puede ser null solo en el camino con
+     * fecha límite explícita (MPA), donde el subtipo no interviene — el
+     * caller (`abrirPlazoSiAplica`) ya bloquea con 422 el caso null sin
+     * fecha explícita. La ampliación (+5, ambas naturalezas) usa
+     * EJECUCION_AMPLIADA sin subtipo.
      */
-    protected function resolveSubtipoEjecucion(Expediente $expediente): string
+    protected function resolveSubtipoEjecucion(Expediente $expediente): ?string
     {
-        return 'JURISDICCIONAL';
+        return $expediente->naturaleza;
     }
 }

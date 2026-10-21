@@ -36,7 +36,7 @@ class ExpedienteService
      * cualquier intento de modificarlo posteriormente lo bloquea el guard de
      * `Expediente::updating()`.
      *
-     * @param  array{via: string, reglamento_id: int, resumen_hechos?: string|null, partes?: array<int, array{tipo: string, nombre_completo: string, documento_identidad?: string|null, cargo_institucion?: string|null}>}  $datos
+     * @param  array{via: string, naturaleza: string, reglamento_id: int, resumen_hechos?: string|null, partes?: array<int, array{tipo: string, nombre_completo: string, documento_identidad?: string|null, cargo_institucion?: string|null}>}  $datos
      */
     public function aperturaCausa(
         array $datos,
@@ -53,6 +53,7 @@ class ExpedienteService
             $expediente = Expediente::forceCreate([
                 'nurej_code' => $nurejCode,
                 'via' => $datos['via'],
+                'naturaleza' => $datos['naturaleza'],
                 'reglamento_id' => $datos['reglamento_id'],
                 'estado_actual_id' => $estadoPendiente->id,
                 'resumen_hechos' => $datos['resumen_hechos'] ?? null,
