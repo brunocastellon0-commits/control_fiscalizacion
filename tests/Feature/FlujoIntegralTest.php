@@ -79,6 +79,7 @@ function fiPayloadApertura(int $reglamentoId): array
 {
     return [
         'via' => 'FINANCIERO',
+        'naturaleza' => 'JURISDICCIONAL',
         'reglamento_id' => $reglamentoId,
         'resumen_hechos' => 'Desvío de fondos denunciado en la unidad de fiscalización.',
         'partes' => [

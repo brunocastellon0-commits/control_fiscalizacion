@@ -98,6 +98,7 @@ function relojProcesualCrearExpediente(int $estadoId, int $creadorId, int $regla
     return Expediente::create([
         'nurej_code' => 'EXP-'.fake()->unique()->numberBetween(10000, 99999),
         'via' => 'TECNICO',
+        'naturaleza' => Expediente::NATURALEZA_JURISDICCIONAL,
         'reglamento_id' => $reglamentoId,
         'estado_actual_id' => $estadoId,
         'fecha_ingreso' => now(),

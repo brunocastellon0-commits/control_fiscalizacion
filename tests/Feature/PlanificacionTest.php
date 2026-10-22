@@ -130,6 +130,7 @@ function planificacionCrearExpediente(int $estadoId, int $reglamentoId, string $
     return Expediente::create([
         'nurej_code' => 'EXP-'.fake()->unique()->numberBetween(100000, 999999),
         'via' => $via,
+        'naturaleza' => Expediente::NATURALEZA_JURISDICCIONAL,
         'reglamento_id' => $reglamentoId,
         'estado_actual_id' => $estadoId,
         'fecha_ingreso' => now(),
@@ -213,6 +214,7 @@ it('el Técnico de AC022 carga el Cronograma y pasa a PENDIENTE_VISTO_BUENO, cer
 });
 
 it('el Auditor Jurídico de AC054 carga el MPA con la fecha límite dinámica en metadatos', function () {
+    Carbon::setTestNow('2026-09-10 10:00:00');
     Storage::fake('local');
 
     $semilla = planificacionSemilla();
@@ -239,6 +241,8 @@ it('el Auditor Jurídico de AC054 carga el MPA con la fecha límite dinámica en
         ->and($asignacionActiva->usuario_id)->toBe($semilla['encargada']->id);
 
     expect($actuado->contenido[PlanificacionService::METADATO_FECHA_LIMITE])->toBe('2026-10-15');
+
+    Carbon::setTestNow();
 });
 
 it('devuelve 403 si un operador sin bandeja activa intenta cargar la planificación', function () {
@@ -371,6 +375,7 @@ it('el Visto Bueno sobre Cronograma pasa a EN_EJECUCION con 10 días hábiles y 
 });
 
 it('el Visto Bueno sobre MPA abre EJECUCION con la fecha límite dinámica exacta', function () {
+    Carbon::setTestNow('2026-09-10 10:00:00');
     Storage::fake('local');
 
     $semilla = planificacionSemilla();
@@ -405,6 +410,8 @@ it('el Visto Bueno sobre MPA abre EJECUCION con la fecha límite dinámica exact
         ->and($plazoEjecucion->fecha_limite->toDateString())->toBe('2026-10-15')
         ->and($plazoEjecucion->dias_habiles_otorgados)->toBe(0)
         ->and($plazoEjecucion->parametro_plazo_id)->toBeNull();
+
+    Carbon::setTestNow();
 });
 
 it('devuelve 403 si un operador intenta emitir el Visto Bueno', function () {
