@@ -51,7 +51,7 @@ Estas son las reglas del SRS oficial y criterios de auditoría que rigen estrict
 | **RF-02** | *Actuado de Enmienda:* Interfaz modal para enmendar datos caratulados o procesales (CTR-09), mostrando el dato anterior y capturando el nuevo dato para auditoría. | B4.2 |
 | **RF-03 / RNF-01** | *Compartimentos Estancos y Búsqueda Segura:* Operadores solo ven y actúan sobre expedientes asignados a su bandeja activa (los usuarios no pertenecen a una unidad). Administrador bloqueado (HTTP 403) de ver expedientes, actuaciones o reportes. | B0.10, B4.7, B8.11 |
 | **RF-05** | *Transferencia Inter-Unidad:* Modal exclusivo de la Encargada para registrar remisión física (CTR-04) y recepción física (CTR-05) con respaldo documental. | B4.9 |
-| **RF-06** | *Bandeja de la Encargada:* Pantalla de supervisión donde la Encargada identifica causas pendientes de visto bueno, ampliaciones, impugnaciones o derivaciones. | B4.3 |
+| **RF-06** | *Bandeja de la Encargada:* Pantalla de supervisión donde la Encargada identifica causas pendientes de visto bueno, ampliaciones, impugnaciones o derivaciones, y devoluciones informativas en espera de subsanación. | B4.3 |
 | **RF-R01…R09** | *9 Reportes Normativos del SRS:* Emisión en pantalla interactiva (B5.1) y exportación fiel a Excel (`.xlsx`) y PDF (`.pdf`) (B5.2), consumiendo datos de Bruno en `routes/api/core.php` (CTR-08). Ocultos para el rol ADMIN (`ReportePolicy`). | B5.1, B5.2, B8.10 |
 | **Criterio Auditoría** | *Notificaciones In-App:* Sistema de alertas visuales en campana superior sobre plazos en riesgo (<= 2 días hábiles) sin requerir correo electrónico. | B3.4 |
 | **RNF-03** | *Rendimiento y Paginación:* Cero llamadas a `->get()` en listados masivos; paginación server-side estándar con `LengthAwarePaginator` y consultas SQL agregadas en dashboards. | B0.5, B7.1, B7.3 |
@@ -226,11 +226,18 @@ En las tareas B5.1 (pantallas), B5.2 (exportación Excel/PDF), B5.3 (carátula) 
 | **CTR-03** | `GET /api/catalogo/actuados?expediente_id={e}` | `[{id, codigo, nombre, requiere_adjunto}]` | Filtrar array estático de `CatalogoActuadoSeeder`. |
 | **CTR-04** | `POST /api/expedientes/{e}/remitir-unidad` | `{unidad_id, motivo, adjunto?}` | Retornar `{ok: true, transferencia_id: 1, estado: 'REMITIDO_UNIDAD_EXTERNA'}`. |
 | **CTR-05** | `POST /api/expedientes/{e}/registrar-recepcion` | `{unidad_origen_id, motivo, adjunto?}` | Retornar `{ok: true, estado: 'EN_EVALUACION'\|'EN_PLANIFICACION'}`. |
-| **CTR-06** | `GET /api/expedientes/buscar?q={query}` | `[{id, nurej_code, via, estado}]` | Retornar coincidencias de causas asignadas al usuario. |
-| **CTR-07** | `GET /api/encargada/bandeja-supervision` | Paginator con `{data: [{nurej, plazo_restante}]}` | Paginator mock con 5 registros de prueba. |
+| **CTR-06** | `GET /api/expedientes/buscar?q={query}&page={page}` | Paginator `{data: [{id, nurej_code, via, estado, asignado_a}], meta, links}`; **20 por página**. Operador: solo asignación activa y excluye `REMITIDO_UNIDAD_EXTERNA`; Encargada: todos los estados; ADMIN: `403`. | Mock con paginador de 20 y reglas por rol. **Contrato pendiente de implementación (B2.6).** |
+| **CTR-07** | `GET /api/encargada/bandeja-supervision?categoria={categoria}&page={page}` | Paginator `{data: [{nurej, partes, plazo_restante, accion_pendiente, expediente_id, actuado_id, categoria, requiere_accion}], meta, links}`; **15 por página**. Categorías: `cronogramas`, `mpa`, `informes_finales`, `impugnaciones`, `ampliaciones`, `incompetencias`, `recepciones_unidad`, `devoluciones`. `devoluciones` son informativas (`requiere_accion = false`). | Mock de 5–15 registros por categoría; separar acciones directas de devoluciones informativas. **Pendiente de implementación.** |
+| **CTR-06-H** | `GET /api/encargada/expedientes?tecnico_id={id}&page={page}` | Paginator con expedientes del historial de `asignaciones` (activas e inactivas), incluidos concluidos y remitidos. Solo Encargada activa. | Mock de historial por técnico. **Extensión pendiente de implementación.** |
 | **CTR-08** | `GET /api/reportes/{codigo}` (en `core.php`) | `{meta, filtros_aplicados, data: [...]}` | Array de filas tabulares acordes al reporte R01..R09 (ADMIN 403). |
 | **CTR-09** | `POST /api/expedientes/{e}/enmienda` | `{campo_modificado, valor_nuevo, motivo}` | Retornar `{ok: true, actuado_enmienda_id: 1}`. |
 | **CTR-10** | `POST /api/expedientes/{e}/incompetencia/solicitar` y `.../visto-bueno` | Solicitud y VB Encargada | Retornar `{ok: true, estado: 'REMITIDO_UNIDAD_EXTERNA'}`. |
+
+> **Importante (2026-10-22):** B2.6 **no está implementado**. Los contratos CTR-06,
+> CTR-07 y CTR-06-H son acuerdos de diseño; los endpoints todavía no existen.
+> Brayan debe desarrollar con mocks y no asumir disponibilidad hasta que Bruno
+> publique la implementación. CTR-06 cambió de array a paginador y CTR-07
+> incorpora campos adicionales.
 
 ---
 
