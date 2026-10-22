@@ -384,7 +384,7 @@
 - **ID:** B4.3
 - **Título:** Bandeja operativa de control y pendientes para rol Encargada
 - **Referencia Auditoría:** AUD-0006 (P0), AUD-0028 (P1) / Contrato CTR-07
-- **Descripción:** Construir la vista `resources/views/encargada/bandeja-supervision.blade.php` y su controlador web en `app/Http/Controllers/Encargada/EncargadaBandejaController.php`. Consume el endpoint CTR-07 agrupando causas pendientes de acción directa de la Encargada (Visto Bueno de planificaciones, ampliaciones por resolver, impugnaciones recibidas, informes finales para visto bueno y causas por derivar), mostrando semáforo de urgencia, días restantes y enlace directo a la acción.
+- **Descripción:** Construir la vista `resources/views/encargada/bandeja-supervision.blade.php` y su controlador web en `app/Http/Controllers/Encargada/EncargadaBandejaController.php`. Consume el endpoint CTR-07 agrupando causas pendientes de acción directa de la Encargada (Visto Bueno de planificaciones, ampliaciones por resolver, impugnaciones recibidas, informes finales para visto bueno y causas por derivar), mostrando semáforo de urgencia, días restantes y enlace directo a la acción. El contrato entrega paginación de 15 y el flag `requiere_accion`: las `devoluciones` son informativas (`requiere_accion = false`, "Esperando subsanación del técnico") y no deben presentarse como tareas de acción directa. Mientras B2.6 no esté implementado, usar el mock del contrato.
 - **Documentos a leer:**
   - `docs/auditoria/FLUJO_ENCARGADA.md` (§2 "VB flow").
   - [COORDINACION.md](COORDINACION.md) (§6 Contrato CTR-07).
@@ -398,10 +398,11 @@
   - `app/Http/Controllers/Encargada/EncargadaSupervisionController.php` (API backend de Bruno).
 - **Dependencias:**
   - De sí mismo: B0.10 mergeado.
-  - De Bruno: Bruno proporciona el contrato CTR-07 en el backend (Tarea B2.6 en Sprint 3).
+  - De Bruno: contrato CTR-07 aprobado; endpoint **pendiente de implementación** (B2.6 no implementado). Desarrollar con mock.
 - **Horas Estimadas:** 5 h
 - **Criterios de Aceptación:**
   - La Encargada cuenta con una bandeja de trabajo donde identifica con un clic sus tareas procesales pendientes.
+  - La bandeja distingue acciones directas de devoluciones informativas (`requiere_accion = false`) y respeta la paginación de 15.
 - **Rama Sugerida:** `brayan/B4.3-bandeja-encargada-supervision`
 
 ---
@@ -455,7 +456,7 @@
 - **ID:** B4.7
 - **Título:** Componente de búsqueda rápida por NUREJ en layout superior
 - **Referencia Auditoría:** AUD-0004, AUD-0067 (P1) / RF-03 / Contrato CTR-06
-- **Descripción:** Implementar el campo de búsqueda global en `resources/views/layouts/buscador.blade.php` con sugerencias dinámicas (`Alpine.js`). Consume el endpoint CTR-06 buscando por prefijo de NUREJ respetando rigurosamente los compartimentos de asignación del usuario.
+- **Descripción:** Implementar el campo de búsqueda global en `resources/views/layouts/buscador.blade.php` con sugerencias dinámicas (`Alpine.js`). Consume el endpoint CTR-06 buscando por prefijo de NUREJ respetando rigurosamente los compartimentos de asignación del usuario. El contrato devuelve un paginador de **20 por página**: la UI debe manejar `page` y `meta/links`; para operadores solo aparecen causas con asignación activa y se excluyen las remitidas a unidad externa, mientras la Encargada ve todos los estados. Mientras B2.6 no esté implementado, usar el mock del contrato.
 - **Documentos a leer:**
   - `docs/auditoria/SRS_EXTRAIDO.txt` (RF-03).
   - [COORDINACION.md](COORDINACION.md) (§6 Contrato CTR-06).
@@ -466,10 +467,11 @@
   - `app/Http/Controllers/ExpedienteBusquedaController.php` (backend de Bruno).
 - **Dependencias:**
   - De sí mismo: B0.10 mergeado.
-  - De Bruno: Bruno implementa el endpoint CTR-06 con restricciones de política en B2.6 (Sprint 3).
+  - De Bruno: contrato CTR-06 aprobado; endpoint **pendiente de implementación** (B2.6 no implementado). Desarrollar con mock.
 - **Horas Estimadas:** 2 h
 - **Criterios de Aceptación:**
   - Al ingresar 3 caracteres del NUREJ se despliegan coincidencias inmediatas autorizadas.
+  - La UI maneja la paginación de 20 (`page`, `meta/links`) y no asume que el endpoint ya existe.
 - **Rama Sugerida:** `brayan/B4.7-busqueda-nurej-ui`
 
 ---

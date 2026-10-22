@@ -220,6 +220,22 @@ cuando se corra la suite completa.
 
 Bruno verificará y mantendrá operativos los siguientes contratos en el backend antes de que Brayan proceda a integrar la UI final:
 
+### 6.1 Estado de implementación (2026-10-22)
+
+- **B3.2 cerrado:** naturaleza de causa (`JURISDICCIONAL`/`ADMINISTRATIVA`)
+  implementada y verificada. Suite completa:
+  **426 tests · 419 OK · 7 omitidos · 0 fallos · 2 285 aserciones**.
+- **Corrección de tests:** los dos fallos de `PlanificacionTest` por fecha fija
+  se corrigieron con reloj controlado
+  (`Carbon::setTestNow('2026-09-10 10:00:00')` / `Carbon::setTestNow()`).
+- **B2.6 NO implementado:** los endpoints CTR-06, CTR-07 y la extensión
+  CTR-06-H son **acuerdos de diseño**; todavía no existen en el backend.
+  Brayan debe desarrollar con mocks y no asumir que responden.
+- **Cambios de contrato que Brayan debe considerar:**
+  - CTR-06 pasa de array simple a **paginador de 20**.
+  - CTR-07 incorpora campos adicionales y distingue acciones directas de
+    devoluciones informativas mediante `requiere_accion`.
+
 | ID Contrato | Funcionalidad | Método y Endpoint | Request Payload | Response Esperada | Dueño Backend | Dueño Frontend |
 |---|---|---|---|---|---|---|
 | **CTR-01** | Checklist Requisitos (RF-04) | `GET /api/expedientes/{e}/requisitos` | Query: ninguno | `200 OK`: `[{id, codigo, nombre, es_critico, cumplido}]` | Bruno (B1.1) | Brayan (B4.1) |
@@ -227,8 +243,9 @@ Bruno verificará y mantendrá operativos los siguientes contratos en el backend
 | **CTR-03** | Catálogo Actuados Contextualizado | `GET /api/catalogo/actuados?expediente_id={e}` | Query: `expediente_id` | `200 OK`: `[{id, codigo, nombre, requiere_adjunto, estado_destino}]` | Bruno (B1.1) | Brayan (B4.5) |
 | **CTR-04** | Remisión a Unidad Externa | `POST /api/expedientes/{e}/remitir-unidad` | `{unidad_id: int, motivo: string, adjunto?: file}` | `201 Created`: `{transferencia_id, estado: REMITIDO_UNIDAD_EXTERNA}` (guarda `estado_previo_id`) | Bruno (B2.1) | Brayan (B4.9) |
 | **CTR-05** | Registrar Recepción de Unidad | `POST /api/expedientes/{e}/registrar-recepcion` | `{unidad_origen_id: int, motivo: string, adjunto?: file}` | `200 OK`: `{estado: 'EN_EVALUACION'\|'EN_PLANIFICACION'}` (restaura `estado_previo_id`) | Bruno (B2.1) | Brayan (B4.9) |
-| **CTR-06** | Búsqueda NUREJ Avanzada | `GET /api/expedientes/buscar?q={query}` | Query: `q` (mín. 3 caracteres) | `200 OK`: `[{id, nurej_code, via, estado, asignado_a}]` (respetando asignación activa) | Bruno (B2.6) | Brayan (B4.7) |
-| **CTR-07** | Bandeja Supervisión Encargada | `GET /api/encargada/bandeja-supervision` | Query: `categoria, page` | `200 OK`: Paginator `{data: [{nurej, partes, plazo_restante, accion_pendiente}]}` | Bruno (B2.6) | Brayan (B4.3) |
+| **CTR-06** | Búsqueda NUREJ Avanzada | `GET /api/expedientes/buscar?q={query}&page={page}` | Query: `q` (mín. 3 caracteres), `page` opcional | `200 OK`: Paginator `{data: [{id, nurej_code, via, estado, asignado_a}], meta, links}`; **20 por página**. Operador: solo asignación activa y excluye `REMITIDO_UNIDAD_EXTERNA`; Encargada: todos los estados; ADMIN: `403` | Bruno (B2.6, pendiente) | Brayan (B4.7) |
+| **CTR-07** | Bandeja Supervisión Encargada | `GET /api/encargada/bandeja-supervision?categoria={categoria}&page={page}` | Query: `categoria` (opcional), `page` | `200 OK`: Paginator `{data: [{nurej, partes, plazo_restante, accion_pendiente, expediente_id, actuado_id, categoria, requiere_accion}], meta, links}`; **15 por página**. Categorías: `cronogramas`, `mpa`, `informes_finales`, `impugnaciones`, `ampliaciones`, `incompetencias`, `recepciones_unidad`, `devoluciones`. Pendiente = actuado disparador sin resolutor posterior (el estado del expediente no decide). `devoluciones`: informativas, `accion_pendiente = "Esperando subsanación del técnico"`, `requiere_accion = false` | Bruno (B2.6, pendiente) | Brayan (B4.3) |
+| **CTR-06-H** | Historial por técnico (extensión B2.6) | `GET /api/encargada/expedientes?tecnico_id={id}&page={page}` | Query: `tecnico_id` (obligatorio), `page` | `200 OK`: Paginator con expedientes de todo el historial de `asignaciones` (activas e inactivas), incluidos concluidos y remitidos. Solo Encargada activa | Bruno (B2.6, pendiente) | Sin UI asignada aún |
 | **CTR-08** | Consultas de 9 Reportes SRS | `GET /api/reportes/{codigo_reporte}` | Query: `fecha_desde, fecha_hasta, usuario_id, estado` | `200 OK`: `{meta, filtros_aplicados, data: [...]}` para R01…R09 (en `core.php`, protegido por `ReportePolicy`) | Bruno (B5.0) | Brayan (B5.1) |
 | **CTR-09** | Actuado de Enmienda (RF-02) | `POST /api/expedientes/{e}/enmienda` | `{campo_modificado: string, valor_nuevo: string, motivo: string}` | `200 OK`: `{actuado_enmienda_id, expediente_actualizado}` | Bruno (B1.7) | Brayan (B4.2) |
 | **CTR-10** | Incompetencia Procesal (Solicitud y VB) | `POST /api/expedientes/{e}/incompetencia/solicitar` y `POST .../visto-bueno` | Solicitud: `{unidad_destino_id, motivo}` / VB: `{aprobado: bool, observaciones?}` | `200 OK`: `{estado: REMITIDO_UNIDAD_EXTERNA\|EN_EVALUACION}` | Bruno (B2.2) | Brayan (B4.2) |
@@ -275,9 +292,9 @@ Para garantizar estabilidad continua, el avance se rige por 5 puertas de enlace 
                - B1.7 (actuado de enmienda RF-02 y CTR-09) mergeado.
                - B2.1 (catálogo unidades, transferencias_unidad con estado_previo_id y estado REMITIDO) mergeado.
                - B2.2 (incompetencia procesal: solicitud y VB Encargada CTR-10 con congelamiento de plazos) mergeado.
-               - B3.2 (naturaleza administrativa backend) mergeado -> B3.5 (selector en apertura) mergeado.
-               - B2.3 (Policies de asignación activa y protección de causas en REMITIDO) mergeado.
-               - B2.6 (búsqueda CTR-06 y supervisión CTR-07) mergeado -> B4.3 y B4.7 operativos.
+- B3.2 (naturaleza administrativa backend) cerrado en rama `bruno`; código pendiente de merge -> B3.5 pendiente.
+- B2.3 (Policies de asignación activa y protección de causas en REMITIDO) mergeado.
+- B2.6 (contratos CTR-06/CTR-07 y extensión CTR-06-H) aprobado pero **no implementado**; B4.3 y B4.7 desarrollan con mocks hasta su publicación.
                - B4.1 y B4.2 (UI de las operaciones operativas, incluyendo VB de incompetencia de la Encargada) integrados.
                - B4.9 (modal de remisión y registro de recepción para Encargada) integrado.
                
