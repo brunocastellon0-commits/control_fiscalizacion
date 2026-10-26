@@ -10,6 +10,14 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Expediente extends Model
 {
+    /**
+     * B3.2 (RN-05 / AUD-0024): naturaleza del trámite. Determina el subtipo
+     * del reloj de ejecución (10 vs 15 días hábiles en AC022).
+     */
+    public const NATURALEZA_JURISDICCIONAL = 'JURISDICCIONAL';
+
+    public const NATURALEZA_ADMINISTRATIVA = 'ADMINISTRATIVA';
+
     protected $table = 'expedientes';
 
     public $timestamps = false;
@@ -18,6 +26,7 @@ class Expediente extends Model
         'nurej_code',
         'nurej_padre_id',
         'via',
+        'naturaleza',
         'reglamento_id',
         'estado_actual_id',
         'resumen_hechos',
