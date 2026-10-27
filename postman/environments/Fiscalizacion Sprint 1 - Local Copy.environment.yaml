@@ -1,0 +1,22 @@
+name: Fiscalizacion Sprint 1 - Local Copy
+values:
+  - key: base_url
+    value: 'http://127.0.0.1:8000'
+  - key: origin
+    value: 'http://127.0.0.1:8000'
+  - key: password
+    value: password123
+  - key: admin_user
+    value: admin
+  - key: encargada_user
+    value: encargada
+  - key: tecnico_user
+    value: tecnico
+  - key: tecnico02_user
+    value: tecnico02
+  - key: tecnico03_user
+    value: tecnico03
+  - key: aud_juridico_user
+    value: aud_juridico
+  - key: aud_financiero_user
+    value: aud_financiero

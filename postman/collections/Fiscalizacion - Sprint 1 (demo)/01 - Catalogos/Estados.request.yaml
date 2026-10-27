@@ -1,0 +1,14 @@
+$kind: http-request
+url: "{{base_url}}/api/estados"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('200', () => pm.response.to.have.status(200));
+      const d = pm.response.json().data || [];
+      const by = (c) => d.find(e => e.codigo === c);
+      if (by('EN_PLANIFICACION')) pm.collectionVariables.set('estado_en_planificacion_id', by('EN_PLANIFICACION').id);
+      if (by('EN_EJECUCION')) pm.collectionVariables.set('estado_en_ejecucion_id', by('EN_EJECUCION').id);
+      if (by('RECHAZADO')) pm.collectionVariables.set('estado_rechazado_id', by('RECHAZADO').id);
+    language: text/javascript
+order: 2000

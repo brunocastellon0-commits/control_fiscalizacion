@@ -1,0 +1,18 @@
+$kind: http-request
+description: "REFERENCIA. Requiere LISTO_PARA_REPARTO y login ENCARGADA. Destinos validos: Juzgado Disciplinario, Sumariante, Asesoria Legal, Asesoria Juridica."
+url: "{{base_url}}/api/expedientes/{{expediente_id}}/cierre/reparto"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "destino": "Juzgado Disciplinario",
+      "justificacion": "Se remite al Juzgado Disciplinario para su conocimiento y fines consiguientes."
+    }
+scripts:
+  - type: afterResponse
+    code: pm.test('201', () => pm.response.to.have.status(201));
+    language: text/javascript
+order: 4000

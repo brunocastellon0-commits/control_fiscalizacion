@@ -1,0 +1,28 @@
+$kind: http-request
+description: Genera una fecha aleatoria en 2030 para evitar duplicados.
+url: "{{base_url}}/api/admin/feriados"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "fecha": "{{feriado_fecha}}",
+      "descripcion": "Feriado de prueba para la demostracion",
+      "ambito": "NACIONAL"
+    }
+scripts:
+  - type: beforeRequest
+    code: |-
+      const m = String(Math.floor(Math.random() * 12) + 1).padStart(2, '0');
+      const d = String(Math.floor(Math.random() * 28) + 1).padStart(2, '0');
+      pm.collectionVariables.set('feriado_fecha', '2030-' + m + '-' + d);
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('201', () => pm.response.to.have.status(201));
+      const r = pm.response.json();
+      if (r.data && r.data.id) pm.collectionVariables.set('feriado_id', r.data.id);
+    language: text/javascript
+order: 9000

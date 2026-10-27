@@ -1,0 +1,18 @@
+$kind: http-request
+description: Alternativa a RATIFICA. Requiere EN_IMPUGNACION. Deja el expediente en ADMITIDO.
+url: "{{base_url}}/api/expedientes/2/impugnacion/resolver"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "ratifica": false,
+      "justificacion": "Se revoca el rechazo y se admite la causa para su sustanciacion."
+    }
+scripts:
+  - type: afterResponse
+    code: pm.test('201', () => pm.response.to.have.status(201));
+    language: text/javascript
+order: 4000

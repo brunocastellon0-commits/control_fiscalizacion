@@ -1,0 +1,24 @@
+$kind: http-request
+url: "{{base_url}}/api/expedientes/{{expediente_nuevo_id}}/sortear"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "descripcion": "Sorteo de demostracion del Sprint 1"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('201', () => pm.response.to.have.status(201));
+      const d = pm.response.json().data || {};
+      const u = d.asignacion_activa ? d.asignacion_activa.usuario : null;
+      if (u) {
+        pm.collectionVariables.set('ganador_id', u.id);
+        const map = { 2: 'tecnico', 8: 'tecnico02', 9: 'tecnico03', 3: 'aud_juridico', 10: 'aud_juridico02', 11: 'aud_juridico03', 4: 'aud_financiero', 12: 'aud_financiero02', 13: 'aud_financiero03' };
+        pm.collectionVariables.set('ganador_username', map[u.id] || 'tecnico');
+      }
+    language: text/javascript
+order: 5000

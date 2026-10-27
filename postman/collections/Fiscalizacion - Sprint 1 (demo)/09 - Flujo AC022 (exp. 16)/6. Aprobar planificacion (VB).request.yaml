@@ -1,0 +1,16 @@
+$kind: http-request
+url: "{{base_url}}/api/expedientes/{{expediente_id}}/planificacion/visto-bueno"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "descripcion": "Se aprueba el cronograma de trabajo presentado por el tecnico."
+    }
+scripts:
+  - type: afterResponse
+    code: pm.test('201', () => pm.response.to.have.status(201));
+    language: text/javascript
+order: 7000

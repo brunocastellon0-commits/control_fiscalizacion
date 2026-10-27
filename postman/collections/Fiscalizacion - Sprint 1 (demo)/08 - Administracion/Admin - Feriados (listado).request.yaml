@@ -1,0 +1,11 @@
+$kind: http-request
+url: "{{base_url}}/api/admin/feriados"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('200', () => pm.response.to.have.status(200));
+      const d = pm.response.json().data || [];
+      if (d.length > 0) pm.collectionVariables.set('feriado_id', d[0].id);
+    language: text/javascript
+order: 8000

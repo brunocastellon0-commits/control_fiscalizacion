@@ -1,0 +1,3021 @@
+{
+    "info": {
+        "_postman_id": "c56eb460-914d-424e-9016-40fc50ae24e9",
+        "name": "Fiscalizacion - Sprint 1 (demo)",
+        "description": "DEMO SPRINT 1 - API Fiscalizacion (Sanctum SPA: cookies + CSRF).\n\nANTES DE EJECUTAR\n1. MySQL con la base control_presentacion restaurada desde control_presentacion_final.sql.\n2. Servidor Laravel en http://127.0.0.1:8000 (php artisan serve).\n3. base_url y origin deben apuntar al mismo host y puerto.\n\nCOMO USAR\n- Importar SOLO este archivo. La coleccion ya trae las variables demo; el environment es opcional.\n- Ejecutar '00 - Sesion' -> 'CSRF cookie' -> un solo login del rol a demostrar.\n- Para el flujo completo, ejecutar '09 - Flujo AC022 (exp. 16)' de arriba a abajo: incluye su propio CSRF.\n- En todos los requests multipart con campo 'adjunto' (7 en total), seleccionar demo.pdf.\n- No ejecutar todos los logins de '00' seguidos: limite 5/min por IP.\n- RF-03: tras planificacion o ampliacion el expediente se reasigna a la Encargada; el operador recibe 403 en el detalle. Es el comportamiento esperado.\n- Para repetir el flujo, restaurar control_presentacion_final.sql.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "00 - Sesion",
+            "description": "CSRF + logins. Ejecutar 'CSRF cookie' primero. Luego un login segun el rol que se va a demostrar. Limite: 5 logins/min por IP.",
+            "item": [
+                {
+                    "name": "CSRF cookie",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/sanctum/csrf-cookie",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "sanctum",
+                                "csrf-cookie"
+                            ]
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Cookie CSRF obtenida (204)', () => pm.response.to.have.status(204));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Login ADMIN",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/login",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "login"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"username\": \"{{admin_user}}\",\n  \"password\": \"{{password}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Login ADMIN 200', () => pm.response.to.have.status(200));",
+                                    "const d = pm.response.json();",
+                                    "if (d.usuario) { pm.collectionVariables.set('usuario_id', d.usuario.id); pm.collectionVariables.set('usuario_rol', d.usuario.rol); }"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Login ENCARGADA",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/login",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "login"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"username\": \"{{encargada_user}}\",\n  \"password\": \"{{password}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Login ENCARGADA 200', () => pm.response.to.have.status(200));",
+                                    "const d = pm.response.json();",
+                                    "if (d.usuario) { pm.collectionVariables.set('usuario_id', d.usuario.id); pm.collectionVariables.set('usuario_rol', d.usuario.rol); }"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Login TECNICO",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/login",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "login"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"username\": \"{{tecnico_user}}\",\n  \"password\": \"{{password}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Login TECNICO 200', () => pm.response.to.have.status(200));",
+                                    "const d = pm.response.json();",
+                                    "if (d.usuario) { pm.collectionVariables.set('usuario_id', d.usuario.id); pm.collectionVariables.set('usuario_rol', d.usuario.rol); }"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Login TECNICO 02",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/login",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "login"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"username\": \"{{tecnico02_user}}\",\n  \"password\": \"{{password}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Login TECNICO 02 200', () => pm.response.to.have.status(200));",
+                                    "const d = pm.response.json();",
+                                    "if (d.usuario) { pm.collectionVariables.set('usuario_id', d.usuario.id); pm.collectionVariables.set('usuario_rol', d.usuario.rol); }"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Login TECNICO 03",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/login",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "login"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"username\": \"{{tecnico03_user}}\",\n  \"password\": \"{{password}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Login TECNICO 03 200', () => pm.response.to.have.status(200));",
+                                    "const d = pm.response.json();",
+                                    "if (d.usuario) { pm.collectionVariables.set('usuario_id', d.usuario.id); pm.collectionVariables.set('usuario_rol', d.usuario.rol); }"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Login AUD. JURIDICO",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/login",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "login"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"username\": \"{{aud_juridico_user}}\",\n  \"password\": \"{{password}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Login AUD. JURIDICO 200', () => pm.response.to.have.status(200));",
+                                    "const d = pm.response.json();",
+                                    "if (d.usuario) { pm.collectionVariables.set('usuario_id', d.usuario.id); pm.collectionVariables.set('usuario_rol', d.usuario.rol); }"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Login AUD. FINANCIERO",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/login",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "login"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"username\": \"{{aud_financiero_user}}\",\n  \"password\": \"{{password}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Login AUD. FINANCIERO 200', () => pm.response.to.have.status(200));",
+                                    "const d = pm.response.json();",
+                                    "if (d.usuario) { pm.collectionVariables.set('usuario_id', d.usuario.id); pm.collectionVariables.set('usuario_rol', d.usuario.rol); }"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Me",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/me",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "me"
+                            ]
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Sesion activa 200', () => pm.response.to.have.status(200));",
+                                    "const d = pm.response.json();",
+                                    "pm.collectionVariables.set('usuario_id', d.id || '');",
+                                    "pm.collectionVariables.set('usuario_rol', d.rol ? d.rol.codigo : '');"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Logout",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/logout",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "logout"
+                            ]
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Logout 200', () => pm.response.to.have.status(200));"
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "01 - Catalogos",
+            "description": "Catalogos de soporte. Requiere cualquier sesion activa.",
+            "item": [
+                {
+                    "name": "Reglamentos",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/reglamentos",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "reglamentos"
+                            ]
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('200', () => pm.response.to.have.status(200));",
+                                    "const d = pm.response.json().data || [];",
+                                    "const ac022 = d.find(r => r.codigo === 'AC_022_2018');",
+                                    "if (ac022) pm.collectionVariables.set('reglamento_ac022_id', ac022.id);"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Estados",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/estados",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "estados"
+                            ]
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('200', () => pm.response.to.have.status(200));",
+                                    "const d = pm.response.json().data || [];",
+                                    "const by = (c) => d.find(e => e.codigo === c);",
+                                    "if (by('EN_PLANIFICACION')) pm.collectionVariables.set('estado_en_planificacion_id', by('EN_PLANIFICACION').id);",
+                                    "if (by('EN_EJECUCION')) pm.collectionVariables.set('estado_en_ejecucion_id', by('EN_EJECUCION').id);",
+                                    "if (by('RECHAZADO')) pm.collectionVariables.set('estado_rechazado_id', by('RECHAZADO').id);"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Catalogo de actuados",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/catalogo/actuados",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "catalogo",
+                                "actuados"
+                            ]
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('200', () => pm.response.to.have.status(200));",
+                                    "const d = pm.response.json().data || [];",
+                                    "const by = (c) => d.find(a => a.codigo === c);",
+                                    "if (by('ACT_INFORME_FINAL')) pm.collectionVariables.set('catalogo_informe_final_id', by('ACT_INFORME_FINAL').id);",
+                                    "if (by('ACT_DERIVACION_INCOMPETENCIA')) pm.collectionVariables.set('catalogo_derivacion_id', by('ACT_DERIVACION_INCOMPETENCIA').id);"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Catalogo de actuados (por estado)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/catalogo/actuados?estado_origen_id={{estado_en_ejecucion_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "catalogo",
+                                "actuados"
+                            ],
+                            "query": [
+                                {
+                                    "key": "estado_origen_id",
+                                    "value": "{{estado_en_ejecucion_id}}"
+                                }
+                            ]
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('200', () => pm.response.to.have.status(200));"
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "02 - Expedientes y bandejas",
+            "description": "Apertura, detalle, sorteo, NUREJ Hijo y descarga de adjuntos. Respetar el rol indicado en cada request.",
+            "item": [
+                {
+                    "name": "Bandeja del operador (TECNICO)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/bandeja",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "bandeja"
+                            ]
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('200', () => pm.response.to.have.status(200));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Bandeja de sorteo (ENCARGADA)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/bandeja/sorteo",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "bandeja",
+                                "sorteo"
+                            ]
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('200', () => pm.response.to.have.status(200));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Detalle expediente 16",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/expedientes/{{expediente_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "expedientes",
+                                "{{expediente_id}}"
+                            ]
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('200', () => pm.response.to.have.status(200));",
+                                    "const d = pm.response.json().data || {};",
+                                    "const act = (d.actuados || [])[0];",
+                                    "const adj = act && act.adjuntos ? act.adjuntos[0] : null;",
+                                    "if (adj) pm.collectionVariables.set('adjunto_id', adj.id);"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Apertura de causa (TECNICO, AC022)",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/expedientes",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "expedientes"
+                            ]
+                        },
+                        "description": "Multipart. Requiere login TECNICO. Adjuntar demo.pdf.",
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "via",
+                                    "value": "TECNICO",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "reglamento_id",
+                                    "value": "{{reglamento_ac022_id}}",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "resumen_hechos",
+                                    "value": "Denuncia de prueba para la presentacion del Sprint 1. Se detallan los hechos y se adjunta la prueba documental correspondiente.",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "partes[0][tipo]",
+                                    "value": "DENUNCIANTE",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "partes[0][nombre_completo]",
+                                    "value": "Juan Perez",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "partes[0][documento_identidad]",
+                                    "value": "12345678",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "partes[0][cargo_institucion]",
+                                    "value": "",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "partes[1][tipo]",
+                                    "value": "DENUNCIADO",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "partes[1][nombre_completo]",
+                                    "value": "Maria Lopez",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "partes[1][documento_identidad]",
+                                    "value": "87654321",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "partes[1][cargo_institucion]",
+                                    "value": "",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "adjunto",
+                                    "type": "file",
+                                    "src": "demo.pdf"
+                                }
+                            ]
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('201', () => pm.response.to.have.status(201));",
+                                    "const d = pm.response.json().data || {};",
+                                    "if (d.id) pm.collectionVariables.set('expediente_nuevo_id', d.id);"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Sortear expediente nuevo (ENCARGADA)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/expedientes/{{expediente_nuevo_id}}/sortear",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "expedientes",
+                                "{{expediente_nuevo_id}}",
+                                "sortear"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"descripcion\": \"Sorteo de demostracion del Sprint 1\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('201', () => pm.response.to.have.status(201));",
+                                    "const d = pm.response.json().data || {};",
+                                    "const u = d.asignacion_activa ? d.asignacion_activa.usuario : null;",
+                                    "if (u) {",
+                                    "  pm.collectionVariables.set('ganador_id', u.id);",
+                                    "  const map = { 2: 'tecnico', 8: 'tecnico02', 9: 'tecnico03', 3: 'aud_juridico', 10: 'aud_juridico02', 11: 'aud_juridico03', 4: 'aud_financiero', 12: 'aud_financiero02', 13: 'aud_financiero03' };",
+                                    "  pm.collectionVariables.set('ganador_username', map[u.id] || 'tecnico');",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Sortear todos (ENCARGADA)",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/bandeja/sorteo/todos",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "bandeja",
+                                "sorteo",
+                                "todos"
+                            ]
+                        },
+                        "description": "Sortea TODAS las causas en PENDIENTE_SORTEO en una sola transaccion. Ejecutar solo si hay causas pendientes."
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('200', () => pm.response.to.have.status(200));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "NUREJ Hijo (ENCARGADA)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/expedientes/{{expediente_id}}/nurej-hijo",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "expedientes",
+                                "{{expediente_id}}",
+                                "nurej-hijo"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"motivo\": \"Derivacion de NUREJ Hijo por conexidad con la causa principal, para su tramitacion separada.\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('201', () => pm.response.to.have.status(201));",
+                                    "const d = pm.response.json().data || {};",
+                                    "if (d.id) pm.collectionVariables.set('expediente_hijo_id', d.id);"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Descargar adjunto",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/adjuntos/{{adjunto_id}}/descargar",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "adjuntos",
+                                "{{adjunto_id}}",
+                                "descargar"
+                            ]
+                        },
+                        "description": "Ejecutar antes 'Detalle expediente 16' para capturar adjunto_id."
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('200', () => pm.response.to.have.status(200));",
+                                    "pm.test('PDF', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('pdf'));"
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "03 - Admisibilidad",
+            "description": "Checklist dinamico y evaluacion. El payload de admision se arma desde 'Requisitos'. Las variantes de observacion/rechazo usan los requisitos AC022 (ids 1,2,3).",
+            "item": [
+                {
+                    "name": "Requisitos del expediente 16",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/expedientes/{{expediente_id}}/requisitos",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "expedientes",
+                                "{{expediente_id}}",
+                                "requisitos"
+                            ]
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('200', () => pm.response.to.have.status(200));",
+                                    "const d = pm.response.json().data || [];",
+                                    "const payload = { requisitos: d.map(r => ({ requisito_id: r.id, cumple: true })) };",
+                                    "pm.collectionVariables.set('requisitos_payload', JSON.stringify(payload));",
+                                    "pm.test('Requisitos cargados', () => pm.expect(d.length).to.be.greaterThan(0));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Evaluar ADMISION (exp. 16)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/expedientes/{{expediente_id}}/evaluacion",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "expedientes",
+                                "{{expediente_id}}",
+                                "evaluacion"
+                            ]
+                        },
+                        "description": "Requiere login TECNICO (asignado al 16). Todos los requisitos en true.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{{requisitos_payload}}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('201', () => pm.response.to.have.status(201));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Requisitos del expediente 1",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/expedientes/1/requisitos",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "expedientes",
+                                "1",
+                                "requisitos"
+                            ]
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('200', () => pm.response.to.have.status(200));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Evaluar OBSERVACION (exp. 1)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/expedientes/1/evaluacion",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "expedientes",
+                                "1",
+                                "evaluacion"
+                            ]
+                        },
+                        "description": "Requiere login TECNICO 02 (asignado al expediente 1). Falla un requisito NO critico (id 3): genera EN_SUBSANACION.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"requisitos\": [\n    { \"requisito_id\": 1, \"cumple\": true },\n    { \"requisito_id\": 2, \"cumple\": true },\n    { \"requisito_id\": 3, \"cumple\": false }\n  ]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('201', () => pm.response.to.have.status(201));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Evaluar RECHAZO (exp. 2)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/expedientes/2/evaluacion",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "expedientes",
+                                "2",
+                                "evaluacion"
+                            ]
+                        },
+                        "description": "Requiere login TECNICO 03 (asignado al expediente 2). Falla un requisito CRITICO (id 1): genera RECHAZADO.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"requisitos\": [\n    { \"requisito_id\": 1, \"cumple\": false },\n    { \"requisito_id\": 2, \"cumple\": true },\n    { \"requisito_id\": 3, \"cumple\": true }\n  ]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('201', () => pm.response.to.have.status(201));"
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "04 - Planificacion, VB y ampliacion",
+            "description": "Flujo AC022: tras la admision, el expediente queda en EN_PLANIFICACION. El visto bueno lo pasa a EN_EJECUCION. La ampliacion solo aplica a AC022 en EN_EJECUCION.",
+            "item": [
+                {
+                    "name": "Cargar planificacion (TECNICO, AC022)",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/expedientes/{{expediente_id}}/planificacion",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "expedientes",
+                                "{{expediente_id}}",
+                                "planificacion"
+                            ]
+                        },
+                        "description": "Multipart. Requiere expediente en EN_PLANIFICACION y login TECNICO asignado. Adjuntar demo.pdf.",
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "descripcion",
+                                    "value": "Cronograma de trabajo: relevamiento documental, entrevistas y elaboracion del informe preliminar.",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "adjunto",
+                                    "type": "file",
+                                    "src": "demo.pdf"
+                                }
+                            ]
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('201', () => pm.response.to.have.status(201));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Aprobar planificacion (ENCARGADA)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/expedientes/{{expediente_id}}/planificacion/visto-bueno",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "expedientes",
+                                "{{expediente_id}}",
+                                "planificacion",
+                                "visto-bueno"
+                            ]
+                        },
+                        "description": "Requiere expediente en PENDIENTE_VISTO_BUENO y login ENCARGADA.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"descripcion\": \"Se aprueba el cronograma de trabajo presentado por el tecnico.\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('201', () => pm.response.to.have.status(201));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Devolver planificacion (ENCARGADA)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/expedientes/{{expediente_id}}/planificacion/devolver",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "expedientes",
+                                "{{expediente_id}}",
+                                "planificacion",
+                                "devolver"
+                            ]
+                        },
+                        "description": "Alternativa al Visto Bueno. Requiere PENDIENTE_VISTO_BUENO. Devuelve a EN_PLANIFICACION y reabre el plazo.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"justificacion\": \"El cronograma no detalla las actividades de campo; se devuelve para su correccion.\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('201', () => pm.response.to.have.status(201));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Solicitar ampliacion (TECNICO, AC022)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/expedientes/{{expediente_id}}/ampliacion",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "expedientes",
+                                "{{expediente_id}}",
+                                "ampliacion"
+                            ]
+                        },
+                        "description": "Requiere EN_EJECUCION, reglamento AC022 y login TECNICO asignado.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"justificacion\": \"Se requiere ampliacion por la complejidad de las diligencias pendientes y la distancia de las unidades a verificar.\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('201', () => pm.response.to.have.status(201));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Aprobar ampliacion (ENCARGADA)",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/expedientes/{{expediente_id}}/ampliacion/aprobar",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "expedientes",
+                                "{{expediente_id}}",
+                                "ampliacion",
+                                "aprobar"
+                            ]
+                        },
+                        "description": "Requiere PENDIENTE_APROBACION_AMPLIACION y login ENCARGADA. No lleva cuerpo."
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('201', () => pm.response.to.have.status(201));"
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "05 - Actuados e impugnacion",
+            "description": "Actuado generico (append-only con hashes) e impugnacion de rechazo (RN-08). La impugnacion requiere el expediente 2 en RECHAZADO (ver carpeta 03).",
+            "item": [
+                {
+                    "name": "Emitir actuado - Informe Final (AUD. JURIDICO)",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/expedientes/{{expediente_juridico_id}}/actuados",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "expedientes",
+                                "{{expediente_juridico_id}}",
+                                "actuados"
+                            ]
+                        },
+                        "description": "Requiere login AUD. JURIDICO (asignado al expediente 8). Multipart con demo.pdf. El catalogo ACT_INFORME_FINAL no transiciona estado por si solo.",
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "catalogo_actuado_id",
+                                    "value": "{{catalogo_informe_final_id}}",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "descripcion",
+                                    "value": "Informe final de la investigacion con las conclusiones y recomendaciones del caso.",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "adjunto",
+                                    "type": "file",
+                                    "src": "demo.pdf"
+                                }
+                            ]
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('201', () => pm.response.to.have.status(201));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Remitir impugnacion (TECNICO 03, exp. 2)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/expedientes/2/impugnacion/remitir",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "expedientes",
+                                "2",
+                                "impugnacion",
+                                "remitir"
+                            ]
+                        },
+                        "description": "Requiere expediente 2 en RECHAZADO y login TECNICO 03 asignado.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"descripcion\": \"Se remite la impugnacion contra el rechazo por requisito critico, para resolucion de la Encargada.\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('201', () => pm.response.to.have.status(201));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Resolver impugnacion - RATIFICA (ENCARGADA)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/expedientes/2/impugnacion/resolver",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "expedientes",
+                                "2",
+                                "impugnacion",
+                                "resolver"
+                            ]
+                        },
+                        "description": "Requiere EN_IMPUGNACION y login ENCARGADA. Deja el expediente en ARCHIVO_DEFINITIVO.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"ratifica\": true,\n  \"justificacion\": \"Se ratifica el rechazo por no cumplir el requisito critico de admisibilidad.\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('201', () => pm.response.to.have.status(201));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Resolver impugnacion - REVOCA (ENCARGADA)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/expedientes/2/impugnacion/resolver",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "expedientes",
+                                "2",
+                                "impugnacion",
+                                "resolver"
+                            ]
+                        },
+                        "description": "Alternativa a RATIFICA. Requiere EN_IMPUGNACION. Deja el expediente en ADMITIDO.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"ratifica\": false,\n  \"justificacion\": \"Se revoca el rechazo y se admite la causa para su sustanciacion.\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('201', () => pm.response.to.have.status(201));"
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "06 - Derivaciones y cierre",
+            "description": "Derivacion por incompetencia (RN-09) y cierre institucional. El cierre requiere estados posteriores al informe final que no estan en los datos demo; se incluye como referencia.",
+            "item": [
+                {
+                    "name": "Derivar por incompetencia (AUD. JURIDICO, exp. 8)",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/expedientes/{{expediente_juridico_id}}/derivacion-transparencia",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "expedientes",
+                                "{{expediente_juridico_id}}",
+                                "derivacion-transparencia"
+                            ]
+                        },
+                        "description": "Requiere login AUD. JURIDICO asignado al expediente 8. Multipart con demo.pdf. Justificacion minimo 20 caracteres.",
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "justificacion",
+                                    "value": "La causa no corresponde a la competencia de esta instancia; se deriva a Transparencia para su tramitacion.",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "adjunto",
+                                    "type": "file",
+                                    "src": "demo.pdf"
+                                }
+                            ]
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('201', () => pm.response.to.have.status(201));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Remitir a Transparencia (ENCARGADA, exp. 8)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/expedientes/{{expediente_juridico_id}}/transparencia/remitir",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "expedientes",
+                                "{{expediente_juridico_id}}",
+                                "transparencia",
+                                "remitir"
+                            ]
+                        },
+                        "description": "Requiere PENDIENTE_REMISION_TRANSPARENCIA y login ENCARGADA.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"nota_remision\": \"Se remite a la Unidad de Transparencia por incompetencia de esta instancia, para su conocimiento y fines consiguientes.\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('201', () => pm.response.to.have.status(201));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Cierre - Visto Bueno Final (ENCARGADA)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/expedientes/{{expediente_id}}/cierre/visto-bueno",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "expedientes",
+                                "{{expediente_id}}",
+                                "cierre",
+                                "visto-bueno"
+                            ]
+                        },
+                        "description": "REFERENCIA. Requiere PENDIENTE_VISTO_BUENO_FINAL y login ENCARGADA.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"descripcion\": \"Se aprueba el informe final presentado por el operador.\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('201', () => pm.response.to.have.status(201));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Cierre - Reparto institucional (ENCARGADA)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/expedientes/{{expediente_id}}/cierre/reparto",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "expedientes",
+                                "{{expediente_id}}",
+                                "cierre",
+                                "reparto"
+                            ]
+                        },
+                        "description": "REFERENCIA. Requiere LISTO_PARA_REPARTO y login ENCARGADA. Destinos validos: Juzgado Disciplinario, Sumariante, Asesoria Legal, Asesoria Juridica.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"destino\": \"Juzgado Disciplinario\",\n  \"justificacion\": \"Se remite al Juzgado Disciplinario para su conocimiento y fines consiguientes.\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('201', () => pm.response.to.have.status(201));"
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "07 - Descargos AC055",
+            "description": "REFERENCIA. Los expedientes demo son AC022; para ejecutar estos endpoints se necesita un expediente AC055 en EN_EJECUCION asignado a un auditor financiero.",
+            "item": [
+                {
+                    "name": "Comunicar hallazgos (AUD. FINANCIERO)",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/expedientes/{{expediente_financiero_id}}/descargos/comunicar",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "expedientes",
+                                "{{expediente_financiero_id}}",
+                                "descargos",
+                                "comunicar"
+                            ]
+                        },
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "descripcion",
+                                    "value": "Comunicacion formal de hallazgos a los auditados para que presenten sus descargos.",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "adjunto",
+                                    "type": "file",
+                                    "src": "demo.pdf"
+                                }
+                            ]
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('201', () => pm.response.to.have.status(201));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Recibir descargos (AUD. FINANCIERO)",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/expedientes/{{expediente_financiero_id}}/descargos/recibir",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "expedientes",
+                                "{{expediente_financiero_id}}",
+                                "descargos",
+                                "recibir"
+                            ]
+                        },
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "descripcion",
+                                    "value": "Recepcion del escrito de descargos presentado por los auditados.",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "adjunto",
+                                    "type": "file",
+                                    "src": "demo.pdf"
+                                }
+                            ]
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('201', () => pm.response.to.have.status(201));"
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "08 - Administracion",
+            "description": "Panel ADMIN (dashboard, usuarios, feriados, monitoreo) y dashboard de la ENCARGADA. Requiere el login indicado en cada request.",
+            "item": [
+                {
+                    "name": "Admin - Dashboard",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/dashboard",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "dashboard"
+                            ]
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('200', () => pm.response.to.have.status(200));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Admin - Usuarios (listado)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/usuarios",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "usuarios"
+                            ]
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('200', () => pm.response.to.have.status(200));",
+                                    "const d = pm.response.json();",
+                                    "const roles = d.roles || [];",
+                                    "const t = roles.find(r => r.codigo === 'TECNICO');",
+                                    "if (t) pm.collectionVariables.set('rol_tecnico_id', t.id);"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Admin - Crear usuario",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/usuarios",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "usuarios"
+                            ]
+                        },
+                        "description": "Genera ci/username aleatorios para permitir ejecuciones repetidas.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"ci\": \"{{nuevo_ci}}\",\n  \"nombres\": \"Usuario\",\n  \"apellidos\": \"Demo\",\n  \"cargo\": \"Tecnico de prueba\",\n  \"username\": \"{{nuevo_username}}\",\n  \"password\": \"password123\",\n  \"rol_id\": {{rol_tecnico_id}}\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "const n = Math.floor(Math.random() * 9000) + 1000;",
+                                    "pm.collectionVariables.set('nuevo_ci', '99' + n);",
+                                    "pm.collectionVariables.set('nuevo_username', 'demo_' + n);"
+                                ]
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('201', () => pm.response.to.have.status(201));",
+                                    "const d = pm.response.json().data || {};",
+                                    "if (d.id) pm.collectionVariables.set('usuario_id', d.id);"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Admin - Editar usuario",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/usuarios/{{usuario_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "usuarios",
+                                "{{usuario_id}}"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"ci\": \"{{nuevo_ci}}\",\n  \"nombres\": \"Usuario\",\n  \"apellidos\": \"Demo Editado\",\n  \"cargo\": \"Tecnico de prueba\",\n  \"username\": \"{{nuevo_username}}\",\n  \"password\": null,\n  \"rol_id\": {{rol_tecnico_id}}\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('200', () => pm.response.to.have.status(200));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Admin - Activar usuario",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/usuarios/{{usuario_id}}/activar",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "usuarios",
+                                "{{usuario_id}}",
+                                "activar"
+                            ]
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('200', () => pm.response.to.have.status(200));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Admin - Inactivar usuario",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/usuarios/{{usuario_id}}/inactivar",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "usuarios",
+                                "{{usuario_id}}",
+                                "inactivar"
+                            ]
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('200', () => pm.response.to.have.status(200));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Usuarios operativos",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/usuarios",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "usuarios"
+                            ]
+                        },
+                        "description": "Listado para el sorteo de la Encargada (solo activos y roles operativos)."
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('200', () => pm.response.to.have.status(200));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Admin - Feriados (listado)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/feriados",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "feriados"
+                            ]
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('200', () => pm.response.to.have.status(200));",
+                                    "const d = pm.response.json().data || [];",
+                                    "if (d.length > 0) pm.collectionVariables.set('feriado_id', d[0].id);"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Admin - Crear feriado",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/feriados",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "feriados"
+                            ]
+                        },
+                        "description": "Genera una fecha aleatoria en 2030 para evitar duplicados.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"fecha\": \"{{feriado_fecha}}\",\n  \"descripcion\": \"Feriado de prueba para la demostracion\",\n  \"ambito\": \"NACIONAL\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "const m = String(Math.floor(Math.random() * 12) + 1).padStart(2, '0');",
+                                    "const d = String(Math.floor(Math.random() * 28) + 1).padStart(2, '0');",
+                                    "pm.collectionVariables.set('feriado_fecha', '2030-' + m + '-' + d);"
+                                ]
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('201', () => pm.response.to.have.status(201));",
+                                    "const r = pm.response.json();",
+                                    "if (r.data && r.data.id) pm.collectionVariables.set('feriado_id', r.data.id);"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Admin - Editar feriado",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/feriados/{{feriado_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "feriados",
+                                "{{feriado_id}}"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"fecha\": \"{{feriado_fecha}}\",\n  \"descripcion\": \"Feriado de prueba editado\",\n  \"ambito\": \"INSTITUCIONAL\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('200', () => pm.response.to.have.status(200));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Admin - Eliminar feriado",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/feriados/{{feriado_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "feriados",
+                                "{{feriado_id}}"
+                            ]
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Eliminado (200/204)', () => pm.expect([200, 204]).to.include(pm.response.code));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Admin - Monitoreo",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/admin/monitoreo",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "monitoreo"
+                            ]
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('200', () => pm.response.to.have.status(200));"
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "09 - Flujo AC022 (exp. 16)",
+            "description": "Flujo completo en orden: TECNICO evalua y planifica, ENCARGADA aprueba, TECNICO solicita ampliacion, ENCARGADA aprueba. Deja el expediente 16 en EN_EJECUCION con ampliacion aprobada. Muta la BD demo; para repetir, restaurar control_presentacion_final.sql. Incluye '0. CSRF cookie' al inicio.",
+            "item": [
+                {
+                    "name": "0. CSRF cookie",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/sanctum/csrf-cookie",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "sanctum",
+                                "csrf-cookie"
+                            ]
+                        },
+                        "description": "Obtiene la cookie XSRF-TOKEN. Ejecutar antes del primer login."
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Cookie CSRF obtenida (204)', () => pm.response.to.have.status(204));"
+                                ]
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "1. Login TECNICO",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/login",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "login"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"username\": \"{{tecnico_user}}\",\n  \"password\": \"{{password}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Login TECNICO 200', () => pm.response.to.have.status(200));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "2. Requisitos (arma payload)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/expedientes/{{expediente_id}}/requisitos",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "expedientes",
+                                "{{expediente_id}}",
+                                "requisitos"
+                            ]
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('200', () => pm.response.to.have.status(200));",
+                                    "const d = pm.response.json().data || [];",
+                                    "const payload = { requisitos: d.map(r => ({ requisito_id: r.id, cumple: true })) };",
+                                    "pm.collectionVariables.set('requisitos_payload', JSON.stringify(payload));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "3. Evaluar ADMISION",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/expedientes/{{expediente_id}}/evaluacion",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "expedientes",
+                                "{{expediente_id}}",
+                                "evaluacion"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{{requisitos_payload}}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('201', () => pm.response.to.have.status(201));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "4. Cargar planificacion",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/expedientes/{{expediente_id}}/planificacion",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "expedientes",
+                                "{{expediente_id}}",
+                                "planificacion"
+                            ]
+                        },
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "descripcion",
+                                    "value": "Cronograma de trabajo: relevamiento documental, entrevistas y elaboracion del informe preliminar.",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "adjunto",
+                                    "type": "file",
+                                    "src": "demo.pdf"
+                                }
+                            ]
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('201', () => pm.response.to.have.status(201));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "5. Login ENCARGADA",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/login",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "login"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"username\": \"{{encargada_user}}\",\n  \"password\": \"{{password}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Login ENCARGADA 200', () => pm.response.to.have.status(200));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "6. Aprobar planificacion (VB)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/expedientes/{{expediente_id}}/planificacion/visto-bueno",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "expedientes",
+                                "{{expediente_id}}",
+                                "planificacion",
+                                "visto-bueno"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"descripcion\": \"Se aprueba el cronograma de trabajo presentado por el tecnico.\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('201', () => pm.response.to.have.status(201));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "7. Login TECNICO (para ampliacion)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/login",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "login"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"username\": \"{{tecnico_user}}\",\n  \"password\": \"{{password}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Login TECNICO 200', () => pm.response.to.have.status(200));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "8. Solicitar ampliacion",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/expedientes/{{expediente_id}}/ampliacion",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "expedientes",
+                                "{{expediente_id}}",
+                                "ampliacion"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"justificacion\": \"Se requiere ampliacion por la complejidad de las diligencias pendientes y la distancia de las unidades a verificar.\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('201', () => pm.response.to.have.status(201));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "9. Login ENCARGADA (para aprobar ampliacion)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/login",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "login"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"username\": \"{{encargada_user}}\",\n  \"password\": \"{{password}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Login ENCARGADA 200', () => pm.response.to.have.status(200));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "10. Aprobar ampliacion",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/expedientes/{{expediente_id}}/ampliacion/aprobar",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "expedientes",
+                                "{{expediente_id}}",
+                                "ampliacion",
+                                "aprobar"
+                            ]
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('201', () => pm.response.to.have.status(201));"
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "event": [
+        {
+            "listen": "prerequest",
+            "script": {
+                "type": "text/javascript",
+                "exec": [
+                    "const base = pm.variables.get('base_url') || 'http://127.0.0.1:8000';",
+                    "const origin = (pm.variables.get('origin') || base).replace(/\\/$/, '');",
+                    "pm.request.headers.upsert({ key: 'Origin', value: origin });",
+                    "pm.request.headers.upsert({ key: 'Referer', value: origin + '/' });",
+                    "",
+                    "const isDownload = pm.request.url.toString().includes('/descargar');",
+                    "pm.request.headers.upsert({ key: 'Accept', value: isDownload ? '*/*' : 'application/json' });",
+                    "",
+                    "let xsrf = pm.variables.get('xsrf_token');",
+                    "if (!xsrf) {",
+                    "  const cookie = pm.cookies.get('XSRF-TOKEN');",
+                    "  if (cookie) {",
+                    "    xsrf = cookie;",
+                    "    try { xsrf = decodeURIComponent(cookie); } catch (e) {}",
+                    "  }",
+                    "}",
+                    "if (xsrf) {",
+                    "  pm.request.headers.upsert({ key: 'X-XSRF-TOKEN', value: xsrf });",
+                    "}"
+                ]
+            }
+        },
+        {
+            "listen": "test",
+            "script": {
+                "type": "text/javascript",
+                "exec": [
+                    "if (pm.response && pm.response.headers && typeof pm.response.headers.all === 'function') {",
+                    "  const setCookieHeaders = pm.response.headers.all().filter((header) => {",
+                    "    return String(header.key || header.name || '').toLowerCase() === 'set-cookie';",
+                    "  });",
+                    "",
+                    "  for (const header of setCookieHeaders) {",
+                    "    const match = String(header.value || '').match(/(?:^|;\\s*)XSRF-TOKEN=([^;]+)/);",
+                    "    if (!match) continue;",
+                    "",
+                    "    let token = match[1];",
+                    "    try { token = decodeURIComponent(token); } catch (e) {}",
+                    "    pm.collectionVariables.set('xsrf_token', token);",
+                    "  }",
+                    "}"
+                ]
+            }
+        }
+    ],
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://127.0.0.1:8000",
+            "type": "string"
+        },
+        {
+            "key": "origin",
+            "value": "http://127.0.0.1:8000",
+            "type": "string"
+        },
+        {
+            "key": "xsrf_token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "password",
+            "value": "password123",
+            "type": "string"
+        },
+        {
+            "key": "admin_user",
+            "value": "admin",
+            "type": "string"
+        },
+        {
+            "key": "encargada_user",
+            "value": "encargada",
+            "type": "string"
+        },
+        {
+            "key": "tecnico_user",
+            "value": "tecnico",
+            "type": "string"
+        },
+        {
+            "key": "tecnico02_user",
+            "value": "tecnico02",
+            "type": "string"
+        },
+        {
+            "key": "tecnico03_user",
+            "value": "tecnico03",
+            "type": "string"
+        },
+        {
+            "key": "aud_juridico_user",
+            "value": "aud_juridico",
+            "type": "string"
+        },
+        {
+            "key": "aud_financiero_user",
+            "value": "aud_financiero",
+            "type": "string"
+        },
+        {
+            "key": "expediente_id",
+            "value": "16",
+            "type": "string"
+        },
+        {
+            "key": "expediente_juridico_id",
+            "value": "8",
+            "type": "string"
+        },
+        {
+            "key": "expediente_financiero_id",
+            "value": "11",
+            "type": "string"
+        },
+        {
+            "key": "expediente_nuevo_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "expediente_hijo_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "usuario_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "usuario_rol",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "adjunto_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "requisitos_payload",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "catalogo_informe_final_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "catalogo_derivacion_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "reglamento_ac022_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "estado_en_planificacion_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "estado_en_ejecucion_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "estado_rechazado_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "feriado_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "feriado_fecha",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "nuevo_ci",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "nuevo_username",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "rol_tecnico_id",
+            "value": "2",
+            "type": "string"
+        },
+        {
+            "key": "ganador_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "ganador_username",
+            "value": "",
+            "type": "string"
+        }
+    ]
+}

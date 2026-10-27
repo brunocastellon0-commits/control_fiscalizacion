@@ -1,0 +1,32 @@
+$kind: http-request
+description: Genera ci/username aleatorios para permitir ejecuciones repetidas.
+url: "{{base_url}}/api/admin/usuarios"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "ci": "{{nuevo_ci}}",
+      "nombres": "Usuario",
+      "apellidos": "Demo",
+      "cargo": "Tecnico de prueba",
+      "username": "{{nuevo_username}}",
+      "password": "password123",
+      "rol_id": {{rol_tecnico_id}}
+    }
+scripts:
+  - type: beforeRequest
+    code: |-
+      const n = Math.floor(Math.random() * 9000) + 1000;
+      pm.collectionVariables.set('nuevo_ci', '99' + n);
+      pm.collectionVariables.set('nuevo_username', 'demo_' + n);
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('201', () => pm.response.to.have.status(201));
+      const d = pm.response.json().data || {};
+      if (d.id) pm.collectionVariables.set('usuario_id', d.id);
+    language: text/javascript
+order: 3000

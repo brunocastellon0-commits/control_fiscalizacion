@@ -1,0 +1,3 @@
+$kind: collection
+description: "CSRF + logins. Ejecutar 'CSRF cookie' primero. Luego un login segun el rol que se va a demostrar. Limite: 5 logins/min por IP."
+order: 1000

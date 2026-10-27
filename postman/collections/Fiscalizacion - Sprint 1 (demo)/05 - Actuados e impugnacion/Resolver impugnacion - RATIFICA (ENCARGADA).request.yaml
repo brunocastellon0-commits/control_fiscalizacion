@@ -1,0 +1,18 @@
+$kind: http-request
+description: Requiere EN_IMPUGNACION y login ENCARGADA. Deja el expediente en ARCHIVO_DEFINITIVO.
+url: "{{base_url}}/api/expedientes/2/impugnacion/resolver"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "ratifica": true,
+      "justificacion": "Se ratifica el rechazo por no cumplir el requisito critico de admisibilidad."
+    }
+scripts:
+  - type: afterResponse
+    code: pm.test('201', () => pm.response.to.have.status(201));
+    language: text/javascript
+order: 3000

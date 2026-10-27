@@ -1,0 +1,8 @@
+$kind: http-request
+url: "{{base_url}}/api/admin/usuarios/{{usuario_id}}/activar"
+method: POST
+scripts:
+  - type: afterResponse
+    code: pm.test('200', () => pm.response.to.have.status(200));
+    language: text/javascript
+order: 5000

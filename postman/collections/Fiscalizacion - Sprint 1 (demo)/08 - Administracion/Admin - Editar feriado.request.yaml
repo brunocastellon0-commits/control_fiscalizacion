@@ -1,0 +1,18 @@
+$kind: http-request
+url: "{{base_url}}/api/admin/feriados/{{feriado_id}}"
+method: PUT
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "fecha": "{{feriado_fecha}}",
+      "descripcion": "Feriado de prueba editado",
+      "ambito": "INSTITUCIONAL"
+    }
+scripts:
+  - type: afterResponse
+    code: pm.test('200', () => pm.response.to.have.status(200));
+    language: text/javascript
+order: 10000

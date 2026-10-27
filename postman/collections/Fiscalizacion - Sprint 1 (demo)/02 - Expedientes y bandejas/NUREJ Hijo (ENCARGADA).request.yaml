@@ -1,0 +1,19 @@
+$kind: http-request
+url: "{{base_url}}/api/expedientes/{{expediente_id}}/nurej-hijo"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "motivo": "Derivacion de NUREJ Hijo por conexidad con la causa principal, para su tramitacion separada."
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('201', () => pm.response.to.have.status(201));
+      const d = pm.response.json().data || {};
+      if (d.id) pm.collectionVariables.set('expediente_hijo_id', d.id);
+    language: text/javascript
+order: 7000

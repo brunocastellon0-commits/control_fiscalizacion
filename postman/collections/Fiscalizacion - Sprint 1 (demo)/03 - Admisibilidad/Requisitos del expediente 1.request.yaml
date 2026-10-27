@@ -1,0 +1,8 @@
+$kind: http-request
+url: "{{base_url}}/api/expedientes/1/requisitos"
+method: GET
+scripts:
+  - type: afterResponse
+    code: pm.test('200', () => pm.response.to.have.status(200));
+    language: text/javascript
+order: 3000

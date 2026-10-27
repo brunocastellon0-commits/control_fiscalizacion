@@ -1,0 +1,9 @@
+$kind: http-request
+description: Sortea TODAS las causas en PENDIENTE_SORTEO en una sola transaccion. Ejecutar solo si hay causas pendientes.
+url: "{{base_url}}/api/bandeja/sorteo/todos"
+method: POST
+scripts:
+  - type: afterResponse
+    code: pm.test('200', () => pm.response.to.have.status(200));
+    language: text/javascript
+order: 6000

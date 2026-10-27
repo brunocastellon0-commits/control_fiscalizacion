@@ -1,0 +1,64 @@
+$kind: http-request
+description: Multipart. Requiere login TECNICO. Adjuntar demo.pdf.
+url: "{{base_url}}/api/expedientes"
+method: POST
+body:
+  type: formdata
+  content:
+    - type: text
+      key: via
+      value: TECNICO
+      disabled: false
+    - type: text
+      key: reglamento_id
+      value: "{{reglamento_ac022_id}}"
+      disabled: false
+    - type: text
+      key: resumen_hechos
+      value: Denuncia de prueba para la presentacion del Sprint 1. Se detallan los hechos y se adjunta la prueba documental correspondiente.
+      disabled: false
+    - type: text
+      key: partes[0][tipo]
+      value: DENUNCIANTE
+      disabled: false
+    - type: text
+      key: partes[0][nombre_completo]
+      value: Juan Perez
+      disabled: false
+    - type: text
+      key: partes[0][documento_identidad]
+      value: "12345678"
+      disabled: false
+    - type: text
+      key: partes[0][cargo_institucion]
+      value: ""
+      disabled: false
+    - type: text
+      key: partes[1][tipo]
+      value: DENUNCIADO
+      disabled: false
+    - type: text
+      key: partes[1][nombre_completo]
+      value: Maria Lopez
+      disabled: false
+    - type: text
+      key: partes[1][documento_identidad]
+      value: "87654321"
+      disabled: false
+    - type: text
+      key: partes[1][cargo_institucion]
+      value: ""
+      disabled: false
+    - type: file
+      key: adjunto
+      src:
+        - /C:/Users/Bruno/pasantia/PROYECTO/control_fiscalizacion/presentacion/postman/demo.pdf
+      disabled: false
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('201', () => pm.response.to.have.status(201));
+      const d = pm.response.json().data || {};
+      if (d.id) pm.collectionVariables.set('expediente_nuevo_id', d.id);
+    language: text/javascript
+order: 4000

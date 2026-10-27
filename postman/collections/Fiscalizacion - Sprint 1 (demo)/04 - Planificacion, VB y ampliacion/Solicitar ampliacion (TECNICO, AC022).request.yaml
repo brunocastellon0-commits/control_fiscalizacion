@@ -1,0 +1,17 @@
+$kind: http-request
+description: Requiere EN_EJECUCION, reglamento AC022 y login TECNICO asignado.
+url: "{{base_url}}/api/expedientes/{{expediente_id}}/ampliacion"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "justificacion": "Se requiere ampliacion por la complejidad de las diligencias pendientes y la distancia de las unidades a verificar."
+    }
+scripts:
+  - type: afterResponse
+    code: pm.test('201', () => pm.response.to.have.status(201));
+    language: text/javascript
+order: 4000

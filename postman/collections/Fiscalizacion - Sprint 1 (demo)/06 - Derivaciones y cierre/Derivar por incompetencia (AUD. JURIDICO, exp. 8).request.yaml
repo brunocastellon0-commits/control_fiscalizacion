@@ -1,0 +1,19 @@
+$kind: http-request
+description: Requiere login AUD. JURIDICO asignado al expediente 8. Multipart con demo.pdf. Justificacion minimo 20 caracteres.
+url: "{{base_url}}/api/expedientes/{{expediente_juridico_id}}/derivacion-transparencia"
+method: POST
+body:
+  type: formdata
+  content:
+    - type: text
+      key: justificacion
+      value: La causa no corresponde a la competencia de esta instancia; se deriva a Transparencia para su tramitacion.
+    - type: file
+      key: adjunto
+      src:
+        - demo.pdf
+scripts:
+  - type: afterResponse
+    code: pm.test('201', () => pm.response.to.have.status(201));
+    language: text/javascript
+order: 1000

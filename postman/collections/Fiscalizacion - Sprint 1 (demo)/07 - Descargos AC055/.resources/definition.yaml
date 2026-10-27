@@ -1,0 +1,3 @@
+$kind: collection
+description: REFERENCIA. Los expedientes demo son AC022; para ejecutar estos endpoints se necesita un expediente AC055 en EN_EJECUCION asignado a un auditor financiero.
+order: 8000

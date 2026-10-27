@@ -1,0 +1,14 @@
+$kind: http-request
+description: Requiere login TECNICO (asignado al 16). Todos los requisitos en true.
+url: "{{base_url}}/api/expedientes/{{expediente_id}}/evaluacion"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: "{{requisitos_payload}}"
+scripts:
+  - type: afterResponse
+    code: pm.test('201', () => pm.response.to.have.status(201));
+    language: text/javascript
+order: 2000

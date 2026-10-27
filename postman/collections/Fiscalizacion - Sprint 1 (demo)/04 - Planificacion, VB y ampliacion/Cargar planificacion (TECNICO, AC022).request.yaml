@@ -1,0 +1,19 @@
+$kind: http-request
+description: Multipart. Requiere expediente en EN_PLANIFICACION y login TECNICO asignado. Adjuntar demo.pdf.
+url: "{{base_url}}/api/expedientes/{{expediente_id}}/planificacion"
+method: POST
+body:
+  type: formdata
+  content:
+    - type: text
+      key: descripcion
+      value: "Cronograma de trabajo: relevamiento documental, entrevistas y elaboracion del informe preliminar."
+    - type: file
+      key: adjunto
+      src:
+        - demo.pdf
+scripts:
+  - type: afterResponse
+    code: pm.test('201', () => pm.response.to.have.status(201));
+    language: text/javascript
+order: 1000

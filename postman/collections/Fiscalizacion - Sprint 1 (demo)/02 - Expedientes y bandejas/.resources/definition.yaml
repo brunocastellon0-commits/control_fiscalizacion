@@ -1,0 +1,3 @@
+$kind: collection
+description: Apertura, detalle, sorteo, NUREJ Hijo y descarga de adjuntos. Respetar el rol indicado en cada request.
+order: 3000

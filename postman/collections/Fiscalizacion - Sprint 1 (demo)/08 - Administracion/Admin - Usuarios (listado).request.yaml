@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{base_url}}/api/admin/usuarios"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('200', () => pm.response.to.have.status(200));
+      const d = pm.response.json();
+      const roles = d.roles || [];
+      const t = roles.find(r => r.codigo === 'TECNICO');
+      if (t) pm.collectionVariables.set('rol_tecnico_id', t.id);
+    language: text/javascript
+order: 2000

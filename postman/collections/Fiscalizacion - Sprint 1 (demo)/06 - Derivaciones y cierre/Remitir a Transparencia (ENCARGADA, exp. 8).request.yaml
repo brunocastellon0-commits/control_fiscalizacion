@@ -1,0 +1,17 @@
+$kind: http-request
+description: Requiere PENDIENTE_REMISION_TRANSPARENCIA y login ENCARGADA.
+url: "{{base_url}}/api/expedientes/{{expediente_juridico_id}}/transparencia/remitir"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "nota_remision": "Se remite a la Unidad de Transparencia por incompetencia de esta instancia, para su conocimiento y fines consiguientes."
+    }
+scripts:
+  - type: afterResponse
+    code: pm.test('201', () => pm.response.to.have.status(201));
+    language: text/javascript
+order: 2000

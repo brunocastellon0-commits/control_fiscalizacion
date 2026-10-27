@@ -1,0 +1,3 @@
+$kind: collection
+description: Panel ADMIN (dashboard, usuarios, feriados, monitoreo) y dashboard de la ENCARGADA. Requiere el login indicado en cada request.
+order: 9000

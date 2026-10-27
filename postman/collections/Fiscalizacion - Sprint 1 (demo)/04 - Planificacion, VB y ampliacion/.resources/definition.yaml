@@ -1,0 +1,3 @@
+$kind: collection
+description: "Flujo AC022: tras la admision, el expediente queda en EN_PLANIFICACION. El visto bueno lo pasa a EN_EJECUCION. La ampliacion solo aplica a AC022 en EN_EJECUCION."
+order: 5000

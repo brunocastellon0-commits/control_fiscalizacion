@@ -1,0 +1,18 @@
+$kind: http-request
+url: "{{base_url}}/api/expedientes/{{expediente_financiero_id}}/descargos/recibir"
+method: POST
+body:
+  type: formdata
+  content:
+    - type: text
+      key: descripcion
+      value: Recepcion del escrito de descargos presentado por los auditados.
+    - type: file
+      key: adjunto
+      src:
+        - demo.pdf
+scripts:
+  - type: afterResponse
+    code: pm.test('201', () => pm.response.to.have.status(201));
+    language: text/javascript
+order: 2000

@@ -1,0 +1,9 @@
+$kind: http-request
+description: Obtiene la cookie XSRF-TOKEN. Ejecutar antes del primer login.
+url: "{{base_url}}/sanctum/csrf-cookie"
+method: GET
+scripts:
+  - type: afterResponse
+    code: pm.test('Cookie CSRF obtenida (204)', () => pm.response.to.have.status(204));
+    language: text/javascript
+order: 1000

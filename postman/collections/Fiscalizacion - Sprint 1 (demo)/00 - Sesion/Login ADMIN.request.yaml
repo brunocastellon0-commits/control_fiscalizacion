@@ -1,0 +1,20 @@
+$kind: http-request
+url: "{{base_url}}/api/login"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "username": "{{admin_user}}",
+      "password": "{{password}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Login ADMIN 200', () => pm.response.to.have.status(200));
+      const d = pm.response.json();
+      if (d.usuario) { pm.collectionVariables.set('usuario_id', d.usuario.id); pm.collectionVariables.set('usuario_rol', d.usuario.rol); }
+    language: text/javascript
+order: 2000

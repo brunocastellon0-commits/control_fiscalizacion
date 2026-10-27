@@ -1,0 +1,12 @@
+$kind: http-request
+url: "{{base_url}}/api/reglamentos"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('200', () => pm.response.to.have.status(200));
+      const d = pm.response.json().data || [];
+      const ac022 = d.find(r => r.codigo === 'AC_022_2018');
+      if (ac022) pm.collectionVariables.set('reglamento_ac022_id', ac022.id);
+    language: text/javascript
+order: 1000

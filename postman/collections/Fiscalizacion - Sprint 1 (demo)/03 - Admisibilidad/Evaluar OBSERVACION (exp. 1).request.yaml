@@ -1,0 +1,21 @@
+$kind: http-request
+description: "Requiere login TECNICO 02 (asignado al expediente 1). Falla un requisito NO critico (id 3): genera EN_SUBSANACION."
+url: "{{base_url}}/api/expedientes/1/evaluacion"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "requisitos": [
+        { "requisito_id": 1, "cumple": true },
+        { "requisito_id": 2, "cumple": true },
+        { "requisito_id": 3, "cumple": false }
+      ]
+    }
+scripts:
+  - type: afterResponse
+    code: pm.test('201', () => pm.response.to.have.status(201));
+    language: text/javascript
+order: 4000

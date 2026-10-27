@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{base_url}}/api/expedientes/{{expediente_id}}"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('200', () => pm.response.to.have.status(200));
+      const d = pm.response.json().data || {};
+      const act = (d.actuados || [])[0];
+      const adj = act && act.adjuntos ? act.adjuntos[0] : null;
+      if (adj) pm.collectionVariables.set('adjunto_id', adj.id);
+    language: text/javascript
+order: 3000

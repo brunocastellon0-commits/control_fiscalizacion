@@ -1,0 +1,3 @@
+$kind: collection
+description: "Flujo completo en orden: TECNICO evalua y planifica, ENCARGADA aprueba, TECNICO solicita ampliacion, ENCARGADA aprueba. Deja el expediente 16 en EN_EJECUCION con ampliacion aprobada. Muta la BD demo; para repetir, restaurar control_presentacion_final.sql. Incluye '0. CSRF cookie' al inicio."
+order: 10000

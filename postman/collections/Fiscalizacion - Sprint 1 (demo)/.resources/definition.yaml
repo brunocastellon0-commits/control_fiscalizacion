@@ -1,0 +1,91 @@
+$kind: collection
+description: |-
+  DEMO SPRINT 1 - API Fiscalizacion (Sanctum SPA: cookies + CSRF).
+
+  ANTES DE EJECUTAR
+  1. MySQL con la base control_presentacion restaurada desde control_presentacion_final.sql.
+  2. Servidor Laravel en http://127.0.0.1:8000 (php artisan serve).
+  3. base_url y origin deben apuntar al mismo host y puerto.
+
+  COMO USAR
+  - Importar SOLO este archivo. La coleccion ya trae las variables demo; el environment es opcional.
+  - Ejecutar '00 - Sesion' -> 'CSRF cookie' -> un solo login del rol a demostrar.
+  - Para el flujo completo, ejecutar '09 - Flujo AC022 (exp. 16)' de arriba a abajo: incluye su propio CSRF.
+  - En todos los requests multipart con campo 'adjunto' (7 en total), seleccionar demo.pdf.
+  - No ejecutar todos los logins de '00' seguidos: limite 5/min por IP.
+  - RF-03: tras planificacion o ampliacion el expediente se reasigna a la Encargada; el operador recibe 403 en el detalle. Es el comportamiento esperado.
+  - Para repetir el flujo, restaurar control_presentacion_final.sql.
+variables:
+  base_url: http://127.0.0.1:8000
+  origin: http://127.0.0.1:8000
+  xsrf_token: ""
+  password: password123
+  admin_user: admin
+  encargada_user: encargada
+  tecnico_user: tecnico
+  tecnico02_user: tecnico02
+  tecnico03_user: tecnico03
+  aud_juridico_user: aud_juridico
+  aud_financiero_user: aud_financiero
+  expediente_id: "16"
+  expediente_juridico_id: "8"
+  expediente_financiero_id: "11"
+  expediente_nuevo_id: ""
+  expediente_hijo_id: ""
+  usuario_id: ""
+  usuario_rol: ""
+  adjunto_id: ""
+  requisitos_payload: ""
+  catalogo_informe_final_id: ""
+  catalogo_derivacion_id: ""
+  reglamento_ac022_id: ""
+  estado_en_planificacion_id: ""
+  estado_en_ejecucion_id: ""
+  estado_rechazado_id: ""
+  feriado_id: ""
+  feriado_fecha: ""
+  nuevo_ci: ""
+  nuevo_username: ""
+  rol_tecnico_id: "2"
+  ganador_id: ""
+  ganador_username: ""
+scripts:
+  - type: http:beforeRequest
+    code: |-
+      const base = pm.variables.get('base_url') || 'http://127.0.0.1:8000';
+      const origin = (pm.variables.get('origin') || base).replace(/\/$/, '');
+      pm.request.headers.upsert({ key: 'Origin', value: origin });
+      pm.request.headers.upsert({ key: 'Referer', value: origin + '/' });
+
+      const isDownload = pm.request.url.toString().includes('/descargar');
+      pm.request.headers.upsert({ key: 'Accept', value: isDownload ? '*/*' : 'application/json' });
+
+      let xsrf = pm.variables.get('xsrf_token');
+      if (!xsrf) {
+        const cookie = pm.cookies.get('XSRF-TOKEN');
+        if (cookie) {
+          xsrf = cookie;
+          try { xsrf = decodeURIComponent(cookie); } catch (e) {}
+        }
+      }
+      if (xsrf) {
+        pm.request.headers.upsert({ key: 'X-XSRF-TOKEN', value: xsrf });
+      }
+    language: text/javascript
+  - type: http:afterResponse
+    code: |-
+      if (pm.response && pm.response.headers && typeof pm.response.headers.all === 'function') {
+        const setCookieHeaders = pm.response.headers.all().filter((header) => {
+          return String(header.key || header.name || '').toLowerCase() === 'set-cookie';
+        });
+
+        for (const header of setCookieHeaders) {
+          const match = String(header.value || '').match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/);
+          if (!match) continue;
+
+          let token = match[1];
+          try { token = decodeURIComponent(token); } catch (e) {}
+          pm.collectionVariables.set('xsrf_token', token);
+        }
+      }
+    language: text/javascript

@@ -1,0 +1,17 @@
+$kind: http-request
+description: Requiere expediente 2 en RECHAZADO y login TECNICO 03 asignado.
+url: "{{base_url}}/api/expedientes/2/impugnacion/remitir"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "descripcion": "Se remite la impugnacion contra el rechazo por requisito critico, para resolucion de la Encargada."
+    }
+scripts:
+  - type: afterResponse
+    code: pm.test('201', () => pm.response.to.have.status(201));
+    language: text/javascript
+order: 2000

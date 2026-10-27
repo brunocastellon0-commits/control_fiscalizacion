@@ -1,0 +1,3 @@
+$kind: collection
+description: Actuado generico (append-only con hashes) e impugnacion de rechazo (RN-08). La impugnacion requiere el expediente 2 en RECHAZADO (ver carpeta 03).
+order: 6000

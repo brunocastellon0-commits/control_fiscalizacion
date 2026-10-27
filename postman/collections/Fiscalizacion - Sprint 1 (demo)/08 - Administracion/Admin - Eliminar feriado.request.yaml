@@ -1,0 +1,8 @@
+$kind: http-request
+url: "{{base_url}}/api/admin/feriados/{{feriado_id}}"
+method: DELETE
+scripts:
+  - type: afterResponse
+    code: pm.test('Eliminado (200/204)', () => pm.expect([200, 204]).to.include(pm.response.code));
+    language: text/javascript
+order: 11000

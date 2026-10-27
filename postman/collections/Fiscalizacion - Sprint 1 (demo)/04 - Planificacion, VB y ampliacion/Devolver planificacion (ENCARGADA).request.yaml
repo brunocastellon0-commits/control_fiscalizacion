@@ -1,0 +1,17 @@
+$kind: http-request
+description: Alternativa al Visto Bueno. Requiere PENDIENTE_VISTO_BUENO. Devuelve a EN_PLANIFICACION y reabre el plazo.
+url: "{{base_url}}/api/expedientes/{{expediente_id}}/planificacion/devolver"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "justificacion": "El cronograma no detalla las actividades de campo; se devuelve para su correccion."
+    }
+scripts:
+  - type: afterResponse
+    code: pm.test('201', () => pm.response.to.have.status(201));
+    language: text/javascript
+order: 3000

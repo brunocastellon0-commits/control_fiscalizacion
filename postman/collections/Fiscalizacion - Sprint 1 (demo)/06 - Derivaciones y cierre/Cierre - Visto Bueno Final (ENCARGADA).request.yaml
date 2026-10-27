@@ -1,0 +1,17 @@
+$kind: http-request
+description: REFERENCIA. Requiere PENDIENTE_VISTO_BUENO_FINAL y login ENCARGADA.
+url: "{{base_url}}/api/expedientes/{{expediente_id}}/cierre/visto-bueno"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "descripcion": "Se aprueba el informe final presentado por el operador."
+    }
+scripts:
+  - type: afterResponse
+    code: pm.test('201', () => pm.response.to.have.status(201));
+    language: text/javascript
+order: 3000

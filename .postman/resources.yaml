@@ -1,0 +1,15 @@
+# Use this workspace to collaborate
+workspace:
+  id: 3f5acf6a-8eae-4c2a-8464-d4d22513005b
+
+localResources:
+  collections:
+    - ../presentacion/postman/Fiscalizacion-Sprint1.postman_collection.json
+  environments:
+    - ../presentacion/postman/Fiscalizacion-Sprint1.postman_environment.json
+
+# Each entry here maps a local resource to one or more corresponding objects in Postman Cloud
+
+cloudResources:
+  collections:
+    ../postman/collections/Fiscalizacion - Sprint 1 (demo): 39eb4610-22cd-4ea9-a3f0-169a567fd63f

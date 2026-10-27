@@ -1,0 +1,9 @@
+$kind: http-request
+description: Requiere PENDIENTE_APROBACION_AMPLIACION y login ENCARGADA. No lleva cuerpo.
+url: "{{base_url}}/api/expedientes/{{expediente_id}}/ampliacion/aprobar"
+method: POST
+scripts:
+  - type: afterResponse
+    code: pm.test('201', () => pm.response.to.have.status(201));
+    language: text/javascript
+order: 5000
