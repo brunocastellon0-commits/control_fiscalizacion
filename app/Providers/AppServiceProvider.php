@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Services\SemaforoPlazoService;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -14,7 +15,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        /*
+         * SemaforoPlazoService es stateless; su dependencia PlazoCalculatorService
+         * cachea feriados y suspensiones en el constructor. Compartir una sola
+         * instancia evita recargar esas colecciones en cada resolucion.
+         */
+        $this->app->singleton(SemaforoPlazoService::class);
     }
 
     /**
