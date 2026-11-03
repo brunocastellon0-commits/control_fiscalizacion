@@ -13,13 +13,9 @@ class ResolverImpugnacionRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        $expediente = $this->route('expediente');
+        $expediente = $this->expedienteDeRuta();
 
-        if (! $expediente instanceof Expediente) {
-            $expediente = Expediente::findOrFail($expediente);
-        }
-
-        return $this->user()->can('resolverImpugnacion', $expediente);
+        return $expediente !== null && $this->user()->can('resolverImpugnacion', $expediente);
     }
 
     /**
@@ -43,5 +39,16 @@ class ResolverImpugnacionRequest extends FormRequest
             'justificacion.required' => 'La justificación de la resolución es obligatoria.',
             'justificacion.min' => 'La justificación debe tener al menos :min caracteres.',
         ];
+    }
+
+    private function expedienteDeRuta(): ?Expediente
+    {
+        $expediente = $this->route('expediente');
+
+        if ($expediente instanceof Expediente) {
+            return $expediente;
+        }
+
+        return is_numeric($expediente) ? Expediente::find((int) $expediente) : null;
     }
 }

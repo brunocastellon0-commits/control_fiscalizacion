@@ -32,7 +32,7 @@ class UpdateUsuarioRequest extends FormRequest
             'apellidos' => ['required', 'string', 'max:120'],
             'cargo' => ['nullable', 'string', 'max:120'],
             'username' => ['required', 'string', 'max:60', Rule::unique('usuarios', 'username')->ignore($usuarioId)],
-            'password' => ['nullable', 'string', 'min:8'],
+            'password' => ['nullable', 'string', 'min:8', 'max:255'],
             'rol_id' => ['required', 'integer', 'exists:roles,id'],
         ];
     }
