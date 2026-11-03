@@ -3,9 +3,19 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreFeriadoRequest extends FormRequest
 {
+    /**
+     * Valores de ámbito admitidos: los expuestos por el formulario
+     * (NACIONAL, DEPARTAMENTAL, INSTITUCIONAL) más LOCAL, que ya existe en
+     * los datos sembrados.
+     *
+     * @var list<string>
+     */
+    private const AMBITOS = ['NACIONAL', 'DEPARTAMENTAL', 'LOCAL', 'INSTITUCIONAL'];
+
     public function authorize(): bool
     {
         return true;
@@ -23,13 +33,13 @@ class StoreFeriadoRequest extends FormRequest
             'descripcion' => [
                 'required',
                 'string',
-                'max:255',
+                'max:150',
             ],
 
             'ambito' => [
                 'required',
                 'string',
-                'max:30',
+                Rule::in(self::AMBITOS),
             ],
         ];
     }
@@ -42,9 +52,10 @@ class StoreFeriadoRequest extends FormRequest
             'fecha.unique' => 'Ya existe un feriado registrado para esta fecha.',
 
             'descripcion.required' => 'La descripción es obligatoria.',
-            'descripcion.max' => 'La descripción no puede superar los 255 caracteres.',
+            'descripcion.max' => 'La descripción no puede superar los 150 caracteres.',
 
             'ambito.required' => 'El ámbito es obligatorio.',
+            'ambito.in' => 'El ámbito debe ser NACIONAL, DEPARTAMENTAL, LOCAL o INSTITUCIONAL.',
         ];
     }
 }

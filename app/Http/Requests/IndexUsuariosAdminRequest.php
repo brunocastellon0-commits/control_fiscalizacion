@@ -17,8 +17,8 @@ class IndexUsuariosAdminRequest extends FormRequest
 
     /**
      * 'activo' llega como string desde query params ('1' | '0'); se valida
-     * como boolean (Laravel acepta '0'/'1'/'true'/'false' en boolean rule)
-     * y se lee en el controlador con $request->boolean('activo').
+     * con la regla boolean (acepta 1/0 y '1'/'0') y se lee en el controlador
+     * con $request->boolean('activo').
      *
      * @return array<string, mixed>
      */
@@ -26,7 +26,7 @@ class IndexUsuariosAdminRequest extends FormRequest
     {
         return [
             'rol_id' => ['nullable', 'integer', 'exists:roles,id'],
-            'activo' => ['nullable', 'in:0,1,true,false'],
+            'activo' => ['nullable', 'boolean'],
             'buscar' => ['nullable', 'string', 'max:100'],
         ];
     }

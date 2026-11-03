@@ -13,13 +13,9 @@ class ImpugnacionRemitirRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        $expediente = $this->route('expediente');
+        $expediente = $this->expedienteDeRuta();
 
-        if (! $expediente instanceof Expediente) {
-            $expediente = Expediente::findOrFail($expediente);
-        }
-
-        return $this->user()->can('remitirImpugnacion', $expediente);
+        return $expediente !== null && $this->user()->can('remitirImpugnacion', $expediente);
     }
 
     /**
@@ -40,5 +36,16 @@ class ImpugnacionRemitirRequest extends FormRequest
             'descripcion.required' => 'La descripción de la remisión es obligatoria.',
             'descripcion.min' => 'La descripción debe tener al menos :min caracteres.',
         ];
+    }
+
+    private function expedienteDeRuta(): ?Expediente
+    {
+        $expediente = $this->route('expediente');
+
+        if ($expediente instanceof Expediente) {
+            return $expediente;
+        }
+
+        return is_numeric($expediente) ? Expediente::find((int) $expediente) : null;
     }
 }
