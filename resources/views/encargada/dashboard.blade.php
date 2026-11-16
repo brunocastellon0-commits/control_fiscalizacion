@@ -29,7 +29,7 @@
 
     <template x-if="datosListos">
         <div class="space-y-6">
-            <div x-show="datos.vencimientos.fuera_de_plazo.length > 0"
+            <!-- <div x-show="datos.vencimientos.fuera_de_plazo.length > 0"
                 class="bg-red-50 border border-red-200 rounded-xl p-4">
                 <p class="font-semibold text-red-700 flex items-center gap-2">
                     <i class="fa-solid fa-triangle-exclamation"></i>
@@ -43,7 +43,7 @@
                         </a>
                     </template>
                 </div>
-            </div>
+            </div> -->
 
             <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
                 <div class="bg-white rounded-xl shadow p-5 flex items-center justify-between">

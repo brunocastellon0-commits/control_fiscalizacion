@@ -4,7 +4,7 @@
 
 @section('contenido')
     <div class="p-6" x-data="aperturaCausa()" x-init="init()">
-        <div class="max-w-3xl mx-auto space-y-6">
+        <div class="max-w-6xl mx-auto space-y-6">
             <div>
                 <h1 class="text-xl font-bold text-grafito">Apertura de causa</h1>
                 <p class="text-sm text-gris">Registro de un nuevo expediente con sus partes y documento de respaldo.</p>
@@ -18,7 +18,7 @@
                 </div>
             </template>
 
-            <form @submit.prevent="submit" class="space-y-6" x-show="!enviando">
+            <form @submit.prevent="submit" class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start" x-show="!enviando">
                 {{-- Datos generales --}}
                 <div class="bg-white rounded-xl border border-gris-claro shadow-sm p-6 space-y-5">
                     <h3 class="text-sm font-bold text-grafito uppercase flex items-center gap-2">
@@ -60,8 +60,23 @@
                     </div>
                 </div>
 
+                {{-- Documento de respaldo --}}
+                <div class="bg-white rounded-xl border border-gris-claro shadow-sm p-6 space-y-3">
+                    <h3 class="text-sm font-bold text-grafito uppercase flex items-center gap-2">
+                        <i class="fa-solid fa-paperclip text-verde-institucional"></i> Documento de respaldo
+                    </h3>
+                    <label class="block text-xs font-semibold text-grafito uppercase mb-1.5">Adjunto (PDF) <span class="text-[#F15A24]">*</span></label>
+                    <input type="file" accept="application/pdf" @change="manejarAdjunto" required
+                           class="w-full text-sm text-gris file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-gris-claro file:text-grafito hover:file:bg-[#F15A24]/10">
+                    <div x-show="form.adjunto" class="flex items-center gap-2 text-xs text-grafito bg-gris-claro/50 rounded-lg px-3 py-2">
+                        <i class="fa-solid fa-file-pdf text-[#F15A24]"></i>
+                        <span x-text="form.adjunto.name" class="truncate flex-1"></span>
+                        <span x-text="formatBytes(form.adjunto.size)" class="text-gris shrink-0"></span>
+                    </div>
+                </div>
+
                 {{-- Partes procesales --}}
-                <div class="bg-white rounded-xl border border-gris-claro shadow-sm p-6 space-y-4">
+                <div class="lg:col-span-2 bg-white rounded-xl border border-gris-claro shadow-sm p-6 space-y-4">
                     <div class="flex items-center justify-between">
                         <h3 class="text-sm font-bold text-grafito uppercase flex items-center gap-2">
                             <i class="fa-solid fa-users text-verde-institucional"></i> Partes procesales
@@ -120,23 +135,8 @@
                     </div>
                 </div>
 
-                {{-- Documento de respaldo --}}
-                <div class="bg-white rounded-xl border border-gris-claro shadow-sm p-6 space-y-3">
-                    <h3 class="text-sm font-bold text-grafito uppercase flex items-center gap-2">
-                        <i class="fa-solid fa-paperclip text-verde-institucional"></i> Documento de respaldo
-                    </h3>
-                    <label class="block text-xs font-semibold text-grafito uppercase mb-1.5">Adjunto (PDF) <span class="text-[#F15A24]">*</span></label>
-                    <input type="file" accept="application/pdf" @change="manejarAdjunto" required
-                           class="w-full text-sm text-gris file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-gris-claro file:text-grafito hover:file:bg-[#F15A24]/10">
-                    <div x-show="form.adjunto" class="flex items-center gap-2 text-xs text-grafito bg-gris-claro/50 rounded-lg px-3 py-2">
-                        <i class="fa-solid fa-file-pdf text-[#F15A24]"></i>
-                        <span x-text="form.adjunto.name" class="truncate flex-1"></span>
-                        <span x-text="formatBytes(form.adjunto.size)" class="text-gris shrink-0"></span>
-                    </div>
-                </div>
-
                 {{-- Acciones --}}
-                <div class="flex justify-end gap-3">
+                <div class="lg:col-span-2 flex justify-end gap-3">
                     <a href="/expedientes" class="px-5 py-2.5 bg-gris-claro text-grafito rounded-lg text-sm font-medium hover:bg-[#F15A24]/10 transition">Cancelar</a>
                     <button type="submit"
                             class="px-6 py-2.5 bg-verde-profundo text-white rounded-lg text-sm font-semibold hover:bg-verde-institucional transition">

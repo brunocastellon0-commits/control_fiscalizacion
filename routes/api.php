@@ -25,7 +25,7 @@ use Illuminate\Support\Facades\Route;
 // Ruta pública para iniciar sesión (con rate limiting anti fuerza bruta)
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
 
-// Rutas protegidas por Sanctum + rate limiting global de API
+// Rutas protegidas por Sanctum + rate limiting gl  obal de API
 Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);

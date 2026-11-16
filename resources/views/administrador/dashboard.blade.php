@@ -33,7 +33,7 @@
             <div class="space-y-6">
 
                 <!-- ALERTA: expedientes fuera de plazo -->
-                <div x-show="datos.expedientes_fuera_de_plazo.length > 0"
+                <!-- <div x-show="datos.expedientes_fuera_de_plazo.length > 0"
                     class="bg-red-50 border border-red-200 rounded-xl p-4">
                     <div class="flex items-center justify-between mb-2">
                         <p class="font-semibold text-red-700 flex items-center gap-2">
@@ -49,7 +49,7 @@
                             </a>
                         </template>
                     </div>
-                </div>
+                </div> -->
 
                 <!-- KPI CARDS -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
