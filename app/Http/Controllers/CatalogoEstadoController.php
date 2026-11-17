@@ -19,6 +19,7 @@ class CatalogoEstadoController extends Controller
 
         $query = CatalogoEstado::query()
             ->with('padre')
+            ->where('activo', true)
             ->orderBy('codigo');
 
         if ($request->filled('es_final')) {

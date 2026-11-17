@@ -24,6 +24,8 @@ function nurejHijoSemilla(): array
     $audJuridico = Usuario::factory()->create(['rol_id' => $rolAudJuridico->id, 'activo' => true]);
 
     $ac022 = Reglamento::factory()->create(['codigo' => 'AC_022_2018']);
+    $ac054 = Reglamento::factory()->create(['codigo' => 'AC_054_2018']);
+    $ac055 = Reglamento::factory()->create(['codigo' => 'AC_055_2018']);
 
     $pendienteSorteo = CatalogoEstado::factory()->create(['codigo' => 'PENDIENTE_SORTEO']);
     $ejecucion = CatalogoEstado::factory()->create(['codigo' => 'EN_EJECUCION']);
@@ -41,15 +43,29 @@ function nurejHijoSemilla(): array
         'descripcion' => 'La Encargada deriva un NUREJ Hijo a partir de un expediente padre',
     ]);
 
+    // B1.5 (MATRIZ_DERIVACIONES M1-M4): informe técnico habilitante
+    // exigido por D-P1 para toda derivación.
+    $actInformeConRec = CatalogoActuado::create([
+        'codigo' => 'ACT_INFORME_TECNICO_CON_RESPONSABILIDAD_RECOMENDACION',
+        'nombre' => 'Informe Final Técnico con Responsabilidad y Recomendación de Auditoría',
+        'fase' => 'INVESTIGACION',
+        'rol_id' => $rolTecnico->id,
+        'reglamento_id' => null,
+        'estado_origen_id' => null,
+        'estado_destino_id' => null,
+        'es_automatico' => false,
+        'requiere_adjunto' => false,
+    ]);
+
     DB::table('catalogo_actuado_roles')->insert([
         ['catalogo_actuado_id' => $actCreacionHijo->id, 'rol_id' => $rolEncargada->id, 'reglamento_id' => null],
     ]);
 
     return compact(
         'encargada', 'tecnico', 'audJuridico',
-        'ac022',
+        'ac022', 'ac054', 'ac055',
         'pendienteSorteo', 'ejecucion',
-        'actCreacionHijo',
+        'actCreacionHijo', 'actInformeConRec',
     );
 }
 
@@ -87,6 +103,16 @@ function nurejHijoCrearPadre(array $semilla, bool $conHistorial = false): Expedi
         'vigente_desde' => now(),
         'vigente_hasta' => null,
         'es_version_actual' => true,
+    ]);
+
+    // B1.5 (D-P1): informe técnico habilitante exigido por la matriz de
+    // derivaciones antes de poder derivar un NUREJ Hijo.
+    Actuado::create([
+        'expediente_id' => $padre->id,
+        'catalogo_actuado_id' => $semilla['actInformeConRec']->id,
+        'usuario_id' => $semilla['tecnico']->id,
+        'estado_nuevo_id' => $padre->estado_actual_id,
+        'contenido' => ['descripcion' => 'Informe técnico con recomendación previo a la derivación (D-P1).'],
     ]);
 
     if ($conHistorial) {
@@ -130,20 +156,21 @@ it('la Encargada deriva un NUREJ Hijo: emite ACT_CREACION_NUREJ_HIJO, padre cons
 
     $this->postJson("/api/expedientes/{$padre->id}/nurej-hijo", [
         'motivo' => 'El informe final del operador recomienda auditoría especializada sobre los hallazgos.',
+        'via_destino' => 'JURIDICO',
     ])->assertCreated()
         ->assertJsonPath('data.nurej_code', '2026-00001-1')
         ->assertJsonPath('data.nurej_padre_id', $padre->id)
-        ->assertJsonPath('data.via', 'TECNICO')
+        ->assertJsonPath('data.via', 'JURIDICO')
         ->assertJsonPath('data.estado_actual.codigo', 'PENDIENTE_SORTEO')
-        ->assertJsonPath('data.reglamento.id', $semilla['ac022']->id)
+        ->assertJsonPath('data.reglamento.id', $semilla['ac054']->id)
         ->assertJsonPath('data.resumen_hechos', $padre->resumen_hechos);
 
     $hijo = Expediente::where('nurej_code', '2026-00001-1')->first();
     expect($hijo)->not->toBeNull()
         ->and($hijo->nurej_padre_id)->toBe($padre->id)
         ->and($hijo->estado_actual_id)->toBe($semilla['pendienteSorteo']->id)
-        ->and($hijo->via)->toBe('TECNICO')
-        ->and($hijo->reglamento_id)->toBe($semilla['ac022']->id)
+        ->and($hijo->via)->toBe('JURIDICO')
+        ->and($hijo->reglamento_id)->toBe($semilla['ac054']->id)
         ->and($hijo->creado_por)->toBe($semilla['encargada']->id);
 
     $partesHijo = $hijo->partesVigentes()->get();
@@ -172,7 +199,7 @@ it('el NUREJ Hijo nace con línea de tiempo en cero: actuados, plazos y asignaci
     $semilla = nurejHijoSemilla();
     $padre = nurejHijoCrearPadre($semilla, conHistorial: true);
 
-    expect($padre->actuados()->count())->toBe(1)
+    expect($padre->actuados()->count())->toBe(2) // informe habilitante (D-P1) + actuado de historial
         ->and($padre->plazos()->count())->toBe(1)
         ->and($padre->asignaciones()->count())->toBe(1);
 
@@ -180,6 +207,7 @@ it('el NUREJ Hijo nace con línea de tiempo en cero: actuados, plazos y asignaci
 
     $this->postJson("/api/expedientes/{$padre->id}/nurej-hijo", [
         'motivo' => 'Hallazgos de auditoría que requieren causa independiente para su profundización.',
+        'via_destino' => 'JURIDICO',
     ])->assertCreated();
 
     $hijo = Expediente::where('nurej_code', '2026-00001-1')->first();
@@ -198,12 +226,13 @@ it('el padre opera en paralelo: conserva su historial, plazos y bandeja tras der
 
     $this->postJson("/api/expedientes/{$padre->id}/nurej-hijo", [
         'motivo' => 'Derivación por recomendación de informe final con alcance de auditoría especial.',
+        'via_destino' => 'JURIDICO',
     ])->assertCreated();
 
     $padre->refresh();
 
     expect($padre->estado_actual_id)->toBe($semilla['ejecucion']->id)
-        ->and($padre->actuados()->count())->toBe(2)
+        ->and($padre->actuados()->count())->toBe(3) // informe habilitante + historial + creación del hijo
         ->and($padre->plazos()->count())->toBe(1)
         ->and($padre->asignaciones()->count())->toBe(1)
         ->and($padre->asignacionActiva()->first()->usuario_id)->toBe($semilla['tecnico']->id)

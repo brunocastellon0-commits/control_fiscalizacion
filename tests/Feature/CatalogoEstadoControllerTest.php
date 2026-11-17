@@ -78,6 +78,20 @@ it('deniega 403 a un usuario inactivo', function () {
     $this->getJson('/api/estados')->assertForbidden();
 });
 
+it('excluye los estados inactivos del catalogo operativo', function () {
+    $operador = pasoDUsuario(Rol::CODIGO_AUD_JURIDICO);
+
+    CatalogoEstado::factory()->create(['codigo' => 'ACTIVO_OK']);
+    CatalogoEstado::factory()->create(['codigo' => 'INACTIVO_OK', 'activo' => false]);
+
+    Sanctum::actingAs($operador, ['*']);
+
+    $codigos = array_column($this->getJson('/api/estados')->assertOk()->json('data'), 'codigo');
+
+    expect($codigos)->toContain('ACTIVO_OK')
+        ->not->toContain('INACTIVO_OK');
+});
+
 it('el admin activo puede leer el catalogo de estados', function () {
     $admin = pasoDUsuario(Rol::CODIGO_ADMIN);
     CatalogoEstado::factory()->create(['codigo' => 'AA']);

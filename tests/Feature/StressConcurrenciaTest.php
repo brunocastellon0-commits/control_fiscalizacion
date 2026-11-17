@@ -132,6 +132,7 @@ function stressCodigoApertura(): string
             $exp = app(App\Services\ExpedienteService::class)->aperturaCausa(
                 datos: [
                     'via' => 'TECNICO',
+                    'naturaleza' => 'JURISDICCIONAL',
                     'reglamento_id' => $reglamento->id,
                     'resumen_hechos' => '[STRESS-MASA] corrida '.getenv('STR_PROC').' causa '.$i,
                 ],

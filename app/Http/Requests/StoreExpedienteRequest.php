@@ -2,15 +2,19 @@
 
 namespace App\Http\Requests;
 
-use App\Models\Rol;
+use App\Models\Expediente;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class StoreExpedienteRequest extends FormRequest
 {
+    /**
+     * B2.3: delega en la policy `aperturaCausa` (exige usuario activo y rol
+     * TECNICO), en lugar de un check inline de rol sin validar `activo`.
+     */
     public function authorize(): bool
     {
-        return $this->user()?->rol?->codigo === Rol::CODIGO_TECNICO;
+        return $this->user()?->can('aperturaCausa', Expediente::class) === true;
     }
 
     /**
@@ -20,6 +24,10 @@ class StoreExpedienteRequest extends FormRequest
     {
         return [
             'via' => ['required', 'string', Rule::in(['TECNICO', 'JURIDICO', 'FINANCIERO'])],
+            'naturaleza' => ['required', 'string', Rule::in([
+                Expediente::NATURALEZA_JURISDICCIONAL,
+                Expediente::NATURALEZA_ADMINISTRATIVA,
+            ])],
             'reglamento_id' => ['required', 'integer', 'exists:reglamentos,id'],
             'resumen_hechos' => ['required', 'string', 'min:10', 'max:5000'],
             'partes' => ['required', 'array', 'min:1'],

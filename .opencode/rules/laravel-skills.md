@@ -1,6 +1,9 @@
-# Skill: Laravel + MySQL nivel profesional / gubernamental
+# Skill: Laravel + MySQL nivel gubernamental
 
 Aplica esto en TODO código que generes o modifiques. No es opcional.
+Lo ya cubierto por las guidelines de Boost (`AGENTS.md`) o por
+`restricciones.md` **no se repite aquí**: si una regla de seguridad/alcance/tokens
+aplica, manda ese archivo.
 
 ## 1. Base de datos — MySQL, nunca Postgres
 
@@ -47,13 +50,13 @@ Aplica esto en TODO código que generes o modifiques. No es opcional.
 - Reglas de validación explícitas por tipo real de dato (`integer`, `email`,
   `exists:tabla,columna`, `max:`, etc.), nunca `sometimes` o reglas laxas "para que pase".
 - Autorización con **Policies** o **Gates**, nunca `if ($user->role == 'admin')`
-  disperso en controladores. Un solo lugar de verdad por recurso.
+  disperso en controladores. Un solo lugar de verdad por recurso. Usar las
+  constantes `Rol::CODIGO_*`, nunca cadenas literales de rol.
 - Todo endpoint que modifica datos debe verificar autorización explícitamente,
   incluso si "solo lo usa el admin" — nunca confiar en que el frontend oculta el botón.
 
-## 4. Seguridad (obligatorio, sistema gubernamental)
+## 4. Seguridad específica no cubierta en `restricciones.md`
 
-- CSRF activo en todo formulario web (Laravel lo trae por defecto: no desactivar).
 - Rate limiting (`throttle:`) en endpoints de login, recuperación de contraseña
   y APIs públicas.
 - Contraseñas: `Hash::make()` (bcrypt/argon2 de Laravel), nunca md5/sha1 ni texto plano.
@@ -61,30 +64,26 @@ Aplica esto en TODO código que generes o modifiques. No es opcional.
   ley) se marcan y, si aplica, se encriptan en reposo (`encrypted` cast de Eloquent).
 - Logs de auditoría en acciones críticas: quién hizo qué y cuándo (crear,
   modificar, eliminar registros sensibles). No loguear contraseñas, tokens ni datos sensibles en texto plano.
-- Nunca exponer `.env`, stack traces completos, ni mensajes de error de
-  base de datos crudos al usuario final. `APP_DEBUG=false` en producción.
-- Prohibido dejar rutas, controladores o comandos de debug/test accesibles en producción.
-- Subida de archivos: validar tipo real (mime), tamaño, y nunca ejecutar/servir
-  directamente archivos subidos por el usuario desde una ruta ejecutable.
+- `APP_DEBUG=false` en producción; nunca exponer stack traces ni errores crudos de BD.
+- Subida de archivos: validar tipo real (mime) y tamaño; nunca servir archivos
+  subidos desde una ruta ejecutable.
 
-## 5. Estructura y estilo
+## 5. Estructura y estilo del proyecto
 
-- PSR-12 para el código PHP.
+(PSR-12, estilo PHP y formato: mandan las guidelines de Boost en `AGENTS.md`.)
+
 - Lógica de negocio compleja va en **Service classes** o **Actions**, no
   amontonada en el controlador. Controladores delgados.
 - Nombres en inglés para código (clases, métodos, variables); nombres de
   tablas/columnas siguiendo la convención ya usada en el proyecto (revisar
   antes de asumir snake_case vs camelCase).
-- PHPDoc en métodos públicos no triviales, breve y útil, no relleno.
 
-## 6. Testing
+## 6. Testing — cobertura obligatoria (sistema gubernamental)
 
-- Toda entrega de código con lógica de negocio, seguridad o cambios de esquema
-  lleva pruebas automatizadas con **Pest** (feature tests preferentemente).
-- Crear tests con `php artisan make:test --pest {Name}Test` (sin el prefijo
-  `Feature/`). Ejecutar con `vendor/bin/pest` o `php artisan test --compact`.
-- Nunca borrar ni comentar tests existentes sin aprobación explícita.
-- Cobertura obligatoria — sistema gubernamental, la seguridad se testea:
+- Framework y sintaxis: ver las skills `pest-testing` y `testing-best-practices`.
+  Nunca borrar ni comentar tests existentes sin aprobación explícita.
+- Toda entrega con lógica de negocio, seguridad o cambios de esquema lleva tests.
+- Cobertura mínima obligatoria:
   - Autorización y compartimentos estancos (RF-03): un operador recibe `403`
     ante expedientes ajenos o sin asignación activa.
   - Transiciones de estado y cálculo de plazos (días hábiles reales con feriados).

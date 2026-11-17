@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\IndexCatalogoActuadosRequest;
+use App\Http\Requests\StoreActuadoRequest;
 use App\Http\Resources\CatalogoActuadoResource;
 use App\Models\CatalogoActuado;
 use App\Models\Expediente;
@@ -25,6 +26,10 @@ class CatalogoActuadoController extends Controller
 
         $query = CatalogoActuado::query()
             ->where('es_automatico', false)
+            // Divergencia 2 (aprobada): los 5 tipos de flujo especializado se
+            // emiten solo por sus endpoints dedicados (CTR-04/05/09/10); no se
+            // ofrecen en el catálogo CTR-03.
+            ->whereNotIn('codigo', StoreActuadoRequest::TIPOS_FLUJO_ESPECIALIZADO)
             ->with(['estadoOrigen', 'estadoDestino'])
             ->orderBy('fase')
             ->orderBy('nombre');

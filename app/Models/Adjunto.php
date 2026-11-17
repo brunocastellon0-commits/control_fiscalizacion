@@ -15,7 +15,6 @@ class Adjunto extends Model
         'actuado_id',
         'nombre_original',
         'ruta_almacenamiento',
-        'hash_sha256',
         'mime_type',
         'tamanio_bytes',
         'subido_por',

@@ -15,25 +15,26 @@ anteriores (que se conservan solo como registro de su momento).**
 |---|---|---|
 | AUD-0001 | **(cierre F12)** Deuda conocida **ACEPTADA**; F12 no lo introdujo ni agravó; sin cambio de código ni de test; semántica ADMIN (opciones A/B/C) → fase de hardening/seguridad; NO maquillar el test | OPEN/P1, deuda conocida |
 | AUD-0019 | P2 confirmado; parametrizar 3-5 días según complejidad (no asumir 5); antes: fuente de "complejidad" | DECIDIDO, fix no aplicado |
-| AUD-0020 | P1/OPEN; validar estado origen; antes: matriz `actuado→origen→destino` | DECIDIDO, fix no aplicado |
-| AUD-0021 | P1/OPEN; grafo actual NO aceptado; antes: matriz `estado→actuados→destinos→roles` (SRS, sin inventar) | DECIDIDO, fix no aplicado |
+| AUD-0020 | P1/OPEN; validar estado origen; antes: matriz `actuado→origen→destino` | **FIX APLICADO en B1.2 (2026-10-06)**: validación `estado_origen_id` en `registerActuado`/`evaluar` (422) + lock; matriz completa no requerida por decisión del usuario |
+| AUD-0021 | P1/OPEN; grafo actual NO aceptado; antes: matriz `estado→actuados→destinos→roles` (SRS, sin inventar) | **FIX PARCIAL en B1.2 (2026-10-06)**: D-6a informe → `PENDIENTE_VISTO_BUENO_FINAL`; D-6b `ADMITIDO` → `EN_PLANIFICACION`. **CERRADO en B1.6 (2026-10-07)**: evidencia 3 (estados huérfanos) resuelta con columna `activo` + migración condicionada a las 5 FK + sincronización en `CatalogoEstadoSeeder` + exclusión en `GET /api/estados`; `CONCLUIDO` activo por diseño (Reparto Institucional); suite 381 · 374 OK · 0 fallos · 7 omitidos · 1979 aserciones |
 | AUD-0023 | P2/OPEN; NO `db:seed` global; sync idempotente de catálogos; ejecución dev con autorización específica | DECIDIDO, fix no aplicado |
 | AUD-0024 | P1 confirmado, NO fuera de alcance; campo `naturaleza` (no `via`); antes: impacto de migración+tests | DECIDIDO, fix no aplicado |
 | AUD-0025 | P2 confirmado; AC022=2d, AC054/055 MPA sin reloj rígido; ejecución = fecha MPA; antes: cambio mínimo+tests | DECIDIDO, fix no aplicado |
 | AUD-0027 | P2/OPEN; validar destino (activo+rol+institucional) en servidor; antes: matriz `actuado→roles/destinos` | DECIDIDO, fix no aplicado |
 | AUD-0028 | P1/OPEN; dashboard agregado NO sustituye supervisión operativa; diseñar bandeja desde casos de uso | DECIDIDO, fix no aplicado |
 | AUD-0029 | P2/OPEN; reasignación explícita con actuado+trazabilidad, sin reasignación silenciosa; antes: flujo institucional | DECIDIDO, fix no aplicado |
-| AUD-0033 | P1/OPEN; NO `estado_nuevo_id` nullable; resolver en el grafo (destino informe → espera VB → verificar → cambio mínimo) | DECIDIDO, fix no aplicado |
+| AUD-0033 | P1/OPEN; NO `estado_nuevo_id` nullable; resolver en el grafo (destino informe → espera VB → verificar → cambio mínimo) | **FIX APLICADO en B1.2 (2026-10-06)**: D-6a destino del informe = `PENDIENTE_VISTO_BUENO_FINAL` en seeder (sin nullable); `FlujoJuridicoTest` sigue con fixture propia (comentario obsoleto sin tocar) |
 | AUD-0034 | P2 (funcional, no seguridad); fix conceptual autorizado (catálogo contextual + validación servidor); NO aplicar hasta AUD-0033/0020/0021 | DECIDIDO, fix no aplicado |
 | AUD-0035 | P1 confirmado; endpoints NO sustituyen UI; verificar conjunto de operaciones jurídicas y diseñar UI contra flujo normativo | DECIDIDO, fix no aplicado |
-| AUD-0039 | **Opción B adoptada** (`AUD-0039_DISENO.md` §7): `via_destino` explícito en servidor, mapeo vía→reglamento (JURIDICO→AC054, FINANCIERO→AC055), matriz normativa de combinaciones | DECIDIDO, fix no aplicado (pendiente matriz) |
+| AUD-0039 | **Opción B adoptada** (`AUD-0039_DISENO.md` §7): `via_destino` explícito en servidor, mapeo vía→reglamento (JURIDICO→AC054, FINANCIERO→AC055), matriz normativa de combinaciones. **(B1.5) Implementado (2026-10-06)** tras aprobar `MATRIZ_DERIVACIONES.md` (D-P1/D-P2 aplicadas, D-P3 descartada): whitelist estricta M1-M4 + informe técnico habilitante, hijo sin herencia de `via`/`reglamento_id`, C8 vía metadatos existentes | **CERRADO en B1.5 (2026-10-06)**: `NurejHijoEspecialidadTest` 7/7; suite 370 · 363 OK · 0 fallos · 7 omitidos · 1931 aserciones |
 | AUD-0040 | **(cierre F12)** Opción (a): **MONITORIZAR** — flake/no reproducido, causa raíz abierta; sin cambio en helper ni producto sin reproducción fiable o evidencia de causa raíz | OPEN/P3, monitorización |
 | AUD-0041 | P2; fix AUTORIZADO y **APLICADO**: check `activo`+rol en `AdminDashboardController` (patrón Monitoreo) + test; gates OK | **CERRADO (2026-09-30, con validación de F12)** |
 | AUD-0038 | Autorización mantenida (ya aplicada en Fase 11): 422 controlado + test; sin cambios relacionados con AUD-0039 | CERRADO |
 | O-4 | Observación, NO elevada: verificado contra RF-03 → `bandejaOperador:72-76` filtra por usuario y `show:85` exige policy → sin lectura de expedientes ajenos | Resuelta (observación) |
 | O-6 | **(cierre F12) CERRADA: "Comportamiento aceptado provisionalmente; el SRS no establece prohibición explícita de autoasignación."** Sin exclusión del creador en esta fase; si se decide luego → cambio funcional separado con tests | Cerrada (aceptada provisionalmente) |
 | O-7 | **(cierre F12) CERRADA como sub-caso de AUD-0023** (sin ficha P2): BD dev sin `IMPUGNACION_RESOLVER` (0 filas) → fallback `now()` con límite inmediato; sin modificar; candidato de corrección en la sync de parámetros | Cerrada (asociada a AUD-0023) |
-| AUD-0030/0031/0032 | **(cierre F12) Incorporados formalmente a la lista de decisiones pendientes; NO aplicar.** Props: 0030 decidir cerrar plazos al salir de fase vs filtrar CRON/semáforo; 0031 condicionar archivo a `EN_SUBSANACION` y/o cierre del plazo; 0032 actuado de salida de subsanación (migración de catálogo sujeta a aprobación). No bloquean F12 | OPEN/P1, decisión pendiente |
+| AUD-0030 | **(cierre F12)** decidir: cerrar plazos al salir de fase vs filtrar CRON/semáforo. **(B1.3) Opción (i) aprobada (2026-10-06): cerrar al salir de fase, Opción A sin `fecha_cierre`** (fecha derivada de `actuados.fecha_hora`) | **CERRADO en B1.3 (2026-10-06)**: `MAPA_CIERRA_PLAZO` + `cerrarPlazosDeFase()` en la transacción de `registerActuado`; `CierrePlazosFasesTest` 7/7; `FlujoIntegralTest:333` actualizado; suite 354 · 347 OK · 0 fallos · 7 omitidos |
+| AUD-0031/0032 | **(cierre F12)** incorporados formalmente a la lista de decisiones pendientes; NO aplicar. **(B1.4) Resueltos (2026-10-06)** — 0031: filtro estricto `EN_SUBSANACION` + `try/catch` por expediente en `archivarVencidos()` (huérfanos fuera de alcance, decisión del usuario); 0032: actuado `ACT_SUBSANACION_ACEPTADA` en seeder aprobado (`EN_SUBSANACION → EN_EVALUACION`, sin reloj EVALUACION nuevo, sin adjunto, 422 si plazo vencido contra `today()` America/La_Paz o `VENCIDO`) | **CERRADO en B1.4 (2026-10-06)**: `SubsanacionExitoTest` 9/9; regresión 29/29; pint OK; suite 363 tests · 356 OK · 0 fallos · 7 omitidos |
 
 **`NEEDS_REVIEW` al cierre de F12: NINGUNO** (los cuatro elementos
 anteriores —AUD-0001, AUD-0040, O-6, O-7— quedaron resueltos con las
@@ -1263,3 +1264,1023 @@ fuera de `.md`.
 
 **Pendiente:** validación de F18 por el usuario (consistencia de la matriz, checklist
 §79/§116 y veredicto §7). **NO cerrar F18 hasta esa validación.**
+
+---
+
+## Cierre de AUD-0001 — tarea B2.0 (2026-10-05)
+
+**Estado:** **AUD-0001 CERRADA (2026-10-05)** — eliminada la última deuda P1 de
+seguridad que dejaba la suite en rojo.
+
+**Cambio de producción (mínimo y aislado):**
+
+- `app/Policies/ExpedientePolicy.php` — eliminada la rama
+  `if (($user->rol?->codigo ?? null) === Rol::CODIGO_ADMIN) { return true; }` en
+  `view()` (antes `:80-82`). `esRolConAccesoCatalogos()` y `crearActuado()`
+  intactos; ningún otro comportamiento modificado. Único archivo PHP tocado.
+
+**Efecto:** `GET /api/expedientes/{e}` —y vía `authorize('view', $expediente)`
+también `requisitos`, descarga de adjuntos y detalle workstation— devuelve **403
+para ADMIN sin asignación activa**. El "monitoreo" del SRS del ADMIN queda en
+`AdminDashboardController`/`AdminMonitoreoController` (endpoints propios, sin
+cambios).
+
+**Validación (sin modificar ningún test):**
+
+- `vendor/bin/pest tests/Feature/SecurityCompartimentosTest.php` → **antes:
+  9 tests · 8 OK · 1 fallo** (`:165`, esperaba 403 y recibía 200 = AUD-0001) ·
+  **después: 9/9 OK · 12 aserciones.**
+- `php artisan test --compact` → **310 tests · 304 OK · 0 fallos · 0 errores ·
+  6 omitidos · 1453 aserciones** (2 corridas: antes y después de Pint, idénticas).
+  Delta vs baseline F17/F18 (310 · 303 · 1 fallo AUD-0001 · 6 omitidos · 1453
+  aserciones): **mismos 310 tests, +1 OK, −1 fallo, mismos 6 omitidos**
+  (env-gated preexistentes: 5 `RUN_STRESS_TESTS` + 1 `RUN_CONCURRENCY_TEST`).
+- `vendor/bin/pint --dirty --format agent` → `fixed` sobre
+  `ExpedientePolicy.php` (espaciado de operadores unarios, solo estilo) →
+  tests re-ejecutados en verde después del formateo.
+
+**Documentación actualizada en este cierre:** `BACKLOG_AUDITORIA.md` (ficha y
+resumen → CERRADO), `MATRIZ_SEGURIDAD.md` (fila 14 → BLOQUEADO (TEST); FALLA
+CONOCIDA → 0; BLOQUEADO (TEST) 44 → 45 para mantener la suma 54), esta sección.
+
+**Fuera de alcance (no tocados, reportados):** `MATRIZ_COBERTURA_FINAL.md:21`,
+`MATRIZ_PRUEBAS.md:137,304`, `MATRIZ_HARDENING.md:105` y citas históricas de este
+archivo siguen mencionando AUD-0001 como abierta / "único fallo" (son registros
+de sus fases; actualizar solo si el usuario lo pide).
+
+---
+
+## Cierre de tarea B0.8 — Anexo SRS y diseño de unidades (2026-10-05)
+
+**Estado:** **B0.8 VALIDADA / CERRADA (2026-10-05)** — anexo de enmiendas
+arquitectónicas al SRS y diseño corto de unidades inter entregados. Sin cambios
+de código, BD ni tests.
+
+**Se crearon (únicos archivos del diff):**
+
+- `docs/auditoria/ANEXO_SRS_MODIFICACIONES.md`
+- `docs/plan/DISENO_UNIDADES_INTER.md`
+
+**Contenido:**
+
+- **AM-01:** MySQL 9.7.0/InnoDB frente a PostgreSQL del SRS (`SRS_EXTRAIDO.txt:61`,
+  `:116` RNF-04, `:187`), documentado como **diferencia tecnológica** (DT-01/DT-02 de
+  `MATRIZ_SRS_IMPLEMENTACION.md` §0), no brecha funcional; evidencia `SELECT VERSION()`
+  y `SHOW VARIABLES` en modo solo lectura.
+- **AM-02:** unidades organizacionales **sin `unidad_id` en `usuarios`** (la propuesta
+  original de D-5 queda descartada; refinada según COORDINACION §5.3), con diseño de
+  datos, flujo y contratos CTR-04/CTR-05 listo para la tarea **B2.1**. Distinción
+  explícita entre Unidades externas / `REMITIDO_UNIDAD_EXTERNA` y Reparto Institucional
+  (cierre definitivo, nunca transita por `REMITIDO_UNIDAD_EXTERNA`).
+
+**Validación:**
+
+- `php artisan test --compact` → **320 tests · 314 OK · 0 fallos · 6 omitidos**
+  (idéntico al baseline post-B0.3).
+- `vendor/bin/pint --dirty --format agent` → `passed` (sin PHP modificado).
+- **Sin cambios de código, BD ni tests.** `SRS_EXTRAIDO.txt` permaneció **intacto**
+  (solo se escribieron los 2 archivos nuevos; comandos ejecutados en solo lectura).
+
+**Pendiente de este cierre:** registro aquí mismo (realizado con esta entrada);
+la entrada se mantiene en diff aislado de la tarea.
+
+---
+
+## Cierre de tarea B1.8 — Inmutabilidad normativa / RN-06 (2026-10-05)
+
+**Estado:** **B1.8 COMPLETADA / VALIDADA Y CERRADA (2026-10-05)** — garantía de
+inmutabilidad del reglamento procesal por expediente (RN-06): una causa nace y
+concluye bajo el mismo `reglamento_id`; sin cambios de BD, migraciones ni rutas.
+
+**Cambio de producción (mínimo):**
+
+- `app/Models/Expediente.php` — hook `static::updating()` en `booted()` que lanza
+  `DomainException` cuando `isDirty('reglamento_id')`, bloqueando cualquier
+  actualización posterior a la creación. Sin clase de excepción nueva y sin
+  tocar `bootstrap/app.php` (decisión del usuario: sin mapeo HTTP 422 porque no
+  existe endpoint que permita esa mutación).
+- `app/Services/ExpedienteService.php` — únicamente PHPDoc de trazabilidad
+  RN-06 en `aperturaCausa` (el servicio ya fija `reglamento_id` al crear y no lo
+  modifica); **sin cambio funcional**.
+
+**Test nuevo (único archivo `tests/` del diff):**
+
+- `tests/Feature/VersionadoNormativaTest.php` — **5 tests · 12 aserciones**:
+  cobertura de `update()`, `forceFill()->save()`, asignación directa + `save()`,
+  creación intacta de expediente (`aperturaCausa`) e hijo
+  (`Expediente::create` con `reglamento_id`) y consistencia downstream: tras el
+  intento fallido, `ParametroPlazo` se resuelve con el reglamento de origen
+  (misma query que `ActuadoService@abrirPlazoSiAplica`). Además verifica en
+  `Route::getRoutes()` que ninguna ruta de expedientes expone PUT/PATCH/DELETE.
+
+**Validación (sin modificar ningún test existente):**
+
+- `vendor/bin/pest tests/Feature/VersionadoNormativaTest.php` → **5/5 OK ·
+  12 aserciones.**
+- `php artisan test --compact` → **330 tests · 324 OK · 0 fallos · 6 omitidos ·
+  1617 aserciones** (baseline 325/319/6 + 5/12 nuevos; ningún test existente
+  afectado).
+- `vendor/bin/pint --dirty --format agent` → `passed` (sin archivos modificados
+  por Pint; re-test confirmó 5/5 OK).
+
+**Alcance de cambios:** solo `app/Models/Expediente.php`,
+`app/Services/ExpedienteService.php` (PHPDoc) y el test nuevo.
+`StoreExpedienteRequest` (B3.2), `NurejHijoService`, `routes/`, `bootstrap/`,
+`.env`/`config/`, `database/` (migraciones/seeders) y documentación **intactos**;
+sin operaciones git.
+
+**Límite conocido:** la protección es a nivel de **modelo Eloquent** — un
+`DB::table('expedientes')->update(...)` directo (query builder) la evadiría, pero
+está verificado que **no existe uso de query builder de escritura sobre
+`expedientes` en el proyecto**; sin trigger en BD por estar las migraciones fuera
+del alcance de la tarea.
+
+**No se registró como resuelto ningún otro hallazgo** (RN-06 "historial de
+versiones normativas" sigue PARCIAL según `MATRIZ_SRS_IMPLEMENTACION.md:73`;
+AUD-0039 y demás permanecen con su estado previo).
+
+---
+
+## Cierre de tarea B0.1 — Seguridad de modelos y loader de rutas (2026-10-05)
+
+**Estado:** **B0.1 COMPLETADA / VALIDADA Y CERRADA (2026-10-05)** — registro
+retroactivo del cierre validado en su día (los cierres de esta sesión se
+agrupan al final del archivo; los de más arriba son los originales).
+
+**Cambios de producción:**
+
+- `password_hash`, `hash_sha256` y `created_at` fuera de `$fillable` en
+  `Usuario`, `Adjunto` y `Expediente` (lista blanca de masa de asignación), +
+  trait `Notifiable`.
+- Call-sites adaptados a `forceCreate`/`unguarded` puntuales:
+  `AdminUsuariosController`, `ExpedienteService`, `AdjuntoService`,
+  `UsuarioSeeder`, `UsuariosExtraSeeder` y `SeguridadIdorTest:88`.
+- Loader de rutas refactorizado: `routes/api.php` + `routes/api/{core,
+  operativo, admin, reportes, notificaciones}.php` con **diff de
+  `php artisan route:list` vacío** (misma superficie de endpoints).
+- `app/Providers/AuditoriaServiceProvider.php` creado y registrado en
+  `bootstrap/providers.php`.
+
+**Test nuevo:** `tests/Unit/ModelSecurityTest.php` — 7 tests (superficie de
+`$fillable` de los modelos sensibles).
+
+**Validación:** suite **317 tests · 311 OK · 0 fallos · 6 omitidos**; Pint
+`passed`.
+
+---
+
+## Cierre de tarea B0.3 — Constantes de rol en seeders (2026-10-05)
+
+**Estado:** **B0.3 COMPLETADA / VALIDADA Y CERRADA (2026-10-05)** — registro
+retroactivo.
+
+**Cambios de producción:**
+
+- 25 literales de rol reemplazados por `Rol::CODIGO_*` en `RolSeeder`,
+  `CatalogoActuadoSeeder`, `UsuarioSeeder` y `UsuariosExtraSeeder`
+  (reemplazos byte-safe Latin1: bytes no-ASCII 10/20/24/136 preservados,
+  `php -l` limpio en los 4).
+- Literales fuera de alcance clasificados sin tocar: tokens
+  `responsable=TECNICO|AUDITOR` (`AdminMonitoreoController:72,136`), vías
+  (`StoreExpedienteRequest:22`, `SorteoAlgorithmService:31`), seeders demo y
+  usernames.
+
+**Test nuevo:** `tests/Feature/RolConstantesTest.php` — 3 tests.
+
+**Validación:** suite **320 tests · 314 OK · 0 fallos · 6 omitidos**; Pint
+`passed`.
+
+**Incidencia resuelta:** un `Set-Content -Encoding Byte` truncó
+`RolSeeder.php` a 0 bytes → restaurado byte-exacto (956 bytes) vía
+`git show HEAD:database/seeders/RolSeeder.php` (solo lectura); posteriormente
+los reemplazos se hicieron con round-trip Latin1.
+
+---
+
+## Cierre de tarea B3.3 — Timezone institucional America/La_Paz (2026-10-05)
+
+**Estado:** **B3.3 COMPLETADA / VALIDADA Y CERRADA (2026-10-05)** — registro
+retroactivo. Corrección de AUD-0043 (corte UTC prematuro) decidida por el
+usuario.
+
+**Cambios de producción (único archivo de código):**
+
+- `config/app.php:68` → `'timezone' => env('APP_TIMEZONE', 'America/La_Paz')`
+  (default La Paz garantiza el criterio sin tocar `.env`; `APP_TIMEZONE`
+  disponible para Brayan en `.env.example` — mensaje entregado, archivo no
+  modificado).
+
+**Test nuevo:** `tests/Feature/TimezoneBoliviaTest.php` — 5 tests · 20
+aserciones (config + TZ efectiva `-04:00`, cierre 23:59:59 La Paz, persistencia
+de expedientes/actuados/plazos sin corrimiento, transición de medianoche
+UTC↔La Paz, `daysRemaining` consistente).
+
+**Validación:** `config:show app.timezone` → **America/La_Paz**; suite
+**325 tests · 319 OK · 0 fallos · 6 omitidos · 1605 aserciones**; Pint
+`passed` (sin modificaciones). `routes/console.php` intacto: el schedule
+`->daily()` hereda la TZ → corte a medianoche boliviana.
+
+**Efecto documental registrado hoy:** cierre administrativo de **AUD-0043** en
+`BACKLOG_AUDITORIA.md` (fila + ficha), `MATRIZ_COBERTURA_FINAL.md` y
+`MATRIZ_JOBS_CRON.md` → CERRADA (2026-10-05, B3.3).
+
+**Límite documentado:** `actuados.fecha_hora` usa `CURRENT_TIMESTAMP` de MySQL
+con sesión `SYSTEM` (UTC-4 = La Paz en este entorno); en servidores con otra TZ
+sería necesario `'timezone'` en `config/database.php` (fuera de alcance,
+requiere autorización).
+
+---
+
+## Cierre de tarea B1.1 — Informes finales Técnico/Jurídico (2026-10-06)
+
+**Estado:** **B1.1 COMPLETADA / VALIDADA Y CERRADA (2026-10-06)** — registro
+retroactivo (la instrucción de la sesión fue cerrar sin git ni PROGRESO.md;
+se registra hoy por pedido explícito de actualizar el progreso al estado real).
+
+**Cambio de producción (único archivo):**
+
+- `database/seeders/CatalogoActuadoSeeder.php` — **+6 informes finales**:
+  4 Técnico (AC022, conforme SRS `:374-413`) + 2 Jurídico (AC054, CON/SIN
+  responsabilidad). Todos: fase `INVESTIGACION`, `estado_origen` =
+  `EN_EJECUCION`, `estado_destino` = `PENDIENTE_VISTO_BUENO_FINAL`,
+  `requiere_adjunto` y pivote por reglamento. `ACT_INFORME_FINAL` **intacto**
+  (destino `null` diferido a B1.2/D-6a).
+
+**Test nuevo:** `tests/Feature/ContratosAdmisibilidadTest.php` — **11 tests ·
+86 aserciones** (contratos CTR de informes contra la implementación real).
+
+**Validación (sin modificar ningún test existente):**
+
+- `php artisan test --compact` → **341 tests · 335 OK · 0 fallos · 6 omitidos**
+  (baseline +6 tests/+6 OK; los 6 omitidos: 5 `RUN_STRESS_TESTS` + 1
+  `RUN_CONCURRENCY_TEST`, preexistentes).
+- `vendor/bin/pint --dirty --format agent` → `passed`.
+
+**Contratos CTR verificados contra implementación real (sin cambios de código):**
+
+- **CTR-01:** divergencia — columnas `codigo`/`nombre`/`cumplido` del contrato
+  **ausentes** en la implementación (reportado, pendiente de decisión).
+- **CTR-02:** divergencia — payload/respuesta real ≠ contrato (reportado,
+  pendiente de decisión).
+- **CTR-03:** resuelta — sin cambios necesarios.
+
+**Alcance:** sin operaciones git; sin tocar `PROGRESO.md` en su momento.
+
+---
+
+## Cierre de tarea B1.2 — Huecos del grafo, lock pesimista y ADMITIDO→PLANIFICACIÓN (2026-10-06)
+
+**Estado:** **B1.2 COMPLETADA / VALIDADA Y CERRADA (2026-10-06)** — D-6a, D-6b
+y D-6g aplicados; sin migraciones, sin cambios de rutas y **sin tocar
+`app/Http/Requests/*`** (evitado el bloqueo histórico B0.2 de Brayan).
+
+**Decisiones del usuario aplicadas (4/4):** (1) seeder incluido en alcance;
+(2) actualizar los 3 tests afectados; (3) D-6g validando `estado_origen_id` en
+`registerActuado` para **todos** los llamadores; (4) hook auto-paso genérico en
+`ActuadoService` (no en `ImpugnacionService`).
+
+**Cambios de producción:**
+
+- `database/seeders/CatalogoActuadoSeeder.php` — **D-6a:** `ACT_INFORME_FINAL`
+  `estado_destino_id` `null` → `PENDIENTE_VISTO_BUENO_FINAL`; **D-6b:** fila
+  `ACT_PASO_PLANIFICACION` (`ADMITIDO` → `EN_PLANIFICACION`, `es_automatico`,
+  `rol_id` ADMIN, sin entrada en `MAPA_TIPO_PLAZO`, **sin pivote** — mismo
+  patrón que `ACT_ARCHIVO_POR_ABANDONO`).
+- `app/Services/ActuadoService.php` — constante
+  `CODIGO_PASO_PLANIFICACION`; `estadoAdmitidoId()` tolerante a ausencia de
+  estado ADMITIDO; al inicio de la transacción de `registerActuado`:
+  `Expediente::query()->lockForUpdate()->findOrFail()` + `verificarEstadoOrigen()`
+  → `ValidationException` 422 (key `estado_origen_id`; `null` = sin validación);
+  hook: si el estado nuevo es ADMITIDO → `registrarPasoPlanificacion()` en la
+  misma transacción (mismo emisor, metadatos `tipo: AUTOMATICO`, `motivo:
+  PASO_ADMITIDO_PLANIFICACION`, sin `usuario_destino`).
+- `app/Services/EvaluacionAdmisibilidadService.php` — `lockForUpdate` del
+  expediente al inicio de `evaluar()`.
+
+**Tests:**
+
+- Nuevo `tests/Feature/MaquinaEstadosTransicionesTest.php` — **5 tests** (4
+  ejecutados + 1 opt-in `RUN_CONCURRENCY_TEST` con subprocesos tinker,
+  verificado **5/5** en corrida dedicada; patrón heredado de
+  `CadenaHashConcurrenciaTest`).
+- Actualizados los 3 tests afectados: `ImpugnacionRechazoTest` (`:309`),
+  `RelojProcesualTest`, `ContratosAdmisibilidadTest` (+1 test D-6b).
+
+**Validación:**
+
+- `php artisan test --compact` → **347 tests · 340 OK · 0 fallos · 7 omitidos**
+  (delta vs B1.1: +6 tests, +5 OK, +1 omitido = nuevo opt-in concurrencia; los
+  7 omitidos: 5 `RUN_STRESS_TESTS` + 2 `RUN_CONCURRENCY_TEST`).
+- `vendor/bin/pint --dirty --format agent` → `passed`.
+
+**Hallazgos de ejecución (reportados, sin salir del alcance):**
+
+1. **Bug propio corregido en la tarea:** `estadoAdmitidoId()` con `firstOrFail`
+   reventaba el arranque de la suite cuando el estado ADMITIDO no existe en la
+   BD del test (30 fallos / 8 errores 404-ModelNotFound) → hecho tolerante
+   (retorna `null` = sin hook).
+2. **AUD-0031 no materializado:** archivo fuera de `EN_SUBSANACION` ahora
+   fallaría con 422 (validación D-6g) en vez de saltarse el estado;
+   `ArchivoPorAbandonoService` queda **sin filtro propio** — auditar en **B1.4**.
+3. **`ACT_PASO_PLANIFICACION` sin pivote** por reglamento (automático, igual
+   que `ACT_ARCHIVO_POR_ABANDONO`) — decisión tomada, documentada.
+4. **Comentario obsoleto** en `FlujoJuridicoTest` (`:63-81,:184`, "Réplica del
+   seeder") — el seeder ya difiere (D-6a); **sin tocar** (fuera de alcance).
+5. Re-bloqueo anidado del expediente (savepoint) **sin deadlock**; fixtures
+   propias de tests requirieron la fila `ACT_PASO_PLANIFICACION`.
+
+**Alcance del diff (sin commitear, sin stashes):** 5 `M`
+(`ActuadoService`, `EvaluacionAdmisibilidadService`, `CatalogoActuadoSeeder`,
+`ImpugnacionRechazoTest`, `RelojProcesualTest`) + 2 `??`
+(`MaquinaEstadosTransicionesTest`, `ContratosAdmisibilidadTest`).
+
+**Documentación actualizada en este cierre:** esta sección + filas
+AUD-0020/0021/0033 de «Decisiones del usuario — RESUELTAS» (arriba).
+`BACKLOG_AUDITORIA.md` **intacto** (sus fichas siguen diciendo "fix NO
+aplicado" — fuera de alcance, reportado).
+
+---
+
+## Cierre de tarea B1.3 — Cierre formal de plazos al transicionar entre fases (2026-10-06)
+
+**Estado:** **B1.3 COMPLETADA / VALIDADA Y CERRADA (2026-10-06)** — hallazgo
+**AUD-0030** (P1) cerrado; sin migraciones, sin cambios de rutas, sin tocar
+`PlazoCalculatorService`, `VerificarVencimientoPlazosCommand` ni
+`SemaforoPlazoService`.
+
+**Decisiones del usuario aplicadas (7/7):** (1) Opción A: `estado='CERRADO'` +
+`actuado_cierre_id`, sin columna `fecha_cierre` (fecha derivada de
+`actuados.fecha_hora`); (2) cierre dentro de `registerActuado()` en la misma
+transacción/lock de B1.2; (3) mapa limitado a los actuados de la fase (no cierra
+`SUSPENDIDO` ni pausas de descargos, no adelanta SUBSANACION); (4) sin tocar
+otros servicios (auditados con grep); (5) solo se actualizó el test que
+codificaba el bug; (6) gates; (7) cierre documental solo con todo en verde.
+
+**Cambios de producción:**
+
+- `app/Services/ActuadoService.php` — constante `MAPA_CIERRA_PLAZO` (13
+  entradas: `ACT_ADMISION`/`ACT_OBSERVACION` → `EVALUACION`; 9 informes
+  finales → `EJECUCION`/`EJECUCION_AMPLIADA`; `ACT_VISTO_BUENO_FINAL` y
+  `ACT_REPARTO_INSTITUCIONAL` → `EJECUCION`/`EJECUCION_AMPLIADA`); método
+  `cerrarPlazosDeFase()` (update idempotente, solo `VIGENTE` de los tipos del
+  mapa, con `actuado_cierre_id=$actuado->id`); llamada en `registerActuado`
+  antes de `abrirPlazoSiAplica`, dentro de la transacción.
+- `app/Services/CierreExpedienteService.php` — **sin cambios** (todo flujo ya
+  pasa por `registerActuado`).
+
+**Tests:**
+
+- Nuevo `tests/Feature/CierrePlazosFasesTest.php` — **7 tests** (admisión
+  cierra EVALUACION; observación cierra EVALUACION y abre SUBSANACION; informe
+  cierra EJECUCION + EJECUCION_AMPLIADA con evidencia; VB final cierra residual
+  y no toca `SUSPENDIDO`, reparto deja 0 VIGENTE; ampliación NO cierra; ciclo
+  AC055 pausa/reanudación intacta; CRON no estampa cerrados).
+- `tests/Feature/FlujoIntegralTest.php:333` — assertion actualizada de
+  `VIGENTE` → `CERRADO` + `actuado_cierre_id` no nulo (el test codificaba
+  AUD-0030: "la admisión NO cierra el plazo de EVALUACION"); comentario
+  actualizado. Único test tocado de la suite.
+
+**Validación:**
+
+- `php artisan test --compact --filter=CierrePlazosFasesTest` → **7/7 OK**.
+- `vendor/bin/pint --dirty --format agent` → `passed`.
+- `php artisan test --compact` → **354 tests · 347 OK · 0 fallos · 7 omitidos
+  · 1836 aserciones** (delta vs B1.2: +7 tests / +7 OK = `CierrePlazosFasesTest`;
+  los 7 omitidos: 5 `RUN_STRESS_TESTS` + 2 `RUN_CONCURRENCY_TEST`).
+
+**Hallazgos de ejecución (reportados, sin salir del alcance):**
+
+1. **Test propio corregido en la tarea:** `CierrePlazosFasesTest` usaba la misma
+   instancia de `Expediente` en dos llamadas seguidas y quedaba desactualizada
+   (en HTTP cada request reconsulta) → `refresh()` + comentario.
+2. **`FlujoIntegralTest` era el único test que codificaba el bug** (el resto de
+   aserciones `VIGENTE` de la suite corresponden a relojes vivos o a fases no
+   afectadas); se actualizó tras verificar que el fallo era de AUD-0030.
+
+**Alcance del diff (sin commitear, sin stashes):** 2 `M`
+(`ActuadoService`, `FlujoIntegralTest`) + 1 `??`
+(`CierrePlazosFasesTest`).
+
+**Documentación actualizada en este cierre:** esta sección + fila AUD-0030 de
+«Decisiones del usuario — RESUELTAS» (arriba) + fila y ficha AUD-0030 en
+`BACKLOG_AUDITORIA.md` (ambas CERRADO).
+
+---
+
+## Cierre de tarea B1.4 — Flujo de subsanación y protección del archivo por abandono (2026-10-06)
+
+**Estado:** **B1.4 COMPLETADA / VALIDADA Y CERRADA (2026-10-06)** — hallazgos
+**AUD-0031 y AUD-0032** (ambos P1) cerrados; sin migraciones, sin tocar
+`VerificarVencimientoPlazosCommand`, `MarcarPlazosVencidosService`,
+`SemaforoPlazoService`, controllers, requests ni frontend.
+
+**Decisiones del usuario aplicadas (5/5):** (1) seeder del catálogo incluido
+(fila + pivote, sin migración); (2) sin reloj EVALUACION nuevo al aceptar;
+(3) huérfanos de SUBSANACION fuera de alcance (solo filtro estricto);
+(4) aceptación con plazo vencido → **422** (vencimiento temporal
+independiente de la corrida del CRON); (5) `requiere_adjunto=false`.
+
+**Cambios de producción:**
+
+- `app/Services/ArchivoPorAbandonoService.php` — filtro estricto
+  `whereHas('expediente', estado_actual = EN_SUBSANACION)` (const
+  `ESTADO_EXPEDIENTE_SUBSANACION`) + `try/catch (\Throwable)` por expediente
+  dentro del bucle con `Log::error` (plazo_id, expediente_id, clase, mensaje)
+  y `continue` sin incrementar el contador — una falla no aborta la corrida.
+- `app/Services/ActuadoService.php` — const `CODIGO_ACEPTACION_SUBSANACION`;
+  entrada `'ACT_SUBSANACION_ACEPTADA' => ['SUBSANACION']` en
+  `MAPA_CIERRA_PLAZO` (cierre vía mecanismo B1.3, con `actuado_cierre_id`);
+  guard `verificarPlazoSubsanacionNoVencido()` tras `verificarEstadoOrigen()`:
+  422 (`plazo`) si el plazo SUBSANACION está `VENCIDO` o `fecha_limite` ya
+  superó `today()` — la columna es `date` sin hora y se compara contra la
+  fecha actual en `app.timezone` = **America/La_Paz** (verificado con
+  `php artisan config:show app.timezone`); sin plazo → permite.
+- `database/seeders/CatalogoActuadoSeeder.php` — fila
+  `ACT_SUBSANACION_ACEPTADA` (`EN_SUBSANACION → EN_EVALUACION`, fase
+  ADMISIBILIDAD, sin adjunto) + pivote `perfilesEvaluacion` (3 perfiles).
+
+**Tests:**
+
+- Nuevo `tests/Feature/SubsanacionExitoTest.php` — **9 tests**: flujo completo
+  observación → aceptación (HTTP 201) → admisión con cierre del reloj y sin
+  reloj EVALUACION nuevo; 403 sin pivot (Encargada) y sin asignación activa;
+  422 D-6g fuera de `EN_SUBSANACION`; 422 por `fecha_limite` superada; 422 por
+  plazo `VENCIDO`; aceptación permitida sin plazo parametrizado; AUD-0031
+  negativo (expediente fuera de fase → 0 archivados); corrida mixta (1 de 2);
+  aislamiento con mock de `ActuadoService` + `Log::spy()` (fallo en un
+  expediente no cancela al resto). Escritura en rojo primero: los tests 7/8/9
+  reproducían el aborte real del CRON post-D-6g.
+
+**Validación:**
+
+- `php artisan test --compact --filter=SubsanacionExitoTest` → **9/9 OK**.
+- Regresión dirigida (`ArchivoPorAbandonoTest`, `VerificarVencimientoPlazosTest`,
+  `SemaforoPenalizacionTest`, `EvaluacionAdmisibilidadTest`,
+  `CierrePlazosFasesTest`) → **29/29 OK**.
+- `vendor/bin/pint --dirty --format agent` → `passed` (formateó el test nuevo).
+- `php artisan test --compact` → **363 tests · 356 OK · 0 fallos · 7 omitidos
+  · 1885 aserciones** (delta vs B1.3: +9 tests / +9 OK = `SubsanacionExitoTest`;
+  los 7 omitidos: 5 `RUN_STRESS_TESTS` + 2 `RUN_CONCURRENCY_TEST`).
+
+**Hallazgos / residuales (reportados, fuera de alcance):**
+
+1. **Huérfanos SUBSANACION (decisión del usuario, no resueltos):** un plazo
+   SUBSANACION `VIGENTE` de un expediente que salió de la fase por un actuado
+   con `estado_origen_id = null` queda sin procesar para siempre
+   (`marcarVencidos` excluye SUBSANACION; el semáforo toma el VIGENTE más
+   antiguo). No mezclar con AUD-0042.
+2. **Plan §12** prevé "Subsanación → Planificación"; la tarea B1.4 define
+   retorno a **EN_EVALUACION** (se implementó lo segundo; re-evaluación
+   completa antes de admitir).
+3. El resto de salidas de fase con origen `null` (derivaciones, registro de
+   digitalización) sigue pudiendo sacar un expediente de `EN_SUBSANACION`
+   dejando reloj huérfano — cubierto por el residual 1.
+
+**Alcance del diff (sin commitear, sin stashes):** 3 `M` de B1.4
+(`ActuadoService`, `ArchivoPorAbandonoService`, `CatalogoActuadoSeeder`) +
+1 `??` (`SubsanacionExitoTest`), acumulado con los cambios de B1.3 aún sin
+commitear (`FlujoIntegralTest`, `CierrePlazosFasesTest` y este log).
+
+**Documentación actualizada en este cierre:** esta sección + fila
+AUD-0031/0032 de «Decisiones del usuario — RESUELTAS» (arriba) + filas y
+fichas AUD-0031 y AUD-0032 en `BACKLOG_AUDITORIA.md` (todas CERRADO).
+
+## Cierre de tarea B1.5 — Derivación de NUREJ Hijo con especialidad de destino (2026-10-06)
+
+- **Estado:** **TÉCNICA Y DOCUMENTALMENTE CERRADA (2026-10-06)** — revisión
+  y aceptación del usuario ("B1.5 técnica revisada y aceptada").
+- **Hallazgo:** **AUD-0039** (P2) cerrado. **Errata registrada:**
+  `TAREAS_BRUNO.md` referenciaba AUD-0035; el hallazgo correcto es
+  AUD-0039 (AUD-0035, UI de impugnación, sin cambios).
+- **Decisiones implementadas** (todas en `MATRIZ_DERIVACIONES.md` §5):
+  - **D-P1 (SÍ):** el servidor exige informe técnico habilitante previo en
+    el padre (M1-M4, `ACT_INFORME_TECNICO_CON/SIN_RESPONSABILIDAD_RECOMENDACION`)
+    y `padre.via = TECNICO`; si no → 422 y 0 hijos.
+  - **D-P2 (SÍ):** whitelist estricta `DESTINOS_PERMITIDOS = [JURIDICO,
+    FINANCIERO]`; M5 (TECNICO), M6/M7/M8 y cualquier combinación no
+    contemplada → 422.
+  - **D-P3 (NO):** no se implementa regla global "destino ≠ padre"; **la
+    matriz es la autoridad**.
+  - **C8:** `via_destino` y `reglamento_destino_id` en los `metadatos`
+    existentes de `registerActuado()` → columna `contenido` del actuado
+    `ACT_CREACION_NUREJ_HIJO` (sin columnas ni estructuras nuevas).
+  - Reglamento destino server-side `MAPA_VIA_DESTINO_REGLAMENTO`:
+    JURIDICO→`AC_054_2018`, FINANCIERO→`AC_055_2018` (TECNICO→`AC_022_2018`
+    para el caso heredado); guard RN-10 de AUD-0038 **antes** de la matriz.
+- **Archivos modificados (código):** `app/Services/NurejHijoService.php`
+  (consts de matriz, `crearHijo(+viaDestino)`, `verificarDerivable()`, C8),
+  `app/Http/Requests/DerivarNurejHijoRequest.php` (`via_destino` sintaxis),
+  `app/Http/Controllers/ExpedienteController.php` (pasa `via_destino`).
+- **Tests:** **nuevo** `tests/Feature/NurejHijoEspecialidadTest.php` (7
+  tests: M1, M2, M3, M5, M6, M8, sintaxis); actualizados
+  `NurejHijoTest` y `FlujoNurejTest` (semillas con habilitantes + payloads
+  `via_destino`, aserciones JURIDICO/`AC_054_2018`, contadores +1 por el
+  actuado habilitante).
+- **Gates:** tests nuevos 7/7 (46 aserciones) → regresión dirigida
+  `NurejHijoTest|FlujoNurejTest|NurejGeneratorServiceTest` 15/15 (82) →
+  `pint --dirty` (solo estilo en `NurejHijoService`) → **suite completa
+  370 tests · 363 OK · 0 fallos · 7 omitidos · 1931 aserciones**
+  (baseline B1.4: 363 · 356 OK · 7 omitidos · 1885).
+- **Sin:** migraciones, cambios en seeders/policies/sorteo/estados/plazos,
+  frontend, configuración ni Git.
+- **Documentación actualizada en este cierre:** esta sección + fila
+  AUD-0039 de «Decisiones del usuario» (arriba) + fila y ficha AUD-0039 en
+  `BACKLOG_AUDITORIA.md` (CERRADO) + `MATRIZ_DERIVACIONES.md` (estado
+  APROBADA, §1 D-P3, §2 estado de implementación, §3 C4/C8/C9, §5 decisiones
+  resueltas, §6 fuentes).
+
+---
+
+## Cierre de tarea B1.6 - Inactivación segura de estados huérfanos (2026-10-07)
+
+**Estado:** **B1.6 COMPLETADA / REVISADA Y APROBADA POR EL USUARIO
+(2026-10-07)** - hallazgo **AUD-0021** (P1) cerrado con esta tarea (evidencia
+3; las evidencias 1 y 2 ya estaban resueltas en B1.2). Sin tocar
+`app/Models/CatalogoEstado.php`, `MATRIZ_DERIVACIONES.md` ni ningún otro
+documento de auditoría.
+
+**Decisiones del usuario aplicadas (todas):** (1) columna `activo` aditiva
+por migración nueva, sin modificar migraciones existentes; solo se inactivan
+`EN_INVESTIGACION` y `EN_DESCARGOS`; condición limitada a las 5 FK
+operativas (`expedientes.estado_actual_id`, `actuados.estado_anterior_id`,
+`actuados.estado_nuevo_id`, `catalogo_actuados.estado_origen_id`,
+`catalogo_actuados.estado_destino_id`), **sin** contar
+`catalogo_estados.estado_padre_id`; (2) `GET /api/estados` dentro del alcance
+(excluir `activo=false`); (3) sin capa/servicio nuevo para re-ejecutar la
+lógica de la migración en tests (`require` del archivo); (4) el
+`CatalogoEstadoSeeder` aplica la **misma regla de 5 FK** (0 referencias →
+`activo=false`; ≥1 referencia → conservar `activo=true`), sin forzar `false`
+directo y manteniendo `updateOrCreate` del resto de estados - decisión 1.C;
+(5) fuera de alcance: modelo `CatalogoEstado`, vistas, archivos de Brayan,
+seeders ajenos, migraciones existentes y cualquier cambio de máquina de
+estados; (6) sin Git; (7) cierre documental solo tras aprobación.
+
+**Cambios de producción:**
+
+- `database/migrations/2026_10_07_100001_inactivar_estados_huerfanos.php`
+  (nuevo) - agrega `catalogo_estados.activo BOOLEAN NOT NULL DEFAULT true`
+  (guard `Schema::hasColumn`, idempotente) e inactiva los 2 huérfanos solo
+  con 0 referencias en las 5 FK; `down()` elimina la columna (aditiva).
+- `database/seeders/CatalogoEstadoSeeder.php` -
+  `sincronizarEstadosHuerfanos()` tras los upserts: misma regla de 5 FK,
+  idempotente, solo sobre los 2 códigos huérfanos (necesario para que una
+  instalación nueva también quede correcta: la migración corre antes que el
+  seed).
+- `app/Http/Controllers/CatalogoEstadoController.php` - `index()` añade
+  `->where('activo', true)` (1 línea); el catálogo operativo no devuelve
+  estados inactivos.
+- **`app/Services/EncargadaDashboardService.php` NO se tocó (decisión):**
+  su agregado `por_estado` sigue listando estados inactivos con conteo 0;
+  fuera del alcance aprobado de B1.6, registrado como riesgo residual.
+
+**Tests:**
+
+- **Nuevo** `tests/Feature/EstadosHuerfanosInactivacionTest.php` - **10
+  tests / 45 aserciones**: huérfanos sin referencias → `activo=false` tras
+  re-ejecutar la migración; `CONCLUIDO`, `ARCHIVO_DEFINITIVO`,
+  `ARCHIVO_POR_ABANDONO`, `LISTO_PARA_REPARTO`, `CONCLUIDO_REMITIDO`,
+  `DERIVADO_TRANSPARENCIA` jamás se inactivan; dataset de las 5 FK (estado
+  referenciado se conserva activo); seed fresh → 2 huérfanos inactivos y el
+  resto activos; seed con referencia existente → no lo desactiva; 0 filas de
+  `catalogo_actuados.estado_destino_id` apuntando a un estado inactivo.
+- `tests/Feature/CatalogoEstadoControllerTest.php` - **+1 test**: `GET
+  /api/estados` devuelve `activo=true` y excluye `activo=false` (7/7 en el
+  archivo).
+
+**Validación:**
+
+- Tests específicos B1.6 → **10/10 (45)** + endpoint **7/7 (22)**.
+- Regresión dirigida (7 archivos que seedean `CatalogoEstadoSeeder`, usan
+  `/api/estados` o el dashboard) → **51 OK · 1 omitido · 0 fallos**.
+- `vendor/bin/pint --dirty --format agent` → aplicó 1 fix
+  (`no_unused_imports` en el test nuevo) → limpio.
+- `php artisan test --compact` → **381 tests · 374 OK · 0 fallos · 7
+  omitidos · 1979 aserciones** (baseline B1.5: 370 · 363 OK · 0 fallos · 7
+  omitidos · 1931; delta +11 tests / +11 OK; los 7 omitidos = stress y
+  concurrency de siempre).
+
+**Hallazgos de ejecución (reportados, corregidos dentro del alcance):**
+
+1. **Bug propio invertido en el primer pase del seeder** (`activo => !...`)
+   detectado por los tests de B1.6 y corregido antes de los gates.
+2. **`CatalogoActuado` no expone `HasFactory`** (el factory existe pero el
+   modelo no lo usa) → los tests de B1.6 usan inserts crudos (`DB::table`);
+   el modelo **no** se tocó (fuera de alcance).
+
+**Alcance del diff (sin commitear, sin Git por decisión del usuario):** 3 `M`
+(`CatalogoEstadoController`, `CatalogoEstadoSeeder`,
+`CatalogoEstadoControllerTest`) + 2 `??`
+(`2026_10_07_100001_inactivar_estados_huerfanos.php`,
+`EstadosHuerfanosInactivacionTest.php`).
+
+**Documentación actualizada en este cierre:** esta sección + fila AUD-0021
+de «Decisiones del usuario» (arriba) + fila y ficha AUD-0021 en
+`BACKLOG_AUDITORIA.md` (CERRADO). `MATRIZ_DERIVACIONES.md` y el resto de
+documentos de auditoría **intactos**.
+
+---
+
+## Cierre de tarea B1.7 - Actuado de Enmienda RF-02 / CTR-09 (2026-10-07)
+
+**Estado:** **B1.7 COMPLETADA** - hallazgo **AUD-0009** marcado **PARCIAL**
+(Enmienda resuelta; tipos RF-05/CTR-10 pendientes de B2.1/B2.2, ver ficha).
+Sin migraciones ni cambios de BD fuera del seeder; sin tocar `ActuadoService`,
+modelos, `resources/views/**` ni archivos de Brayan; sin Git (ramas/commits
+bajo pedido del usuario).
+
+**Decisiones aplicadas (todas aprobadas por el usuario antes de ejecutar):**
+
+1. **Whitelist única de `campo_modificado` (7 valores):** `resumen_hechos`;
+   `parte.DENUNCIANTE.{nombre_completo,documento_identidad,cargo_institucion}`;
+   `parte.DENUNCIADO.{nombre_completo,documento_identidad,cargo_institucion}`.
+   Excluidos: `via`, `nurej_code`, `reglamento_id`, `fecha_ingreso` y estado
+   procesal (afectan plazos, reglamento o identificadores).
+2. **Formato `parte.TIPO.columna` = contrato interno de B1.7** a publicar a
+   Brayan para el modal de B4.2 (CTR-09 no cambia de forma).
+3. **Estado no-op:** `ACT_ENMIENDA` con `estado_origen_id=null`,
+   `estado_destino_id=null`; el actuado se registra con
+   `estadoNuevoIdExplicito = estado_actual_id` (`actuados.estado_nuevo_id` es
+   NOT NULL). Sin entradas en `MAPA_TIPO_PLAZO`/`MAPA_CIERRA_PLAZO` → cero
+   efectos sobre relojes.
+4. **CTR-09 exacto:** `200 {actuado_enmienda_id, expediente_actualizado}`
+   (`ExpedienteResource` con las mismas relaciones del detalle de causa).
+5. Enmienda con valor idéntico al actual → **422** (evita actuados vacíos en
+   la cadena de custodia).
+
+**Cambios de producción:**
+
+- `database/seeders/CatalogoActuadoSeeder.php` (+14) - `ACT_ENMIENDA` en
+  `$actuados` (fase REGISTRO, `requiere_adjunto=false`, sin estados) + 4 filas
+  en `$pivotes` (TECNICO/AUD_JURIDICO/AUD_FINANCIERO/ENCARGADA,
+  `reglamento_id=NULL`). Patrón `updateOrCreate` + delete/insert de pivote
+  (idempotente). Catálogo total: **34 tipos**.
+- `app/Http/Requests/EnmiendaRequest.php` (nuevo) - `authorize()` →
+  `ExpedientePolicy::crearActuado` sobre `ACT_ENMIENDA` (asignación activa o
+  Encargada; ADMIN fuera del pivote ⇒ 403) + `rules()` con `Rule::in` sobre
+  `EnmiendaService::camposPermitidos()` y longitud máxima **por columna**
+  (200/30/150/16000).
+- `app/Services/EnmiendaService.php` (nuevo) - whitelist única (fuente de
+  verdad, la consume el FormRequest) + transacción: lock del expediente →
+  lectura de `datos_anteriores` → `registerActuado` con metadatos
+  `{campo_modificado, datos_anteriores, datos_nuevos, motivo}` → aplicación
+  del cambio (update de `resumen_hechos`, o cierre de versión
+  `es_version_actual=false`/`vigente_hasta` + inserción de la fila nueva con
+  `actuado_origen_id` para `partes`).
+- `app/Http/Controllers/EnmiendaController.php` (nuevo) - `store()` devuelve
+  el contrato CTR-09 con `expediente_actualizado` (mismo set de relaciones de
+  `ExpedienteController::relacionesDetalle()`).
+- `routes/api/operativo.php` (+4) - `POST /expedientes/{expediente}/enmienda`.
+
+**Tests:** `tests/Feature/ActuadoEnmiendaTest.php` (nuevo) - **16 tests / 60
+aserciones**: enmienda de `resumen_hechos` (200 + payload anterior/nuevo +
+hash encadenado sobre el actuado base + estado sin cambio + 0 plazos);
+versionado de `parte` (versión vieja cerrada, nueva con `actuado_origen_id`
+y columnas copiadas); Encargada sin asignación → 200; operador ajeno → 403;
+ADMIN → 403; dataset de 5 campos estructurales (`via`, `nurej_code`,
+`reglamento_id`, `fecha_ingreso`, `estado_actual_id`) → 422; sin `motivo` →
+422; valor que excede la columna → 422; valor idéntico → 422; parte sin
+versión vigente → 422; inmutabilidad del actuado (UPDATE/DELETE →
+`QueryException` por trigger); sin sesión → 401.
+
+**Validación (gates):**
+
+- Tests nuevos → **16/16 (60 aserciones)**.
+- Regresión dirigida (10 archivos: actuados, catálogo, máquina de estados,
+  FormRequests, policies/seguridad, cadena de custodia) → **66 OK · 1
+  omitido · 0 fallos (270 aserciones)**. *Nota:* el primer intento reportó
+  3 errores `Call to undefined function paso7CrearExpedienteConEstado()` -
+  es una dependencia **preexistente** entre archivos de tests (la función
+  está en `ExpedienteControllerTest.php`); al incluir ambos archivos todo
+  pasa (13/13). No está relacionado con B1.7.
+- `vendor/bin/pint --dirty --format agent` → aplicó 1 fix
+  (`concat_space` en `EnmiendaRequest`) → re-ejecución limpia.
+- `php artisan test --compact` → **397 tests · 390 OK · 0 fallos · 7
+  omitidos · 2039 aserciones** (baseline B1.6: 381 · 374 OK · 0 fallos · 7
+  omitidos · 1979; delta +16 tests / +16 OK / +60 aserciones; los 7
+  omitidos = stress y concurrency de siempre).
+
+**Divergencias y pendientes (reportados, sin improvisar cambios):**
+
+1. **Endpoint genérico puede emitir `ACT_ENMIENDA` "vacío":** el nuevo tipo
+   aparece en `GET /api/catalogo/actuados` (filtrado por rol) y por lo tanto
+   en el modal genérico "Emitir Actuado" (`POST /api/expedientes/{id}/actuados`),
+   que solo recibe `descripcion` → permitiría crear un actuado de enmienda sin
+   `datos_anteriores`/`datos_nuevos`. No se tocó (`ActuadoController` /
+   `CatalogoActuadoController` fuera del alcance aprobado). Mitigación
+   propuesta (requiere aprobación): excluir `ACT_ENMIENDA` del catálogo
+   genérico o rechazarlo en `StoreActuadoRequest`.
+2. **BD de desarrollo:** el alta del seeder aplica en seeds nuevos; para
+   sincronizar la BD dev existente hace falta ejecutar
+   `db:seed --class=CatalogoActuadoSeeder` (autorización específica pendiente
+   según AUD-0023).
+3. **AUD-0009 PARCIAL:** cerrar recién al confirmar en B2.1 y B2.2 el alta de
+   `ACT_REMISION_UNIDAD`, `ACT_RECEPCION_UNIDAD`, `ACT_SOLICITUD_INCOMPETENCIA`
+   y `ACT_VB_INCOMPETENCIA`.
+
+**Alcance del diff (sin commitear):** 2 `M` (`CatalogoActuadoSeeder`,
+`operativo.php`) + 4 `??` (`EnmiendaService`, `EnmiendaRequest`,
+`EnmiendaController`, `ActuadoEnmiendaTest`) + 2 docs (`PROGRESO.md`,
+`BACKLOG_AUDITORIA.md`).
+
+**Documentación actualizada en este cierre:** esta sección + fila y ficha
+AUD-0009 en `BACKLOG_AUDITORIA.md` (PARCIAL). El resto de hallazgos y
+documentos de auditoría **intactos**.
+## Cierre de tarea B2.1 - Catálogo unidades, transferencias_unidad y estado REMITIDO_UNIDAD_EXTERNA / RF-05 / CTR-04 y CTR-05 (2026-10-07)
+
+**Estado:** **B2.1 COMPLETADA** - hallazgo **AUD-0010 CERRADO/RESUELTO POR DISEÑO**
+(tabla legacy `transferencias` intacta y sin uso); **AUD-0009 sigue PARCIAL/OPEN**
+(los 2 tipos RF-05 dados de alta en B2.1; restan los 2 de CTR-10 en B2.2).
+Migraciones nuevas reversibles; sin `db:seed` en BD de desarrollo (AUD-0023);
+sin tocar `resources/views/**`, `remision-unidad.blade.php` ni archivos de
+Brayan; sin operaciones Git (bajo pedido del usuario); tabla/modelo legacy
+`transferencias`/`Transferencia.Php` sin modificar.
+
+**Decisiones aplicadas (aprobadas por el usuario antes de ejecutar):**
+
+1. **Bandeja por exclusión de estado:** `ExpedienteController@bandejaOperador`
+   añade `whereDoesntHave('estadoActual', codigo = REMITIDO_UNIDAD_EXTERNA)`.
+   La causa remitida desaparece de la bandeja del operador y reaparece sola al
+   recibir; **no se modifica `asignaciones.activa`** (sin efectos en dashboards
+   ni en la semántica de la asignación histórica).
+2. **`UnidadSeeder` con 3 unidades** (aprobado): `TRANSPARENCIA` (Unidad de
+   Transparencia, Ley N° 974), `MINISTERIO_PUBLICO`, `REGIMEN_DISCIPLINARIO`.
+   Idempotente por `codigo`, no altera `activa` existente.
+3. **Convención FK verificada antes de escribir:** `foreignId()->constrained()`
+   sin `onDelete` (RESTRICT) como las tablas base y la legacy `transferencias`;
+   `estado_previo_id` como `unsignedSmallInteger` porque `catalogo_estados.id`
+   es `smallint unsigned` (error 3780 detectado en el primer intento de suite y
+   corregido contra la convención real, no asumida).
+4. **Validación:** `unidad_id`/`unidad_origen_id` `exists` + `activa` (422),
+   `motivo` `min:20`/`max:5000` (alineado a la nota de remisión a
+   Transparencia), `adjunto` PDF opcional `max:20480`.
+5. **Plazos sin lógica nueva:** congelación = patrón
+   `TransparenciaService::congelarPlazos` (VIGENTE → SUSPENDIDO +
+   `fecha_pausa=now()`), capturando los IDs en
+   `contenido.plazos_suspendidos` del actuado de remisión; reanudación = patrón
+   `DescargoFinancieroService::reanudarRelojEjecucion` (`businessDaysBetween`
+   entre `fecha_pausa` y `fecha_limite` + `calculateDueDate`), aplicado solo a
+   los IDs que esa remisión congeló. Días hábiles restantes conservados exactos.
+6. **Recepción sin estado fijo:** exige causa en `REMITIDO_UNIDAD_EXTERNA` con
+   **remisión abierta** (el último movimiento de `transferencias_unidad` debe
+   ser tipo `REMISION` con `estado_previo_id`); `unidad_origen_id` debe
+   coincidir con la unidad destino de esa remisión (**422 en recepción
+   cruzada**); restaura el estado vía `estadoNuevoIdExplicito` en
+   `registerActuado` (mismo mecanismo de destino no-op de B1.7).
+7. **Autorización exclusiva Encargada** (`ExpedientePolicy`, patrón
+   `remitirTransparencia`): `remitirUnidad` (activo + ENCARGADA + estado no
+   final y no ya remitido) y `registrarRecepcion` (activo + ENCARGADA + estado
+   `REMITIDO_UNIDAD_EXTERNA`). Operadores y ADMIN → 403 en CTR-04 y CTR-05.
+8. **Fuera de alcance deliberado:** la regla de "solo lectura mientras
+   REMITIDO" queda para **B2.3**; CTR-10 / incompetencia para **B2.2** (el
+   service queda reutilizable: constantes públicas + `registrarRecepcion`
+   expuesta).
+
+**Cambios de producción:**
+
+- `database/migrations/2026_10_07_122830_create_unidades_table.php` (nueva) -
+  `unidades` (`codigo` unique, `nombre`, `activa` default true, timestamps).
+- `database/migrations/2026_10_07_122832_create_transferencias_unidad_table.php`
+  (nueva) - `transferencias_unidad` (`expediente_id`, `unidad_id`, `tipo` enum
+  `REMISION|RECEPCION`, `actuado_id` nullable, `motivo` text, `fecha` datetime
+  `useCurrent` anti-2038, `estado_previo_id` smallint nullable, timestamps),
+  índices `idx_transferencias_unidad_{expediente,unidad,tipo}` declarados antes
+  de las FK (InnoDB los reutiliza), 4 FKs RESTRICT, `down()` con
+  `dropIfExists`.
+- `app/Models/Unidad.php`, `app/Models/TransferenciaUnidad.php` (nuevos) -
+  `$table` explícito (la pluralización española no la infiere Laravel),
+  `$fillable` estricto B0.1, casts y relaciones verificadas contra la migración.
+- `database/seeders/UnidadSeeder.php` (nuevo) + registro en
+  `DatabaseSeeder.php` (+1).
+- `database/seeders/CatalogoEstadoSeeder.php` (+1) - `REMITIDO_UNIDAD_EXTERNA`
+  (padre null, `es_final=false`, activo por default); no toca
+  `ESTADOS_HUERFANOS` de B1.6.
+- `database/seeders/CatalogoActuadoSeeder.php` (+2) - `ACT_REMISION_UNIDAD`
+  (origen null, destino `REMITIDO_UNIDAD_EXTERNA`) y `ACT_RECEPCION_UNIDAD`
+  (origen `REMITIDO_UNIDAD_EXTERNA`, destino null → `estadoNuevoIdExplicito`
+  en runtime), `requiere_adjunto=false`, **pivote exclusivo ENCARGADA** y sin
+  entradas en `MAPA_TIPO_PLAZO`/`MAPA_CIERRA_PLAZO` (cero efectos de reloj por
+  sí mismos). Catálogo total: **36 tipos**.
+- `app/Policies/ExpedientePolicy.php` (+2 habilidades) - `remitirUnidad`,
+  `registrarRecepcion`.
+- `app/Http/Requests/RemitirUnidadRequest.php`,
+  `app/Http/Requests/RegistrarRecepcionRequest.php` (nuevos) - `authorize()`
+  vía `can:` + rules/messages (patrón `RemitirTransparenciaRequest`).
+- `app/Services/TransferenciaUnidadService.php` (nuevo) - `remitir()` y
+  `registrarRecepcion()`, ambos `DB::transaction(..., 3)` con lock pesimista
+  del expediente (patrón D-6g), defensa en profundidad de estado, actuados vía
+  `ActuadoService::registerActuado` (hash encadenado + adjunto) y gestión de
+  relojes descrita arriba.
+- `app/Http/Controllers/TransferenciaUnidadController.php` (nuevo) -
+  `remitir` → `201 {transferencia_id, estado}`; `registrarRecepcion` →
+  `200 {estado restaurado}` (contratos CTR-04/CTR-05 exactos).
+- `routes/api/core.php` (+2) - `POST /expedientes/{expediente}/remitir-unidad`
+  y `POST /expedientes/{expediente}/registrar-recepcion` (grupo
+  `auth:sanctum`, propiedad Bruno).
+- `app/Http/Controllers/ExpedienteController.php` (+1 cláusula) - exclusión
+  por estado en `bandejaOperador`.
+
+**Tests:** `tests/Feature/TransferenciaUnidadesTest.php` (nuevo) - **7 tests /
+87 aserciones**: CTR-04 feliz (201, `estado_previo_id` guardado, transferencia
++ actuado con hash y `plazos_suspendidos`, relojes SUSPENDIDO con `fecha_pausa`
+y sin cierre, asignación intacta, causa fuera de la bandeja del operador);
+CTR-05 feliz (200 con estado restaurado exacto, transferencia RECEPCION,
+actuado encadenado `hash_anterior` = `hash_actuado` previo, relojes VIGENTE con
+`fecha_reanudacion` y `fecha_limite` recalculada exacta vía
+`PlazoCalculatorService`, causa de vuelta en la bandeja); restauración a un
+estado distinto (`EN_PLANIFICACION`, sin estado fijo); 403 de operador y ADMIN
+en ambos endpoints; 403 de remitir ya remitido y de recibir sin remisión
+abierta; 422 de unidad inexistente/inactiva, motivo corto y recepción cruzada
+(+ recepción correcta posterior); pivote solo-ENCARGADA de los 2 actuados.
+
+**Validación (gates):**
+
+- Tests nuevos → **7/7 (87 aserciones)**.
+- Regresión dirigida (actuados, plazos, derivaciones, flujo, bandeja,
+  policies/seguridad, catálogos y máquina de estados: 28 archivos) → **175 OK
+  · 1 omitido · 0 fallos**. *Nota:* el primer intento reportó 3 errores
+  `Call to undefined function paso7CrearExpedienteConEstado()` - dependencia
+  **preexistente** entre archivos de test (la función vive en
+  `ExpedienteControllerTest.php`); al incluir ese archivo todo pasa. No está
+  relacionado con B2.1.
+- `vendor/bin/pint --dirty --format agent` → aplicó 1 fix
+  (`ExpedientePolicy`: espaciado de `!` + orden de imports) → re-ejecución
+  limpia.
+- `php artisan test --compact` → **404 tests · 397 OK · 0 fallos · 7
+  omitidos · 2138 aserciones** (baseline B1.7: 397 · 390 OK · 0 fallos · 7
+  omitidos · 2039; delta +7 tests / +7 OK / +99 aserciones; los 7 omitidos =
+  stress y concurrency de siempre).
+- `tests/Unit/ModelSecurityTest.php` - conteo de inventario de modelos
+  **22 → 24** (alta de `Unidad` y `TransferenciaUnidad`; ajuste de inventario,
+  las aserciones de seguridad iteran dinámicamente sobre todos los modelos).
+
+**Divergencias y pendientes (reportados, sin improvisar cambios):**
+
+1. **Endpoint genérico y los nuevos actuados (misma clase que la divergencia
+   B1.7 #1):** `ACT_REMISION_UNIDAD` tiene destino `REMITIDO_UNIDAD_EXTERNA` y
+   pivote que incluye a la Encargada, por lo que
+   `POST /api/expedientes/{id}/actuados` podría transicionar la causa a
+   REMITIDO **sin crear la fila en `transferencias_unidad`** (después CTR-05
+   fallaría 422 por no encontrar remisión abierta); `ACT_RECEPCION_UNIDAD`
+   genérico no transiciona (destino null) pero dejaría un actuado en la cadena.
+   No se tocó `StoreActuadoRequest`/catálogo genérico (fuera del alcance
+   aprobado). Mitigación propuesta (requiere aprobación): excluir los 2 códigos
+   del catálogo genérico o rechazarlos en `StoreActuadoRequest`; la protección
+   amplia de emisión en estado REMITIDO llega con B2.3.
+2. **BD de desarrollo:** `UnidadSeeder`, `CatalogoEstadoSeeder` y
+   `CatalogoActuadoSeeder` aplican en seeds nuevos; sincronizar la BD dev
+   exige `migrate` + `db:seed --class=...` con autorización específica
+   (AUD-0023). No se ejecutó.
+3. **`fase` de los 2 actuados = `INVESTIGACION`** (criterio propio alineado al
+   actuado hermano `ACT_REMISION_TRANSPARENCIA`; es un agrupador libre del
+   catálogo, sin validación de dominio).
+
+**Alcance del diff (sin commitear):** 10 nuevos (2 migraciones, 2 modelos,
+`UnidadSeeder`, 2 FormRequests, service, controller, `TransferenciaUnidadesTest`)
++ 7 modificados de código/config (`DatabaseSeeder`, `CatalogoEstadoSeeder`,
+`CatalogoActuadoSeeder`, `ExpedientePolicy`, `core.php`, `ExpedienteController`,
+`ModelSecurityTest`) + 2 docs (`PROGRESO.md`, `BACKLOG_AUDITORIA.md`).
+(Sigue sin commitear el diff preexistente de B1.7.)
+
+**Documentación actualizada en este cierre:** esta sección + fila y ficha
+**AUD-0010 (CERRADO/RESUELTO POR DISEÑO)** y anotación de fila/ficha
+**AUD-0009 (mantiene PARCIAL/OPEN)** en `BACKLOG_AUDITORIA.md`. El resto de
+hallazgos y documentos de auditoría **intactos**.
+
+## Cierre de tarea B2.2 - Incompetencia procesal con Visto Bueno / RF-09 / CTR-10 (2026-10-07)
+
+**Estado:** **B2.2 COMPLETADA** - hallazgo **AUD-0009 CERRADO** (los 4 tipos
+del flujo quedan sembrados: 2 de RF-05 en B2.1 + 2 de CTR-10 en B2.2;
+los tipos A20/A21 de B1.3 dados de baja). Flujo B1.3
+(`derivacion-transparencia`/`transparencia/remitir`) **reemplazado por
+completo**. Sin `db:seed` en BD de desarrollo (AUD-0023); sin tocar
+`resources/views/**` ni archivos de Brayan; sin operaciones Git (bajo pedido
+del usuario); tabla legacy `transferencias`/`Transferencia` sin modificar.
+
+**Decisiones aplicadas (aprobadas por el usuario antes de ejecutar):**
+
+1. **Reemplazo total del flujo B1.3:** se eliminan rutas, métodos de policy,
+   FormRequests y el test `DerivacionTransparenciaTest` (10 tests, aprobación
+   explícita); `TransparenciaService` se reescribe; A20/A21
+   (`ACT_DERIVACION_INCOMPETENCIA`/`ACT_REMISION_TRANSPARENCIA`) se dan de baja
+   del seeder con `delete()` de pivotes primero y fila después (FK RESTRICT en
+   `actuados.catalogo_actuado_id`: en BD sucia el delete falla en voz alta).
+   Estados `PENDIENTE_REMISION_TRANSPARENCIA`/`DERIVADO_TRANSPARENCIA` se
+   conservan en el catálogo (B1.6 los preservó), quedan sin uso.
+2. **`solicitar` → `EN_EVALUACION` guardando el estado original X**
+   (`estado_anterior_id` del actuado de solicitud); **VB aprobado** → remisión
+   con `estado_previo_id = X` y recepción CTR-05 restaura X exacto; **VB
+   rechazado** → restaura X (`estadoNuevoIdExplicito`). El estado de remisión
+   puede diferir de la celda literal CTR-10 cuando X no es EN_EVALUACION
+   (divergencia #1, avisar en B4.2).
+3. **Sin adjunto** (estricto contrato CTR-10: `{unidad_destino_id, motivo}` y
+   `{aprobado, observaciones?}`); `requiere_adjunto=false`.
+
+**Cambios de producción:**
+
+- `database/seeders/CatalogoActuadoSeeder.php` (modificado) - −2 lookups y
+  entradas A20/A21; +`ACT_SOLICITUD_INCOMPETENCIA` y `ACT_VB_INCOMPETENCIA`
+  (fase `INVESTIGACION`, `estado_destino_id=null`, `requiere_adjunto=false`,
+  sin entradas en `MAPA_TIPO_PLAZO`/`MAPA_CIERRA_PLAZO`); bloque de baja de
+  A20/A21 tras el loop de `updateOrCreate` (pivotes con `DB::table` y luego la
+  fila); pivotes nuevos: solicitud → TECNICO/AUD_JUR/AUD_FIN (`reglamento_id`
+  null), VB → solo ENCARGADA. Catálogo total: **36 tipos** (−2 +2).
+- `app/Services/TransparenciaService.php` (reescrito) - constantes públicas
+  `CODIGO_ACT_SOLICITUD`, `CODIGO_ACT_VB`, `ESTADO_ESPERA_VB='EN_EVALUACION'`;
+  `solicitarIncompetencia()` (transacción + lock, 422 `expediente` si solicitud
+  abierta, 422 `unidad_destino_id` si unidad inactiva, sin congelar relojes ni
+  tocar `asignaciones.activa`) y `vistoBuenoIncompetencia()` (aprobado →
+  remisión congelando relojes; rechazado → restaura X); helpers
+  `solicitudAbierta`, `validarSolicitudHabilitada`, `validarEstado`,
+  `catalogoPorCodigo`; ctor con `ActuadoService` + `TransferenciaUnidadService`.
+- `app/Services/TransferenciaUnidadService.php` (+1 método) -
+  `remitirPorIncompetencia()` (misma estructura transaccional que `remitir()`:
+  `estado_previo_id = X`, actuado `explicito=REMITIDO_UNIDAD_EXTERNA`, metadatos
+  `via=INCOMPETENCIA` + `solicitud_actuado_id`, `plazos_suspendidos`,
+  `unidad_destino_id`); `remitir()`/`registrarRecepcion()` CTR-04/CTR-05
+  intactos.
+- `app/Policies/ExpedientePolicy.php` (+2 / −2) - `solicitarIncompetencia`
+  (activo + asignación activa propia + estado no final y no REMITIDO + pivote
+  `CODIGO_ACT_SOLICITUD`) y `vistoBuenoIncompetencia` (activo + ENCARGADA +
+  estado `ESTADO_ESPERA_VB`); −`derivarPorIncompetencia`, −`remitirTransparencia`.
+- `app/Http/Requests/SolicitarIncompetenciaRequest.php`,
+  `app/Http/Requests/VistoBuenoIncompetenciaRequest.php` (nuevos) - `can:` +
+  `unidad_destino_id` `exists` + `activa`, `motivo` `min:20`/`max:5000`,
+  `aprobado` boolean, `observaciones` nullable `min:20`/`max:5000`.
+- `app/Http/Requests/DerivarTransparenciaRequest.php`,
+  `app/Http/Requests/RemitirTransparenciaRequest.php` (borrados).
+- `app/Http/Controllers/TransparenciaController.php` (reescrito) - `solicitar`
+  y `vistoBueno` → `200 {estado}` (contrato CTR-10 exacto), sin recursos.
+- `routes/api/operativo.php` (+2 / −2) - `POST
+  /expedientes/{expediente}/incompetencia/solicitar` y `POST
+  /expedientes/{expediente}/incompetencia/visto-bueno` reemplazan a
+  `derivacion-transparencia` y `transparencia/remitir`.
+- `tests/Feature/DerivacionTransparenciaTest.php` (borrado, aprobado).
+
+**Tests:** `tests/Feature/IncompetenciaInterUnidadTest.php` (nuevo) - **8 tests
+/ 107 aserciones** (semilla vía seeders reales): solicitud feliz (200
+`EN_EVALUACION`, actuado con `estado_anterior`=X y metadatos, relojes VIGENTE,
+0 transferencias, bandeja intacta); VB aprobado (200 `REMITIDO_UNIDAD_EXTERNA`,
+transferencia `estado_previo`=X, actuado VB encadenado
+`hash_anterior`=`hash_actuado` de la solicitud, `plazos_suspendidos`, relojes
+SUSPENDIDO + `fecha_pausa`, fuera de la bandeja); round-trip CTR-05 con
+X=`EN_PLANIFICACION` (restaura X, `fecha_limite` recalculada exacta, vuelve a
+la bandeja); VB rechazado (restaura X, 0 transferencias, sin congelación,
+re-solicitar permitido); matriz 403 (Encargada/ADMIN/operador ajeno en
+solicitar; operador/ADMIN en VB; causa final y causa ya remitida); 422 (doble
+solicitud, VB sin solicitud, unidad inexistente/inactiva, motivo y
+observaciones cortos); 401 sin sesión en ambos endpoints; contenido del seeder
+(A20/A21 dados de baja, par CTR-10 con destino null y pivotes 3/1).
+
+**Validación (gates):**
+
+- Tests nuevos → **8/8 (107 aserciones)**.
+- Regresión dirigida (`TransferenciaUnidadesTest`, `ActuadoControllerTest`,
+  `CadenaCustodiaTest`, `CierrePlazosFasesTest`, `CatalogoActuadoControllerTest`,
+  `ContratosAdmisibilidadTest` [ejecuta el seeder modificado],
+  `ExpedienteControllerTest` [dependencia `paso7...` preexistente]) → **48 OK ·
+  0 fallos**.
+- `vendor/bin/pint --dirty --format agent` → `passed` (sin observaciones).
+- `php artisan test --compact` → **402 tests · 395 OK · 0 fallos · 7
+  omitidos · 2193 aserciones** (baseline B2.1: 404 · 397 OK · 0 fallos · 7
+  omitidos · 2138; delta −2 tests por −10 del test viejo borrado +8 nuevos,
+  +55 aserciones; los 7 omitidos = stress y concurrency de siempre).
+- `tests/Unit/ModelSecurityTest.php` sin cambios (**24 modelos**; B2.2 no añade
+  modelos).
+
+**Divergencias y pendientes (reportados, sin improvisar cambios):**
+
+1. **VB rechazado con estado original ≠ `EN_EVALUACION`:** la celda CTR-10
+   textual solo contempla `REMITIDO`/`EN_EVALUACION`; con X distinta la
+   respuesta `200 {estado: X}` queda fuera del texto literal. Decisión #2 del
+   usuario: restaurar X (los relojes/planificación no deben perderse). **Avisar
+   a Brayan en B4.2** para alinear contrato si hace falta.
+2. **Reloj corriendo durante la espera del VB:** `solicitar` no congela
+   plazos; entre solicitud y VB los plazos pueden vencer (el congelado ocurre
+   recién al aprobar VB). Sin congelación doble por diseño.
+3. **Endpoint genérico y los 2 tipos nuevos (misma clase AUD-0033/que
+   divergencia B1.7 #1):** `POST /api/expedientes/{id}/actuados` podría emitir
+   `ACT_SOLICITUD_INCOMPETENCIA`/`ACT_VB_INCOMPETENCIA` (destino null → no
+   transicionan, pero ensucian la cadena). Mitigación propuesta (requiere
+   aprobación aparte): excluir los códigos del catálogo genérico.
+4. **BD de desarrollo:** el `delete()` de A20/A21 y el alta del par CTR-10 se
+   aplican solo con `db:seed` autorizado (AUD-0023); hasta entonces las filas
+   viejas persisten y el delete puede fallar por FK RESTRICT si hay actuados
+   que las referencian. No se ejecutó.
+5. **Matrices de auditoría desactualizadas** (fuera del alcance de este cierre,
+   que solo toca `PROGRESO.md` + `BACKLOG_AUDITORIA.md`): `MATRIZ_ACTUADOS`
+   A20/A21, `MATRIZ_SEGURIDAD` 29/30, `MAQUINA_ESTADOS` (filas 20/21),
+   `MAPA_FUNCIONAL`, `MATRIZ_PRUEBAS`, `MATRIZ_BANDEJAS`, `MATRIZ_PLAZOS`,
+   `FLUJO_JURIDICO`/`FLUJO_FINANCIERO`/`FLUJO_TECNICO`, `MATRIZ_UX_FRONTEND`
+   y `doc_avances/BACKLOG_JIRA.md` siguen citando el flujo B1.3 y
+   `DerivacionTransparenciaTest`. Actualización pendiente de decisión.
+
+**Alcance del diff B2.2 (sin commitear):** 3 nuevos (2 FormRequests,
+`IncompetenciaInterUnidadTest`) + 7 modificados de código (`CatalogoActuadoSeeder`,
+`TransparenciaService`, `TransferenciaUnidadService`, `ExpedientePolicy`,
+`TransparenciaController`, `routes/api/operativo.php`) + 3 borrados
+(2 FormRequests, `DerivacionTransparenciaTest`) + 2 docs (`PROGRESO.md`,
+`BACKLOG_AUDITORIA.md`). (Siguen sin commitear los diffs de B1.7/B2.1.)
+
+**Documentación actualizada en este cierre:** esta sección + fila y ficha
+**AUD-0009 (CERRADO)** en `BACKLOG_AUDITORIA.md`. El resto de hallazgos y
+documentos de auditoría **intactos**.

@@ -159,7 +159,7 @@ Las reglas de negocio RN-01…RN-10, criterios CA-1…CA-4, REST-* y PERF-ADMIN 
 | AUD-0035 | P1 | VIGENTE | grep `impugnacion/` ni `informe_final` en vistas = 0; endpoints existen (`routes/api.php:62-63`) |
 | AUD-0039 | P2 | VIGENTE | `NurejHijoService:46-47` copia `via` y `reglamento_id` del padre |
 | AUD-0042 | P2 | VIGENTE | `VerificarVencimientoPlazosTest` pasa en suite (comportamiento con catálogo ausente) |
-| AUD-0043 | P2 | VIGENTE | `config:show app.timezone` = **UTC** |
+| AUD-0043 | P2 | **CERRADO (2026-10-05, B3.3)** | `config:show app.timezone` = **America/La_Paz** (antes UTC); `TimezoneBoliviaTest` (5 tests) verifica corte a 23:59:59 La Paz |
 | AUD-0044 | P2 | VIGENTE | `app.blade.php:135` enlace `/expedientes` sin `x-if` (sí lo tiene `/expedientes/nuevo` en `:160`) |
 | AUD-0045 | P2 | VIGENTE | `administrador/monitoreo.blade.php`: 0 render de `error`/`cargando` |
 | AUD-0060 | P1 | VIGENTE | grep `/evaluacion` y `/requisitos` en vistas = 0 |

@@ -34,7 +34,7 @@ class AdjuntoService
         );
 
         try {
-            $adjunto = Adjunto::create([
+            $adjunto = Adjunto::forceCreate([
                 'actuado_id' => $actuado->id,
                 'nombre_original' => $archivo->getClientOriginalName(),
                 'ruta_almacenamiento' => $ruta,
@@ -50,9 +50,6 @@ class AdjuntoService
 
             throw $e;
         }
-
-
-
 
         // 'subido_at' se resuelve con useCurrent() en BD; refresh trae el valor.
         return $adjunto->refresh();

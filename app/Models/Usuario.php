@@ -6,10 +6,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+
 class Usuario extends Authenticatable
 {
-    use HasApiTokens, HasFactory;
+    use HasApiTokens, HasFactory, Notifiable;
 
     protected $table = 'usuarios';
 
@@ -19,7 +21,6 @@ class Usuario extends Authenticatable
         'apellidos',
         'cargo',
         'username',
-        'password_hash',
         'rol_id',
         'activo',
     ];

@@ -75,7 +75,7 @@ class AdminUsuariosController extends Controller
 
         $datos = $request->validated();
 
-        $usuario = Usuario::create([
+        $usuario = Usuario::forceCreate([
             'ci' => $datos['ci'],
             'nombres' => $datos['nombres'],
             'apellidos' => $datos['apellidos'],

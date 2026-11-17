@@ -85,7 +85,7 @@ it('bloquea descargar un adjunto de un expediente ajeno', function () {
         'estado_nuevo_id' => $estado,
         'contenido' => ['tipo' => 'PRUEBA'],
     ]);
-    $adjunto = Adjunto::create([
+    $adjunto = Adjunto::forceCreate([
         'actuado_id' => $actuado->id,
         'nombre_original' => 'prueba.pdf',
         'ruta_almacenamiento' => 'actuados/prueba.pdf',

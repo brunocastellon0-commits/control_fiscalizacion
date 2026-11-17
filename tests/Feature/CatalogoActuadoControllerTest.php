@@ -4,6 +4,9 @@ use App\Models\CatalogoActuado;
 use App\Models\CatalogoEstado;
 use App\Models\Rol;
 use App\Models\Usuario;
+use App\Services\EnmiendaService;
+use App\Services\TransferenciaUnidadService;
+use App\Services\TransparenciaService;
 use Laravel\Sanctum\Sanctum;
 
 function fase3SemillaCatalogo(): array
@@ -84,4 +87,43 @@ it('filtra el catalogo por estado origen cuando se envia el parametro', function
 
 it('devuelve 401 sin token de sanctum', function () {
     $this->getJson('/api/catalogo/actuados')->assertUnauthorized();
+});
+
+it('excluye del catalogo los cinco actuados de flujo especializado (CTR-03)', function () {
+    [
+        'operador' => $operador,
+        'rolOperador' => $rolOperador,
+        'evaluacion' => $evaluacion,
+        'catalogoOperador' => $catalogoOperador,
+    ] = fase3SemillaCatalogo();
+
+    $codigosEspecializados = [
+        EnmiendaService::CODIGO_ACTUADO,
+        TransparenciaService::CODIGO_ACT_SOLICITUD,
+        TransparenciaService::CODIGO_ACT_VB,
+        TransferenciaUnidadService::CODIGO_ACT_REMISION_UNIDAD,
+        TransferenciaUnidadService::CODIGO_ACT_RECEPCION_UNIDAD,
+    ];
+
+    foreach ($codigosEspecializados as $codigo) {
+        CatalogoActuado::create([
+            'codigo' => $codigo,
+            'nombre' => 'Flujo especializado '.$codigo,
+            'fase' => 'TEST',
+            'rol_id' => $rolOperador->id,
+            'estado_origen_id' => $evaluacion->id,
+            'es_automatico' => false,
+            'requiere_adjunto' => false,
+        ]);
+    }
+
+    Sanctum::actingAs($operador, ['*']);
+
+    $codigos = array_column($this->getJson('/api/catalogo/actuados')->assertOk()->json('data'), 'codigo');
+
+    expect($codigos)->toContain($catalogoOperador->codigo);
+
+    foreach ($codigosEspecializados as $codigo) {
+        expect($codigos)->not->toContain($codigo);
+    }
 });

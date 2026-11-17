@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use DomainException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -9,6 +10,14 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Expediente extends Model
 {
+    /**
+     * B3.2 (RN-05 / AUD-0024): naturaleza del trámite. Determina el subtipo
+     * del reloj de ejecución (10 vs 15 días hábiles en AC022).
+     */
+    public const NATURALEZA_JURISDICCIONAL = 'JURISDICCIONAL';
+
+    public const NATURALEZA_ADMINISTRATIVA = 'ADMINISTRATIVA';
+
     protected $table = 'expedientes';
 
     public $timestamps = false;
@@ -17,18 +26,36 @@ class Expediente extends Model
         'nurej_code',
         'nurej_padre_id',
         'via',
+        'naturaleza',
         'reglamento_id',
         'estado_actual_id',
         'resumen_hechos',
         'fecha_ingreso',
         'creado_por',
-        'created_at',
     ];
 
     protected $casts = [
         'fecha_ingreso' => 'datetime',
         'created_at' => 'datetime',
     ];
+
+    /**
+     * RN-06 (inmutabilidad normativa): el reglamento se fija al crear la
+     * causa y no puede modificarse durante su vida. Bloquea cualquier
+     * actualización de `reglamento_id` (update(), forceFill()->save(),
+     * asignación directa + save()) sin afectar la creación de expedientes
+     * ni la de hijos mediante Expediente::create().
+     */
+    protected static function booted(): void
+    {
+        static::updating(function (Expediente $expediente): void {
+            if ($expediente->isDirty('reglamento_id')) {
+                throw new DomainException(
+                    'RN-06: el reglamento de una causa no puede modificarse después de su creación (inmutabilidad normativa).'
+                );
+            }
+        });
+    }
 
     public function padre(): BelongsTo
     {

@@ -11,6 +11,7 @@ use App\Models\CatalogoEstado;
 use App\Models\Expediente;
 use App\Services\ExpedienteService;
 use App\Services\NurejHijoService;
+use App\Services\TransferenciaUnidadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -65,12 +66,17 @@ class ExpedienteController extends Controller
     }
 
     /**
-     * Bandeja del operador: expedientes con asignación activa para el usuario.
+     * Bandeja del operador: expedientes con asignación activa para el
+     * usuario. Las causas en REMITIDO_UNIDAD_EXTERNA quedan fuera hasta su
+     * recepción (RF-05 / CTR-05, B2.1); la asignación no se toca.
      */
     public function bandejaOperador(Request $request): AnonymousResourceCollection
     {
+        $this->authorize('operadorBandeja', Expediente::class);
+
         return ExpedienteResource::collection(
             Expediente::whereHas('asignacionActiva', fn ($q) => $q->where('usuario_id', $request->user()->id))
+                ->whereDoesntHave('estadoActual', fn ($q) => $q->where('codigo', TransferenciaUnidadService::ESTADO_REMITIDO_UNIDAD_EXTERNA))
                 ->with($this->relacionesDetalle())
                 ->orderBy('fecha_ingreso', 'desc')
                 ->paginate(15),
@@ -94,6 +100,10 @@ class ExpedienteController extends Controller
      */
     public function sortear(SortearExpedienteRequest $request, Expediente $expediente): JsonResponse
     {
+        // B2.3: defensa en profundidad — el FormRequest solo chequea el rol;
+        // la policy exige además usuario activo (estándar del sistema).
+        $this->authorize('bandejaSorteo', Expediente::class);
+
         $this->expedienteService->ejecutarSorteo(
             expediente: $expediente,
             encargada: $request->user(),
@@ -114,6 +124,10 @@ class ExpedienteController extends Controller
      */
     public function sortearTodos(SortearTodosRequest $request): JsonResponse
     {
+        // B2.3: defensa en profundidad — el FormRequest solo chequea el rol;
+        // la policy exige además usuario activo (estándar del sistema).
+        $this->authorize('bandejaSorteo', Expediente::class);
+
         $resultados = $this->expedienteService->sortearTodas(
             encargada: $request->user(),
             ipOrigen: $request->ip(),
@@ -141,10 +155,12 @@ class ExpedienteController extends Controller
 
     /**
      * E9-S1 (RN-10): la Encargada deriva un NUREJ Hijo a partir de un
-     * expediente padre. El hijo hereda los metadatos informativos (via,
-     * reglamento, resumen de hechos, partes) pero nace en PENDIENTE_SORTEO
-     * con su línea de tiempo en cero: sin actuados, plazos ni asignaciones
-     * del padre. El padre conserva su estado actual.
+     * expediente padre. El hijo nace con la especialidad de destino
+     * indicada (`via_destino`, validada contra la matriz de derivaciones)
+     * y su reglamento correspondiente — no hereda la vía ni el
+     * reglamento del padre — en PENDIENTE_SORTEO con su línea de tiempo
+     * en cero: sin actuados, plazos ni asignaciones del padre. El padre
+     * conserva su estado actual.
      */
     public function derivarNurejHijo(DerivarNurejHijoRequest $request, Expediente $expediente): JsonResponse
     {
@@ -152,6 +168,7 @@ class ExpedienteController extends Controller
             padre: $expediente,
             encargada: $request->user(),
             motivo: $request->input('motivo'),
+            viaDestino: $request->input('via_destino'),
             ipOrigen: $request->ip(),
         );
 

@@ -35,6 +35,7 @@ function paso4PayloadExpedienteValido(int $reglamentoId): array
 {
     return [
         'via' => 'TECNICO',
+        'naturaleza' => 'JURISDICCIONAL',
         'reglamento_id' => $reglamentoId,
         'resumen_hechos' => 'Hechos denunciados sobre irregularidades administrativas verificables.',
         'partes' => [

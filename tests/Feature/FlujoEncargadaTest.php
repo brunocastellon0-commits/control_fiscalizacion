@@ -82,6 +82,7 @@ function feCrearExpediente(int $estadoId, int $reglamentoId, int $creadoPor): Ex
     return Expediente::create([
         'nurej_code' => 'EXP-'.fake()->unique()->numberBetween(100000, 999999),
         'via' => 'TECNICO',
+        'naturaleza' => Expediente::NATURALEZA_JURISDICCIONAL,
         'reglamento_id' => $reglamentoId,
         'estado_actual_id' => $estadoId,
         'resumen_hechos' => 'Expediente en trámite para el tablero de la Encargada (test).',

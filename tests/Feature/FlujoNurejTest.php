@@ -16,9 +16,12 @@ use Laravel\Sanctum\Sanctum;
 function fnSemilla(): array
 {
     $rolEncargada = Rol::factory()->create(['codigo' => Rol::CODIGO_ENCARGADA]);
+    $rolTecnico = Rol::factory()->create(['codigo' => Rol::CODIGO_TECNICO]);
     $encargada = Usuario::factory()->create(['rol_id' => $rolEncargada->id, 'activo' => true]);
 
     $ac022 = Reglamento::factory()->create(['codigo' => 'AC_022_2018']);
+    $ac054 = Reglamento::factory()->create(['codigo' => 'AC_054_2018']);
+    $ac055 = Reglamento::factory()->create(['codigo' => 'AC_055_2018']);
 
     $pendienteSorteo = CatalogoEstado::factory()->create(['codigo' => 'PENDIENTE_SORTEO']);
     $ejecucion = CatalogoEstado::factory()->create(['codigo' => 'EN_EJECUCION']);
@@ -35,11 +38,25 @@ function fnSemilla(): array
         'requiere_adjunto' => false,
     ]);
 
+    // B1.5 (MATRIZ_DERIVACIONES M1-M4): informe técnico habilitante
+    // exigido por D-P1 para toda derivación.
+    $actInformeConRec = CatalogoActuado::create([
+        'codigo' => 'ACT_INFORME_TECNICO_CON_RESPONSABILIDAD_RECOMENDACION',
+        'nombre' => 'Informe Final Técnico con Responsabilidad y Recomendación de Auditoría',
+        'fase' => 'INVESTIGACION',
+        'rol_id' => $rolTecnico->id,
+        'reglamento_id' => null,
+        'estado_origen_id' => null,
+        'estado_destino_id' => null,
+        'es_automatico' => false,
+        'requiere_adjunto' => false,
+    ]);
+
     DB::table('catalogo_actuado_roles')->insert([
         ['catalogo_actuado_id' => $actCreacionHijo->id, 'rol_id' => $rolEncargada->id, 'reglamento_id' => null],
     ]);
 
-    return compact('encargada', 'ac022', 'pendienteSorteo', 'ejecucion', 'actCreacionHijo');
+    return compact('encargada', 'ac022', 'ac054', 'ac055', 'pendienteSorteo', 'ejecucion', 'actCreacionHijo', 'actInformeConRec');
 }
 
 function fnCrearPadre(array $semilla, bool $conHistorial = false): Expediente
@@ -76,6 +93,16 @@ function fnCrearPadre(array $semilla, bool $conHistorial = false): Expediente
         'vigente_desde' => now(),
         'vigente_hasta' => null,
         'es_version_actual' => true,
+    ]);
+
+    // B1.5 (D-P1): informe técnico habilitante exigido por la matriz de
+    // derivaciones antes de poder derivar un NUREJ Hijo.
+    Actuado::create([
+        'expediente_id' => $padre->id,
+        'catalogo_actuado_id' => $semilla['actInformeConRec']->id,
+        'usuario_id' => $semilla['encargada']->id,
+        'estado_nuevo_id' => $padre->estado_actual_id,
+        'contenido' => ['descripcion' => 'Informe técnico con recomendación previo a la derivación (D-P1).'],
     ]);
 
     if ($conHistorial) {
@@ -119,6 +146,7 @@ it('las líneas de tiempo son independientes: los actuados del hijo jamás apare
 
     $this->postJson("/api/expedientes/{$padre->id}/nurej-hijo", [
         'motivo' => 'Derivación para causa independiente con alcance de auditoría especial.',
+        'via_destino' => 'JURIDICO',
     ])->assertCreated();
 
     $hijo = Expediente::where('nurej_padre_id', $padre->id)->firstOrFail();
@@ -142,7 +170,7 @@ it('las líneas de tiempo son independientes: los actuados del hijo jamás apare
     $idsPadre = collect($detallePadre)->pluck('id');
     $idsHijo = collect($detalleHijo)->pluck('id');
 
-    expect($idsPadre)->toHaveCount(2)
+    expect($idsPadre)->toHaveCount(3) // informe habilitante (D-P1) + historial + creación del hijo
         ->and($idsHijo)->toHaveCount(1)
         ->and($idsHijo->all())->toBe([$actuadoHijo->id])
         ->and($idsPadre->contains($actuadoHijo->id))->toBeFalse();
@@ -163,11 +191,13 @@ it('el hijo no hereda plazos ni asignaciones y su segunda derivación usa correl
 
     $this->postJson("/api/expedientes/{$padre->id}/nurej-hijo", [
         'motivo' => 'Primera derivación con motivo suficientemente largo para el validador.',
+        'via_destino' => 'JURIDICO',
     ])->assertCreated()
         ->assertJsonPath('data.nurej_code', '2026-00001-1');
 
     $this->postJson("/api/expedientes/{$padre->id}/nurej-hijo", [
         'motivo' => 'Segunda derivación con motivo suficientemente largo para el validador.',
+        'via_destino' => 'FINANCIERO',
     ])->assertCreated()
         ->assertJsonPath('data.nurej_code', '2026-00001-2');
 
@@ -187,6 +217,7 @@ it('las partes copiadas al hijo son copias independientes: modificar las del hij
 
     $this->postJson("/api/expedientes/{$padre->id}/nurej-hijo", [
         'motivo' => 'Derivación para prueba de independencia de partes entre causas.',
+        'via_destino' => 'JURIDICO',
     ])->assertCreated();
 
     $hijo = Expediente::where('nurej_padre_id', $padre->id)->firstOrFail();
@@ -212,12 +243,14 @@ it('devuelve 422 al intentar derivar un NUREJ desde un expediente ya derivado (R
 
     $this->postJson("/api/expedientes/{$padre->id}/nurej-hijo", [
         'motivo' => 'Primera derivación con motivo suficientemente largo para el validador.',
+        'via_destino' => 'JURIDICO',
     ])->assertCreated();
 
     $hijo = Expediente::where('nurej_padre_id', $padre->id)->firstOrFail();
 
     $this->postJson("/api/expedientes/{$hijo->id}/nurej-hijo", [
         'motivo' => 'Intento de sub-derivación rechazado por la regla RN-10 del sistema.',
+        'via_destino' => 'JURIDICO',
     ])->assertStatus(422)
         ->assertJsonPath('message', 'No se pueden generar NUREJ hijos de un expediente ya derivado (RN-10).');
 

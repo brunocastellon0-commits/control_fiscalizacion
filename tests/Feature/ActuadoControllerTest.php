@@ -5,6 +5,9 @@ use App\Models\CatalogoActuado;
 use App\Models\CatalogoEstado;
 use App\Models\Rol;
 use App\Models\Usuario;
+use App\Services\EnmiendaService;
+use App\Services\TransferenciaUnidadService;
+use App\Services\TransparenciaService;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 
@@ -104,3 +107,63 @@ it('exige adjunto cuando el catalogo del actuado lo requiere', function () {
         'descripcion' => 'Registro y digitalizacion del expediente.',
     ])->assertStatus(422)->assertJsonValidationErrors('adjunto');
 });
+
+function paso7SemillaTiposEspecializados(): array
+{
+    $semilla = paso7SemillaActuadoController();
+
+    $rolEncargada = Rol::factory()->create(['codigo' => Rol::CODIGO_ENCARGADA]);
+    $encargada = Usuario::factory()->create(['rol_id' => $rolEncargada->id, 'activo' => true]);
+
+    $catalogo = fn (string $codigo, int $rolId) => CatalogoActuado::create([
+        'codigo' => $codigo,
+        'nombre' => 'Flujo especializado '.$codigo,
+        'fase' => 'TEST',
+        'rol_id' => $rolId,
+        'estado_origen_id' => $semilla['evaluacion']->id,
+        'estado_destino_id' => null,
+        'es_automatico' => false,
+        'requiere_adjunto' => false,
+    ]);
+
+    return $semilla + [
+        'encargada' => $encargada,
+        'catalogos' => [
+            EnmiendaService::CODIGO_ACTUADO => $catalogo(EnmiendaService::CODIGO_ACTUADO, $semilla['rolTecnico']->id),
+            TransparenciaService::CODIGO_ACT_SOLICITUD => $catalogo(TransparenciaService::CODIGO_ACT_SOLICITUD, $semilla['rolTecnico']->id),
+            TransferenciaUnidadService::CODIGO_ACT_REMISION_UNIDAD => $catalogo(TransferenciaUnidadService::CODIGO_ACT_REMISION_UNIDAD, $rolEncargada->id),
+            TransferenciaUnidadService::CODIGO_ACT_RECEPCION_UNIDAD => $catalogo(TransferenciaUnidadService::CODIGO_ACT_RECEPCION_UNIDAD, $rolEncargada->id),
+            TransparenciaService::CODIGO_ACT_VB => $catalogo(TransparenciaService::CODIGO_ACT_VB, $rolEncargada->id),
+        ],
+    ];
+}
+
+it('bloquea con 422 la emision generica de los cinco tipos de flujo especializado', function (string $codigo, bool $esEncargada) {
+    $semilla = paso7SemillaTiposEspecializados();
+    $catalogo = $semilla['catalogos'][$codigo];
+    $actor = $esEncargada ? $semilla['encargada'] : $semilla['tecnico'];
+
+    $expediente = paso7CrearExpedienteConEstado($semilla['evaluacion']->id, $semilla['tecnico']->id);
+
+    if (! $esEncargada) {
+        paso7AsignarActivamente($expediente, $semilla['tecnico'], $semilla['evaluacion']->id, $catalogo->id);
+    }
+
+    Sanctum::actingAs($actor, ['*']);
+
+    $actuadosPrevios = Actuado::count();
+
+    $this->postJson('/api/expedientes/'.$expediente->id.'/actuados', [
+        'catalogo_actuado_id' => $catalogo->id,
+        'descripcion' => "Intento de emision generica de {$codigo} sin endpoint especializado.",
+    ])->assertUnprocessable()
+        ->assertJsonValidationErrors('catalogo_actuado_id');
+
+    expect(Actuado::count())->toBe($actuadosPrevios);
+})->with([
+    'ACT_ENMIENDA' => [EnmiendaService::CODIGO_ACTUADO, false],
+    'ACT_SOLICITUD_INCOMPETENCIA' => [TransparenciaService::CODIGO_ACT_SOLICITUD, false],
+    'ACT_REMISION_UNIDAD' => [TransferenciaUnidadService::CODIGO_ACT_REMISION_UNIDAD, true],
+    'ACT_RECEPCION_UNIDAD' => [TransferenciaUnidadService::CODIGO_ACT_RECEPCION_UNIDAD, true],
+    'ACT_VB_INCOMPETENCIA' => [TransparenciaService::CODIGO_ACT_VB, true],
+]);
