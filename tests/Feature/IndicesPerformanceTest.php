@@ -32,7 +32,9 @@ function clavesDelPlan(string $sql): array
 {
     $claves = [];
 
-    foreach (DB::select('EXPLAIN '.$sql) as $fila) {
+    // FORMAT=TRADITIONAL para que funcione igual en MySQL 8 (tabla clasica
+    // con columna `key`) y MySQL 9 (que por defecto devuelve arbol en texto).
+    foreach (DB::select('EXPLAIN FORMAT=TRADITIONAL '.$sql) as $fila) {
         if (! empty($fila->key)) {
             $claves[] = $fila->key;
         }
