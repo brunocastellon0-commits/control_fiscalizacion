@@ -6,23 +6,32 @@
     <div class="p-6" x-data="monitoreoExpedientes()" x-init="cargar()">
 
         <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-5">
-
             <div>
-                <h1 class="text-xl font-bold text-grafito">
-                    Monitoreo de expedientes
-                </h1>
-
-                <p class="text-sm text-gris">
-                    Supervise la asignación, responsables y cumplimiento de plazos.
-                </p>
+                <h1 class="text-xl font-bold text-grafito">Monitoreo de expedientes</h1>
+                <p class="text-sm text-gris">Supervise la asignación, responsables y cumplimiento de plazos.</p>
             </div>
 
-            <div class="text-xs text-gris">
-                <i class="fa-solid fa-arrows-rotate mr-1"></i>
-                Actualización automática
+            <div class="flex items-center gap-3 text-sm">
+                <span x-show="cargando" class="inline-flex items-center gap-2 text-gris">
+                    <i class="fa-solid fa-spinner fa-spin"></i> Actualizando información...
+                </span>
+                <button type="button" @click="cargar()" :disabled="cargando"
+                    class="inline-flex items-center gap-2 rounded-lg border border-gris-claro bg-white px-3 py-2 text-grafito hover:bg-gris-claro/40 disabled:opacity-50">
+                    <i class="fa-solid fa-arrows-rotate" :class="{ 'fa-spin': cargando }"></i>
+                    Actualizar
+                </button>
             </div>
-
         </div>
+
+        <template x-if="error">
+            <div class="bg-[#F15A24]/10 border border-[#F15A24]/30 text-[#B53F12] rounded-xl p-4 mb-5 text-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div>
+                    <i class="fa-solid fa-triangle-exclamation mr-2"></i>
+                    <span x-text="error"></span>
+                </div>
+                <button type="button" @click="cargar()" class="underline font-medium">Reintentar</button>
+            </div>
+        </template>
 
         <!-- RESUMEN -->
         <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-5">
@@ -462,52 +471,33 @@
                             `/api/admin/monitoreo?${params.toString()}`;
 
 
-                        const respuesta =
-                            await window.apiFetch(url);
-
-
-                        console.log(
-                            'RESPUESTA MONITOREO:',
-                            respuesta
-                        );
-
+                        const respuesta = await window.apiFetch(url);
 
                         if (!respuesta.ok) {
-
                             throw new Error(
-                                respuesta.data?.message ||
-                                'No se pudo cargar el monitoreo.'
+                                respuesta.data?.message || 'No se pudo cargar el monitoreo de expedientes.'
                             );
-
                         }
 
-
-                        this.expedientes =
-                            respuesta.data?.data ?? [];
-
-
-                        this.resumen =
-                            respuesta.data?.resumen ?? {
-                                total: 0,
-                                sin_asignar: 0,
-                                en_tramite: 0,
-                                por_vencer: 0,
-                                fuera_plazo: 0
-                            };
-
+                        this.expedientes = respuesta.data?.data ?? [];
+                        this.resumen = respuesta.data?.resumen ?? {
+                            total: 0,
+                            sin_asignar: 0,
+                            en_tramite: 0,
+                            por_vencer: 0,
+                            fuera_plazo: 0
+                        };
 
                     } catch (error) {
-
-                        console.error(
-                            'ERROR MONITOREO:',
-                            error
-                        );
-
-                        this.error =
-                            error.message ||
-                            'Ocurrió un error al cargar los expedientes.';
-
+                        this.error = error.message || 'Ocurrió un error al cargar los expedientes.';
                         this.expedientes = [];
+                        this.resumen = {
+                            total: 0,
+                            sin_asignar: 0,
+                            en_tramite: 0,
+                            por_vencer: 0,
+                            fuera_plazo: 0
+                        };
 
                     } finally {
 

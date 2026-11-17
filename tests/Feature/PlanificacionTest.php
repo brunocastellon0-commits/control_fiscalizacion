@@ -221,9 +221,11 @@ it('el Auditor Jurídico de AC054 carga el MPA con la fecha límite dinámica en
 
     Sanctum::actingAs($semilla['audJuridico'], ['*']);
 
+    $fechaLimite = now()->addDays(10)->toDateString();
+
     $response = $this->postJson("/api/expedientes/{$expediente->id}/planificacion", [
         'descripcion' => 'MPA con el alcance de la auditoria y su cronograma (test).',
-        'fecha_limite_propuesta' => '2026-10-15',
+        'fecha_limite_propuesta' => $fechaLimite,
         'adjunto' => UploadedFile::fake()->create('mpa.pdf', 100, 'application/pdf'),
     ])->assertCreated()
         ->assertJsonPath('data.tipo_actuado.codigo', PlanificacionService::CODIGO_ACT_MPA);
@@ -238,7 +240,7 @@ it('el Auditor Jurídico de AC054 carga el MPA con la fecha límite dinámica en
     expect($asignacionActiva)->not->toBeNull()
         ->and($asignacionActiva->usuario_id)->toBe($semilla['encargada']->id);
 
-    expect($actuado->contenido[PlanificacionService::METADATO_FECHA_LIMITE])->toBe('2026-10-15');
+    expect($actuado->contenido[PlanificacionService::METADATO_FECHA_LIMITE])->toBe($fechaLimite);
 });
 
 it('devuelve 403 si un operador sin bandeja activa intenta cargar la planificación', function () {
@@ -379,9 +381,11 @@ it('el Visto Bueno sobre MPA abre EJECUCION con la fecha límite dinámica exact
 
     Sanctum::actingAs($semilla['audJuridico'], ['*']);
 
+    $fechaLimite = now()->addDays(10)->toDateString();
+
     $this->postJson("/api/expedientes/{$expediente->id}/planificacion", [
         'descripcion' => 'MPA con el alcance de la auditoria y su cronograma (test).',
-        'fecha_limite_propuesta' => '2026-10-15',
+        'fecha_limite_propuesta' => $fechaLimite,
         'adjunto' => UploadedFile::fake()->create('mpa.pdf', 100, 'application/pdf'),
     ])->assertCreated();
 
@@ -402,7 +406,7 @@ it('el Visto Bueno sobre MPA abre EJECUCION con la fecha límite dinámica exact
     $plazoEjecucion = $expediente->plazos()->where('tipo_plazo', 'EJECUCION')->first();
     expect($plazoEjecucion)->not->toBeNull()
         ->and($plazoEjecucion->estado)->toBe('VIGENTE')
-        ->and($plazoEjecucion->fecha_limite->toDateString())->toBe('2026-10-15')
+        ->and($plazoEjecucion->fecha_limite->toDateString())->toBe($fechaLimite)
         ->and($plazoEjecucion->dias_habiles_otorgados)->toBe(0)
         ->and($plazoEjecucion->parametro_plazo_id)->toBeNull();
 });

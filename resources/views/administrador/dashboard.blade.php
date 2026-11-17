@@ -23,29 +23,32 @@
         </template>
 
         <template x-if="error">
-            <div class="bg-red-50 border border-red-200 text-red-700 rounded-xl p-4">
-                <i class="fa-solid fa-circle-exclamation mr-2"></i>
-                <span x-text="error"></span>
+            <div class="bg-red-50 border border-red-200 text-red-700 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div>
+                    <i class="fa-solid fa-circle-exclamation mr-2"></i>
+                    <span x-text="error"></span>
+                </div>
+                <button type="button" @click="cargarDashboard()" class="text-sm font-medium underline">Reintentar</button>
             </div>
         </template>
 
         <template x-if="datosListos">
             <div class="space-y-6">
 
-                <!-- ALERTA: expedientes fuera de plazo -->
-                <div x-show="datos.expedientes_fuera_de_plazo.length > 0"
+                <div x-show="(datos.expedientes_fuera_de_plazo || []).length > 0"
                     class="bg-red-50 border border-red-200 rounded-xl p-4">
                     <div class="flex items-center justify-between mb-2">
                         <p class="font-semibold text-red-700 flex items-center gap-2">
                             <i class="fa-solid fa-triangle-exclamation"></i>
-                            <span x-text="datos.expedientes_fuera_de_plazo.length + ' expediente(s) fuera de plazo'"></span>
+                            <span x-text="(datos.expedientes_fuera_de_plazo || []).length + ' expediente(s) fuera de plazo'"></span>
                         </p>
                     </div>
                     <div class="flex flex-wrap gap-2">
-                        <template x-for="exp in datos.expedientes_fuera_de_plazo" :key="exp.id">
+                        <template x-for="exp in datos.expedientes_fuera_de_plazo" :key="exp.id || exp.expediente_id">
                             <a :href="`/expedientes/${exp.id}`"
                                 class="text-xs bg-white border border-red-200 text-red-700 rounded-full px-3 py-1 hover:bg-red-100">
-                                <span x-text="exp.nurej_code"></span> — <span x-text="exp.asignado_a"></span>
+                                <span x-text="exp.nurej_code"></span>
+                                <span x-show="exp.asignado_a"> — <span x-text="exp.asignado_a"></span></span>
                             </a>
                         </template>
                     </div>

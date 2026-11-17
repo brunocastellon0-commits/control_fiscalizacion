@@ -173,20 +173,22 @@
                     try {
                         const { ok, data } = await window.apiFetch(`/api/bandeja/sorteo?page=${pagina}`);
                         if (!ok) {
-                            this.error = 'No se pudo cargar la bandeja de sorteo.';
+                            this.error = data?.message || 'No se pudo cargar la bandeja de sorteo. Intente nuevamente.';
+                            this.expedientes = [];
                             return;
                         }
-                        this.expedientes = data.data;
+                        this.expedientes = data.data || [];
                         const m = data.meta || {};
                         this.meta = {
-                            current_page: m.current_page || 1,
+                            current_page: m.current_page || pagina || 1,
                             last_page: m.last_page || 1,
                             total: m.total || 0,
                             prev_page_url: m.prev_page_url || null,
                             next_page_url: m.next_page_url || null,
                         };
                     } catch (e) {
-                        this.error = e.message;
+                        this.error = e.message || 'Ocurrió un error al cargar la bandeja de sorteo.';
+                        this.expedientes = [];
                     } finally {
                         this.cargando = false;
                     }
@@ -240,7 +242,6 @@
                 async sortearTodos() {
                     if (!window.confirm('¿Sortear todas las causas pendientes de una sola vez?')) return;
                     this.sortearTodosEnviando = true;
-                    this.error = null;
                     try {
                         const { ok, data } = await window.apiFetch('/api/bandeja/sorteo/todos', { method: 'POST' });
                         if (ok) {
@@ -248,12 +249,16 @@
                             await this.cargar(1);
                         } else {
                             const errores = data?.errors;
-                            this.error = errores
+                            const mensaje = errores
                                 ? Object.values(errores).flat().join(' ')
                                 : (data?.message || 'No se pudo realizar el sorteo en lote.');
+                            this.error = mensaje;
+                            window.apiToast('error', mensaje);
                         }
                     } catch (e) {
-                        this.error = e.message;
+                        const mensaje = e.message || 'No se pudo realizar el sorteo en lote.';
+                        this.error = mensaje;
+                        window.apiToast('error', mensaje);
                     } finally {
                         this.sortearTodosEnviando = false;
                     }

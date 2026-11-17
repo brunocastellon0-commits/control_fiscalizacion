@@ -18,7 +18,15 @@
         </include>
     </source>
     <php>
+        <ini name="memory_limit" value="512M"/>
         <env name="APP_ENV" value="testing"/>
+        <!--
+            Nunca apuntar los tests a la base de desarrollo/produccion.
+            RefreshDatabase ejecuta migrate:fresh y borra TODOS los datos.
+            Este valor debe apuntar a una base exclusiva de pruebas (sufijo _test).
+        -->
+        <env name="DB_CONNECTION" value="mysql"/>
+        <env name="DB_DATABASE" value="control_fiscalizacion_test"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>

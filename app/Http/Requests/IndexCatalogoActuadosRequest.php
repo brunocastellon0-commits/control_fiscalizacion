@@ -17,6 +17,7 @@ class IndexCatalogoActuadosRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'expediente_id' => ['nullable', 'integer', 'exists:expedientes,id'],
             'estado_origen_id' => ['nullable', 'integer', 'exists:catalogo_estados,id'],
         ];
     }

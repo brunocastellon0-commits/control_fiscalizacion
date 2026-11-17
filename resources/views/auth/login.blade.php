@@ -12,11 +12,11 @@
     <style>
         /* Colores personalizados */
         .bg-verde-institucional {
-            background-color: #63A66B;
+            background-color: #1E7A52;
         }
 
         .bg-verde-profundo {
-            background-color: #285C3A;
+            background-color: #0F4C3A;
         }
 
         .bg-azul-petroleo {
@@ -36,11 +36,11 @@
         }
 
         .text-verde-institucional {
-            color: #63A66B;
+            color: #1E7A52;
         }
 
         .text-verde-profundo {
-            color: #285C3A;
+            color: #0F4C3A;
         }
 
         .text-azul-petroleo {
@@ -60,11 +60,11 @@
         }
 
         .border-verde-institucional {
-            border-color: #63A66B;
+            border-color: #1E7A52;
         }
 
         .border-verde-profundo {
-            border-color: #285C3A;
+            border-color: #0F4C3A;
         }
 
         .border-azul-petroleo {
@@ -76,11 +76,11 @@
         }
 
         .hover\:bg-verde-profundo:hover {
-            background-color: #285C3A;
+            background-color: #0F4C3A;
         }
 
         .hover\:bg-verde-institucional:hover {
-            background-color: #63A66B;
+            background-color: #1E7A52;
         }
 
         /* Colores secundarios del logo */
@@ -149,7 +149,7 @@
 
         /* Fondo con degradado institucional */
         .bg-institucional-gradient {
-            background: linear-gradient(135deg, #285C3A 0%, #173F4F 50%, #202625 100%);
+            background: linear-gradient(135deg, #0F4C3A 0%, #17603F 55%, #0B3A2C 100%);
         }
     </style>
 </head>
@@ -158,8 +158,8 @@
 
     <!-- Barra superior verde institucional -->
     <div class="fixed top-0 left-0 right-0 h-10 z-50 overflow-hidden shadow-lg">
-        <div class="absolute inset-0 bg-[#285C3A]"></div>
-        <div class="absolute inset-0 bg-gradient-to-r from-transparent via-[#63A66B] to-transparent opacity-60 animate-shimmer"
+        <div class="absolute inset-0 bg-[#0F4C3A]"></div>
+        <div class="absolute inset-0 bg-gradient-to-r from-transparent via-[#1E7A52] to-transparent opacity-60 animate-shimmer"
             style="width: 200%; transform: translateX(0%);">
         </div>
     </div>
@@ -195,14 +195,14 @@
             <!-- Título -->
             <h1 class="text-2xl font-bold tracking-tight text-[#202625] uppercase leading-tight">
                 Consejo de la<br>
-                <span class="text-[#285C3A]">Magistratura</span>
+                <span class="text-[#0F4C3A]">Magistratura</span>
             </h1>
             <div class="flex items-center justify-center gap-2 mt-2">
-                <div class="h-px w-8 bg-gradient-to-r from-transparent to-[#63A66B]"></div>
-                <p class="text-xs font-medium text-[#63A66B] tracking-wider uppercase">
+                <div class="h-px w-8 bg-gradient-to-r from-transparent to-[#1E7A52]"></div>
+                <p class="text-xs font-medium text-[#1E7A52] tracking-wider uppercase">
                     Sistema de Control y Fiscalización
                 </p>
-                <div class="h-px w-8 bg-gradient-to-l from-transparent to-[#63A66B]"></div>
+                <div class="h-px w-8 bg-gradient-to-l from-transparent to-[#1E7A52]"></div>
             </div>
 
         </div>
@@ -228,7 +228,7 @@
             <!-- Usuario -->
             <div>
                 <label class="block text-xs font-semibold text-[#66706B] uppercase tracking-wider mb-2">
-                    <i class="fa-regular fa-user mr-1.5 text-[#63A66B]"></i>
+                    <i class="fa-regular fa-user mr-1.5 text-[#1E7A52]"></i>
                     Usuario
                 </label>
                 <div class="relative">
@@ -236,14 +236,14 @@
                         <i class="fa-regular fa-user text-xs"></i>
                     </span>
                     <input type="text" x-model="form.username" required placeholder="Ej. admin o operador_tec"
-                        class="w-full bg-[#F4F1E6] border border-[#E6EAE7] rounded-lg pl-10 pr-3.5 py-2.5 text-xs text-[#202625] placeholder-[#66706B] focus:outline-none focus:border-[#63A66B] focus:ring-2 focus:ring-[#63A66B]/30 transition duration-150">
+                        class="w-full bg-[#F4F1E6] border border-[#E6EAE7] rounded-lg pl-10 pr-3.5 py-2.5 text-xs text-[#202625] placeholder-[#66706B] focus:outline-none focus:border-[#1E7A52] focus:ring-2 focus:ring-[#1E7A52]/30 transition duration-150">
                 </div>
             </div>
 
             <!-- Contraseña -->
             <div>
                 <label class="block text-xs font-semibold text-[#66706B] uppercase tracking-wider mb-2">
-                    <i class="fa-regular fa-lock mr-1.5 text-[#63A66B]"></i>
+                    <i class="fa-regular fa-lock mr-1.5 text-[#1E7A52]"></i>
                     Contraseña
                 </label>
                 <div class="relative">
@@ -252,7 +252,7 @@
                     </span>
                     <input :type="showPassword ? 'text' : 'password'" x-model="form.password" required
                         placeholder="••••••••••••"
-                        class="w-full bg-[#F4F1E6] border border-[#E6EAE7] rounded-lg pl-10 pr-10 py-2.5 text-xs text-[#202625] placeholder-[#66706B] focus:outline-none focus:border-[#63A66B] focus:ring-2 focus:ring-[#63A66B]/30 transition duration-150">
+                        class="w-full bg-[#F4F1E6] border border-[#E6EAE7] rounded-lg pl-10 pr-10 py-2.5 text-xs text-[#202625] placeholder-[#66706B] focus:outline-none focus:border-[#1E7A52] focus:ring-2 focus:ring-[#1E7A52]/30 transition duration-150">
                     <button type="button" @click="showPassword = !showPassword"
                         class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-[#66706B] hover:text-[#202625] transition">
                         <i class="fa-regular" :class="showPassword ? 'fa-eye-slash' : 'fa-eye'"></i>
@@ -262,20 +262,17 @@
 
             <!-- Botón de Envío -->
             <button type="submit" :disabled="loading"
-                class="w-full mt-2 bg-[#285C3A] hover:bg-[#63A66B] disabled:opacity-50 text-white font-bold py-3 rounded-lg text-xs uppercase tracking-wider transition-all duration-300 shadow-lg shadow-[#285C3A]/30 flex items-center justify-center gap-2 group">
+                class="w-full mt-2 bg-[#0F4C3A] hover:bg-[#1E7A52] disabled:opacity-50 text-white font-bold py-3 rounded-lg text-xs uppercase tracking-wider transition-all duration-300 shadow-lg shadow-[#0F4C3A]/30 flex items-center justify-center gap-2 group">
                 <i x-show="loading" class="fa-solid fa-circle-notch fa-spin text-sm" style="display: none;"></i>
                 <span x-text="loading ? 'Validando...' : 'Iniciar Sesión'"></span>
                 <i x-show="!loading"
                     class="fa-solid fa-arrow-right text-xs group-hover:translate-x-1 transition-transform duration-300"></i>
             </button>
 
-            <!-- Enlace de ayuda -->
             <div class="text-center mt-4">
-                <a href="#"
-                    class="text-[10px] text-[#66706B] hover:text-[#63A66B] transition-colors duration-300 tracking-wider">
-                    <i class="fa-regular fa-circle-question mr-1"></i>
-                    ¿Olvidaste tu contraseña?
-                </a>
+                <p class="text-[10px] text-[#66706B] tracking-wider">
+                    Si olvidó su contraseña, contacte al administrador del sistema.
+                </p>
             </div>
         </form>
 
@@ -306,14 +303,13 @@
                     this.successMessage = '';
 
                     try {
-                        // Obtener cookie CSRF-XSRF (sanctum/csrf-cookie) para la sesión stateful
                         const csrfHandle = await fetch('/sanctum/csrf-cookie', {
                             method: 'GET',
                             credentials: 'same-origin'
                         });
 
                         if (!csrfHandle.ok) {
-                            throw new Error('No se pudo inicializar la sesión segura.');
+                            throw new Error('No se pudo iniciar una sesión segura. Intente nuevamente.');
                         }
 
                         const xsrfToken = document.cookie
@@ -332,10 +328,26 @@
                             body: JSON.stringify(this.form)
                         });
 
-                        const data = await response.json();
+                        let data = {};
+                        try {
+                            data = await response.json();
+                        } catch (e) {
+                            data = {};
+                        }
 
                         if (!response.ok) {
-                            throw new Error(data.message || 'Error al autenticar credenciales.');
+                            if (response.status === 429) {
+                                const segundos = Number(response.headers.get('Retry-After'));
+                                if (!Number.isNaN(segundos) && segundos > 0) {
+                                    throw new Error(`Demasiados intentos. Intente nuevamente en ${segundos} segundos.`);
+                                }
+                                throw new Error('Demasiados intentos. Espere un momento e intente nuevamente.');
+                            }
+                            if (response.status === 422 && data?.errors) {
+                                const mensajes = Object.values(data.errors).flat().filter(Boolean).join(' ');
+                                throw new Error(mensajes || data.message || 'Revise los datos ingresados.');
+                            }
+                            throw new Error(data.message || 'No se pudo iniciar sesión. Verifique sus datos.');
                         }
 
                         // Autenticación stateful: la sesión la maneja la cookie HttpOnly.

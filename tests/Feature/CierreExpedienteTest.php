@@ -81,9 +81,26 @@ function cierreCrearExpediente(int $estadoId, int $reglamentoId, int $creadoPor)
 
 function cierreAsignar(Expediente $expediente, Usuario $usuario): void
 {
+    // Catálogo propio para el actuado de origen: evita que `CatalogoActuado::first()`
+    // reutilice el catálogo de Visto Bueno/Reparto de otra prueba y contamine
+    // la consulta por código de los tests de cierre.
+    $catalogoOrigen = CatalogoActuado::firstOrCreate(
+        ['codigo' => 'ACT_TEST_ORIGEN_CIERRE'],
+        [
+            'nombre' => 'Actuado de origen para asignación (test)',
+            'fase' => 'INVESTIGACION',
+            'rol_id' => $usuario->rol_id,
+            'reglamento_id' => null,
+            'estado_origen_id' => null,
+            'estado_destino_id' => null,
+            'es_automatico' => false,
+            'requiere_adjunto' => false,
+        ],
+    );
+
     $actuadoOrigen = Actuado::create([
         'expediente_id' => $expediente->id,
-        'catalogo_actuado_id' => CatalogoActuado::first()->id,
+        'catalogo_actuado_id' => $catalogoOrigen->id,
         'usuario_id' => $usuario->id,
         'estado_nuevo_id' => $expediente->estado_actual_id,
         'contenido' => ['descripcion' => 'Asignación inicial de la semilla'],
