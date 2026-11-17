@@ -17,6 +17,7 @@ function ahcRutasPanel(): array
         '/administrador/dashboard',
         '/administrador/usuarios',
         '/administrador/feriados',
+        '/administrador/requisitos',
         '/administrador/monitoreo',
     ];
 }
@@ -38,7 +39,7 @@ it('redirige al login el panel del administrador sin sesión', function () {
     }
 });
 
-it('responde 403 a un rol distinto de ADMIN en las cuatro rutas del panel', function () {
+it('responde 403 a un rol distinto de ADMIN en las rutas del panel', function () {
     $tecnico = ahcUsuario(Rol::CODIGO_TECNICO);
 
     foreach (ahcRutasPanel() as $ruta) {
@@ -46,7 +47,7 @@ it('responde 403 a un rol distinto de ADMIN en las cuatro rutas del panel', func
     }
 });
 
-it('responde 403 a un ADMIN inactivo en las cuatro rutas del panel', function () {
+it('responde 403 a un ADMIN inactivo en las rutas del panel', function () {
     $inactivo = ahcUsuario(Rol::CODIGO_ADMIN, false);
 
     foreach (ahcRutasPanel() as $ruta) {
@@ -54,7 +55,7 @@ it('responde 403 a un ADMIN inactivo en las cuatro rutas del panel', function ()
     }
 });
 
-it('carga las cuatro vistas del panel con un ADMIN activo', function () {
+it('carga las vistas del panel con un ADMIN activo', function () {
     $admin = ahcUsuario(Rol::CODIGO_ADMIN);
 
     foreach (ahcRutasPanel() as $ruta) {

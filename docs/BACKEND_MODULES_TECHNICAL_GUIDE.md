@@ -19,8 +19,14 @@
 | Devolución de Planificación | US-2.5 | Épica 4 (E4-S3) | `PlanificacionService@devolverPlanificacion` | `PlanificacionTest` |
 | Ampliación de Plazo | US-2.6 | Épica 5 (E5-S1) | `App\Services\AmpliacionService` | `AmpliacionTest` |
 | Motor Disciplinario | QA 3 + RN-03 | Épica 1 (E1-S1-BE) | `VerificarVencimientoPlazosCommand`, `MarcarPlazosVencidosService`, `ArchivoPorAbandonoService`, `SemaforoPlazoService` | `ArchivoPorAbandonoTest`, `SemaforoPenalizacionTest` |
+| Requisitos de admisibilidad | B1.9 | CRUD administrativo | `AdminRequisitosController`, `RequisitosController` | `AdminRequisitosCrudTest` |
+| Reportes SRS (R01–R09) | B5.1 / B5.2 / B5.3 | RF-R01…R09 / CTR-08 | `ReporteController`, `ReporteDatosService`, `ReporteExport` | `ReportesPantallaTest`, `ExportacionReportesTest`, `CaratulaOficialPdfTest` |
+| Identidad y entrega | B9.1–B9.5 | Documentación / UX | `layouts.app`, `layouts.sidebar`, `.env.example`, `CHANGELOG.md` | Pruebas de pantalla y exportación |
 
-**Estado de la suite (referencia):** 202 tests / 201 passed / 1 skipped.
+**Estado de la suite (referencia):** 377 pruebas — 370 passed, 6 skipped,
+1 fallo conocido: `SecurityCompartimentosTest` (bypass ADMIN en
+`ExpedientePolicy`, B2.0 pendiente de Bruno). Los tests de exportación requieren
+`memory_limit=512M`, configurado en `phpunit.xml`.
 
 **Comandos de verificación usados durante el desarrollo:**
 
@@ -542,7 +548,139 @@ El semáforo es de solo lectura: colorea según `now()` y nunca muta el plazo.
   testeado pero no expuesto en `routes/api.php`; corresponde a Épica 10 del
   backlog cuando se construya el dashboard.
 
-## 7. Anexo — Pendientes relacionados (para continuidad)
+## 7. Módulos de interfaz, reportes y entrega (Sprint 4–5)
+
+Esta sección documenta los entregables de Brayan que complementan el flujo
+procesal: CRUD de requisitos, pantalla de los 9 reportes, exportaciones,
+carátula oficial y el paquete de identidad/configuración.
+
+### 7.1 CRUD de requisitos de admisibilidad (B1.9)
+
+El catálogo `catalogo_requisitos` se administra sin modificar código ni
+migraciones. El borrado es **lógico** (`activo = false`), de modo que los
+expedientes históricos conservan la referencia al requisito.
+
+| Capa | Archivo / ruta | Rol |
+|---|---|---|
+| Vista | `resources/views/administrador/requisitos.blade.php` | Tabla, filtros y modal de alta/edición |
+| Controller web | `Administrador\RequisitosController@index` → `GET /administrador/requisitos` (`administrador.requisitos`) | Renderiza la pantalla con reglamentos |
+| Controller API | `Administrador\AdminRequisitosController` | `GET/POST /api/admin/requisitos`, `PUT/DELETE /api/admin/requisitos/{requisito}` |
+| Requests | `StoreCatalogoRequisitoRequest`, `UpdateCatalogoRequisitoRequest` | Validación de `reglamento_id`, `descripcion`, `orden`, `es_critico`, `activo` |
+| Autorización | `AdminRequisitosController` | Solo `ADMIN` activo; el resto recibe `403` |
+| Menú | `resources/views/layouts/sidebar.blade.php` | Enlace visible solo para `ADMIN` |
+| Tests | `tests/Feature/AdminRequisitosCrudTest.php` | Listado, filtros, alta, edición, baja lógica y `403` |
+
+La pantalla consume la API con `window.apiFetch` y refleja los errores de
+validación devueltos por los Form Requests.
+
+### 7.2 Pantalla de los 9 reportes normativos (B5.1)
+
+`ReporteController@index` sirve `GET /reportes` (`reportes.index`). La vista
+`resources/views/reportes/index.blade.php` contiene las 9 pestañas y los filtros
+compartidos por fecha, usuario y estado; `reportes/tabla.blade.php` es la tabla
+reactiva (Alpine.js) que se hidrata por API.
+
+| Reporte | Código | Fuente de datos |
+|---|---|---|
+| Carga laboral por usuario | `R01` | `ReporteDatosService::reporteCargaLaboral()` |
+| Solicitudes registradas | `R02` | `ReporteDatosService::reporteSolicitudesRegistradas()` |
+| Recepción inter-unidad | `R03` | `ReporteDatosService::reporteRecepcionInterUnidad()` |
+| Estado de evaluación | `R04` | `ReporteDatosService::reporteEstadoEvaluacion()` |
+| Notificaciones pendientes | `R05` | `ReporteDatosService::reporteNotificacionesPendientes()` |
+| Resoluciones finales | `R06` | `ReporteDatosService::reporteResolucionesFinales()` |
+| Estadístico por vía | `R07` | `ReporteDatosService::reporteEstadisticoPorVia()` |
+| Carátula oficial | `R08` | `ReporteDatosService::reporteCaratulaOficial()` |
+| Trazabilidad padre-hijo | `R09` | `ReporteDatosService::reporteTrazabilidadPadreHijo()` |
+
+**Contrato y respaldo.** La pantalla intenta primero el contrato CTR-08 de
+Bruno (`GET /api/reportes/{codigo}`). Mientras `ReportesQueryService` y
+`routes/api/core.php` no estén integrados en el repositorio, el endpoint de
+respaldo `GET /api/reportes/{codigo}/datos` devuelve la misma forma
+`{codigo, titulo, columnas, data, meta, filtros_aplicados}`. La interfaz muestra
+un aviso que distingue `CTR-08` de `respaldo local`; al integrarse CTR-08 no
+debe cambiarse la vista, solo retirar el respaldo cuando el contrato esté
+disponible.
+
+**Autorización.** `ReporteController::autorizarReporte()` exige usuario
+autenticado, activo y con rol distinto de `ADMIN`. El enlace del sidebar se
+oculta para `ADMIN`; el acceso directo a `/reportes` o a los endpoints devuelve
+`403`. La carátula oficial vuelve a aplicar `ExpedientePolicy::view`, por lo que
+un operador sin asignación activa recibe `403` al generarla. El respaldo
+`/datos` **no replica todavía** el filtrado por compartimentos que debe
+implementar CTR-08; es transitorio y no debe exponerse fuera de la red
+institucional.
+
+`ReporteDatosService::normalizarCodigo()` acepta `R01`, `RF-R01` y variantes con
+guiones; solo existen `R01`–`R09` y un código desconocido produce `404`.
+
+### 7.3 Exportaciones XLSX y PDF (B5.2)
+
+| Ruta | Método del controller | Resultado |
+|---|---|---|
+| `GET /api/reportes/{codigo}/exportar/excel` | `exportarExcel()` | `.xlsx` con `ReporteExport` (Maatwebsite Excel 4 + PhpSpreadsheet) |
+| `GET /api/reportes/{codigo}/exportar/pdf` | `exportarPdf()` | PDF A4 horizontal con DomPDF |
+| `GET /api/reportes/caratula/{expediente}/pdf` | `caratulaPdf()` | Carátula oficial A4 vertical |
+
+Las descargas aplican exactamente los mismos filtros que la pantalla y usan
+`ReporteDatosService` para que las filas coincidan con la tabla visible. La
+plantilla `resources/views/reportes/pdf.blade.php` incluye encabezado
+institucional, fecha de generación, filtros aplicados y numeración.
+
+**Dependencia gráfica.** DomPDF necesita la extensión PHP `gd` para procesar
+PNG. Si `gd` no está habilitada, el controlador usa el emblema vectorial
+`public/images/escudo-cm.svg` (sin GD) para que las descargas sigan operativas;
+si `gd` está disponible, usa el logo institucional PNG. Para producción se
+recomienda habilitar `gd` y validar el PDF con el escudo oficial.
+
+**Seguridad.** El nombre del archivo se construye en el servidor; el código de
+reporte se valida contra el catálogo y no se usa para consultas SQL dinámicas.
+La exportación no acepta columnas ni ordenamiento arbitrario desde el cliente.
+
+### 7.4 Carátula oficial / Foja Cero (B5.3)
+
+`ReporteController@caratulaPdf` renderiza
+`resources/views/expedientes/caratula-pdf.blade.php` y responde en A4 vertical.
+Incluye:
+
+- NUREJ del expediente, NUREJ padre y NUREJ derivados (`hijos`).
+- Fecha de ingreso, vía procesal, reglamento y estado actual.
+- Partes vigentes (denunciante/denunciada) con documento y cargo/institución.
+- Sello de custodia calculado con `hash('sha256', ...)`, que actúa como
+  mecanismo de verificación ante la ausencia de una librería QR aprobada.
+
+El endpoint vuelve a aplicar la autorización de reportes (`ADMIN` e inactivos
+rechazados) y la Policy `view` del expediente, por lo que un operador sin
+asignación activa recibe `403`. La prueba `CaratulaOficialPdfTest` verifica el
+PDF, los datos de la vista y esos rechazos.
+
+### 7.5 Configuración, identidad y ayudas (B9.1–B9.5)
+
+- **`.env.example`:** documenta `APP_TIMEZONE=America/La_Paz`, sesión/Sanctum,
+  base de datos MySQL, cache, colas síncronas, correo y filesystem. `config/app.php`
+  lee `APP_TIMEZONE` para que el reloj procesual use hora boliviana.
+- **`CHANGELOG.md`:** registro institucional de versiones, remediaciones y
+  tareas entregadas.
+- **Identidad visual:** `public/favicon.ico` y
+  `public/images/favicon-institucional.png` se generaron desde el emblema del
+  Consejo; `layouts.app` declara ambos, `apple-touch-icon` y `theme-color`
+  `#0F4C3A`. La paleta institucional vive como clases utilitarias en
+  `layouts.app` (`verde-profundo`, `verde-institucional`, `verde-claro`,
+  `azul-petroleo`, `marfil`, `grafito`, `gris-claro`).
+- **Ayuda contextual:** los filtros de reportes, el modal de requisitos y los
+  modales de actuado, enmienda y remisión/recepción exponen tooltips nativos
+  (`title`/`aria-label`) y un panel de ayuda desplegable en la pantalla de
+  reportes. No se agregó JavaScript de terceros para tooltips.
+
+### 7.6 Nota de integración con CTR-08
+
+`routes/api/reportes.php` **no** define `GET /api/reportes/{codigo}` para no
+colisionar con `routes/api/core.php` (propiedad de Bruno). El respaldo
+`/datos` es transitorio y debe retirarse cuando el contrato CTR-08 esté
+mergeado. Tampoco se modifica `app/Services/ReportesQueryService.php`; cualquier
+cambio en la forma del JSON de CTR-08 se adapta en `ReportesPantallaTest` y en
+la vista, no en el backend de dominio.
+
+## 8. Anexo — Pendientes relacionados (para continuidad)
 
 | Pendiente | Épica | Notas |
 |---|---|---|

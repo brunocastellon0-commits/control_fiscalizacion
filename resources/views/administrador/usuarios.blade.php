@@ -4,7 +4,7 @@
 
 @section('contenido')
 
-    <div x-data="usuariosAdmin()" x-init="cargar()" class="p-6 space-y-6">
+    <div x-data="usuariosAdmin({{ (int) auth()->id() }})" x-init="cargar()" class="p-6 space-y-6">
 
         {{-- ENCABEZADO --}}
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -107,12 +107,12 @@
                                     <button @click="abrirEditar(usuario)" class="px-2.5 py-1 rounded-lg border border-gris-claro text-grafito text-xs hover:bg-gris-claro transition mr-1.5">
                                         <i class="fa-solid fa-pen mr-1"></i>Editar
                                     </button>
-                                    <button x-show="usuario.activo" @click="inactivar(usuario)"
-                                            class="px-2.5 py-1 rounded-lg bg-[#F15A24] text-white text-xs hover:bg-[#B53F12] transition">
+                                    <button x-show="usuario.activo && usuario.id !== usuarioActualId" @click="inactivar(usuario)"
+                                        class="px-2.5 py-1 rounded-lg bg-[#F15A24] text-white text-xs hover:bg-[#B53F12] transition">
                                         Inactivar
                                     </button>
                                     <button x-show="!usuario.activo" @click="activar(usuario)"
-                                            class="px-2.5 py-1 rounded-lg bg-verde-profundo text-white text-xs hover:bg-verde-institucional transition">
+                                        class="px-2.5 py-1 rounded-lg bg-verde-profundo text-white text-xs hover:bg-verde-institucional transition">
                                         Activar
                                     </button>
                                 </td>
@@ -216,8 +216,9 @@
     </div>
 
     <script>
-        function usuariosAdmin() {
+        function usuariosAdmin(usuarioActualId = null) {
             return {
+                usuarioActualId: usuarioActualId,
                 usuarios: [],
                 roles: [],
                 filtros: { buscar: '', rol_id: '', activo: '' },

@@ -269,13 +269,10 @@
                     class="fa-solid fa-arrow-right text-xs group-hover:translate-x-1 transition-transform duration-300"></i>
             </button>
 
-            <!-- Enlace de ayuda -->
             <div class="text-center mt-4">
-                <a href="#"
-                    class="text-[10px] text-[#66706B] hover:text-[#1E7A52] transition-colors duration-300 tracking-wider">
-                    <i class="fa-regular fa-circle-question mr-1"></i>
-                    ¿Olvidaste tu contraseña?
-                </a>
+                <p class="text-[10px] text-[#66706B] tracking-wider">
+                    Si olvidó su contraseña, contacte al administrador del sistema.
+                </p>
             </div>
         </form>
 
@@ -306,14 +303,13 @@
                     this.successMessage = '';
 
                     try {
-                        // Obtener cookie CSRF-XSRF (sanctum/csrf-cookie) para la sesión stateful
                         const csrfHandle = await fetch('/sanctum/csrf-cookie', {
                             method: 'GET',
                             credentials: 'same-origin'
                         });
 
                         if (!csrfHandle.ok) {
-                            throw new Error('No se pudo inicializar la sesión segura.');
+                            throw new Error('No se pudo iniciar una sesión segura. Intente nuevamente.');
                         }
 
                         const xsrfToken = document.cookie
@@ -332,10 +328,26 @@
                             body: JSON.stringify(this.form)
                         });
 
-                        const data = await response.json();
+                        let data = {};
+                        try {
+                            data = await response.json();
+                        } catch (e) {
+                            data = {};
+                        }
 
                         if (!response.ok) {
-                            throw new Error(data.message || 'Error al autenticar credenciales.');
+                            if (response.status === 429) {
+                                const segundos = Number(response.headers.get('Retry-After'));
+                                if (!Number.isNaN(segundos) && segundos > 0) {
+                                    throw new Error(`Demasiados intentos. Intente nuevamente en ${segundos} segundos.`);
+                                }
+                                throw new Error('Demasiados intentos. Espere un momento e intente nuevamente.');
+                            }
+                            if (response.status === 422 && data?.errors) {
+                                const mensajes = Object.values(data.errors).flat().filter(Boolean).join(' ');
+                                throw new Error(mensajes || data.message || 'Revise los datos ingresados.');
+                            }
+                            throw new Error(data.message || 'No se pudo iniciar sesión. Verifique sus datos.');
                         }
 
                         // Autenticación stateful: la sesión la maneja la cookie HttpOnly.

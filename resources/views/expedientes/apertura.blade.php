@@ -10,13 +10,7 @@
                 <p class="text-sm text-gris">Registro de un nuevo expediente con sus partes y documento de respaldo.</p>
             </div>
 
-            {{-- Alerta de error general --}}
-            <template x-if="errorGral">
-                <div class="bg-[#F15A24]/10 border border-[#F15A24]/30 text-[#B53F12] rounded-xl p-4 text-sm">
-                    <i class="fa-solid fa-triangle-exclamation mr-2"></i>
-                    <span x-text="errorGral" @click="errorGral = null" class="cursor-pointer"></span>
-                </div>
-            </template>
+
 
             <form @submit.prevent="submit" class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start" x-show="!enviando">
                 {{-- Datos generales --}}
@@ -25,7 +19,7 @@
                         <i class="fa-solid fa-folder-open text-verde-institucional"></i> Datos generales
                     </h3>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div>
                             <label class="block text-xs font-semibold text-grafito uppercase mb-1.5">Vía de ingreso <span class="text-[#F15A24]">*</span></label>
                             <select x-model="form.via" required class="w-full border border-gris-claro rounded-lg text-sm text-grafito px-3 py-2.5 bg-white focus:border-verde-institucional focus:ring-verde-institucional">
@@ -33,6 +27,15 @@
                                 <option value="TECNICO">Técnico</option>
                                 <option value="JURIDICO">Jurídico</option>
                                 <option value="FINANCIERO">Financiero</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-grafito uppercase mb-1.5">Naturaleza <span class="text-[#F15A24]">*</span></label>
+                            <select x-model="form.naturaleza" required class="w-full border border-gris-claro rounded-lg text-sm text-grafito px-3 py-2.5 bg-white focus:border-verde-institucional focus:ring-verde-institucional">
+                                <option value="" disabled>-- Seleccione naturaleza --</option>
+                                <option value="JURISDICCIONAL">Jurisdiccional</option>
+                                <option value="ADMINISTRATIVA">Administrativa</option>
                             </select>
                         </div>
 
@@ -45,7 +48,7 @@
                                 </template>
                             </select>
                             <p x-show="reglamentos.length === 0" class="text-xs text-gris mt-1">
-                                <template x-if="cargandoReglamentos"><i class="fa-solid fa-spinner fa-spin mr-1"></i>Cargando reglamentos...</template>
+                                <template x-if="cargandoReglamentos"><span><i class="fa-solid fa-spinner fa-spin mr-1"></i>Cargando reglamentos...</span></template>
                                 <template x-if="!cargandoReglamentos && errorReglamentos">No se pudieron cargar los reglamentos.</template>
                             </p>
                         </div>
@@ -159,6 +162,7 @@
             return {
                 form: {
                     via: '',
+                    naturaleza: '',
                     reglamento_id: '',
                     resumen_hechos: '',
                     adjunto: null,
@@ -167,7 +171,6 @@
                 reglamentos: [],
                 cargandoReglamentos: false,
                 errorReglamentos: false,
-                errorGral: null,
                 enviando: false,
 
                 init() {
@@ -221,8 +224,10 @@
                 },
 
                 submit() {
-                    this.errorGral = null;
-
+                    if (!this.form.naturaleza) {
+                        window.apiToast('error', 'Seleccione la naturaleza del expediente (jurisdiccional o administrativa).');
+                        return;
+                    }
                     if (this.partes.length === 0) {
                         window.apiToast('error', 'Agregue al menos una parte procesal.');
                         return;
@@ -242,6 +247,7 @@
 
                     const formData = new FormData();
                     formData.append('via', this.form.via);
+                    formData.append('naturaleza', this.form.naturaleza);
                     formData.append('reglamento_id', this.form.reglamento_id);
                     formData.append('resumen_hechos', this.form.resumen_hechos);
                     formData.append('adjunto', this.form.adjunto);

@@ -22,28 +22,32 @@
     </template>
 
     <template x-if="error">
-        <div class="bg-red-50 border border-red-200 text-red-700 rounded-xl p-4">
-            <i class="fa-solid fa-circle-exclamation mr-2"></i><span x-text="error"></span>
+        <div class="bg-red-50 border border-red-200 text-red-700 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div>
+                <i class="fa-solid fa-circle-exclamation mr-2"></i><span x-text="error"></span>
+            </div>
+            <button type="button" @click="cargarDashboard()" class="text-sm font-medium underline">Reintentar</button>
         </div>
     </template>
 
     <template x-if="datosListos">
         <div class="space-y-6">
-            <!-- <div x-show="datos.vencimientos.fuera_de_plazo.length > 0"
+            <div x-show="(datos.vencimientos?.fuera_de_plazo || []).length > 0"
                 class="bg-red-50 border border-red-200 rounded-xl p-4">
                 <p class="font-semibold text-red-700 flex items-center gap-2">
                     <i class="fa-solid fa-triangle-exclamation"></i>
-                    <span x-text="datos.vencimientos.fuera_de_plazo.length + ' vencimiento(s) fuera de plazo'"></span>
+                    <span x-text="(datos.vencimientos.fuera_de_plazo || []).length + ' vencimiento(s) fuera de plazo'"></span>
                 </p>
                 <div class="flex flex-wrap gap-2 mt-2">
-                    <template x-for="vencimiento in datos.vencimientos.fuera_de_plazo" :key="vencimiento.id">
+                    <template x-for="vencimiento in datos.vencimientos.fuera_de_plazo" :key="vencimiento.id || vencimiento.expediente_id">
                         <a :href="`/expedientes/${vencimiento.expediente_id}`"
                             class="text-xs bg-white border border-red-200 text-red-700 rounded-full px-3 py-1 hover:bg-red-100">
-                            <span x-text="vencimiento.nurej_code"></span> — <span x-text="vencimiento.asignado_a"></span>
+                            <span x-text="vencimiento.nurej_code"></span>
+                            <span x-show="vencimiento.asignado_a"> — <span x-text="vencimiento.asignado_a"></span></span>
                         </a>
                     </template>
                 </div>
-            </div> -->
+            </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
                 <div class="bg-white rounded-xl shadow p-5 flex items-center justify-between">

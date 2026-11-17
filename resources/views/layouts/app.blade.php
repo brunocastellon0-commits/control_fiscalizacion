@@ -161,8 +161,10 @@
             display: none !important;
         }
     </style>
-    <link rel="icon" type="image/png" href="{{ asset('images/logo3.png') }}">
-    <link rel="apple-touch-icon" href="{{ asset('images/logo3.png') }}">
+    <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
+    <link rel="icon" type="image/png" href="{{ asset('images/favicon-institucional.png') }}">
+    <link rel="apple-touch-icon" href="{{ asset('images/favicon-institucional.png') }}">
+    <meta name="theme-color" content="#0F4C3A">
 </head>
 
 <body class="h-full bg-gris-claro antialiased">
@@ -190,134 +192,8 @@
             <div x-show="sidebarOpen" x-cloak @click="toggleSidebar"
                 class="fixed inset-0 bg-black/40 z-40 lg:hidden transition-opacity"></div>
 
-            <!-- Sidebar de altura completa (colapsable a rail de íconos) -->
-            <aside id="sidebar-principal" x-cloak
-                :class="sidebarOpen
-                    ? 'w-[260px] translate-x-0'
-                    : 'w-[260px] -translate-x-full lg:w-[104px] lg:translate-x-0 rail'"
-                class="fixed inset-y-0 left-0 z-50 sidebar-gradient text-white shadow-xl flex flex-col overflow-hidden transition-all duration-200 ease-in-out">
-
-                <!-- Logo institucional -->
-                <div class="h-24 shrink-0 flex items-center justify-center transition-colors duration-300"
-                    :class="sidebarOpen ? 'px-4' : 'px-2'">
-                    <!-- Logo del sidebar abierto -->
-                    <img src="{{ asset($logoExpandido) }}" alt="Consejo de la Magistratura"
-                        class="h-14 w-auto max-w-full object-contain" :class="sidebarOpen ? '' : 'lg:hidden'">
-                    <!-- Logo del rail colapsado -->
-                    <img src="{{ asset($logoColapsado) }}" alt="Consejo de la Magistratura"
-                        class="h-20 w-auto max-w-full object-contain" :class="sidebarOpen ? 'hidden' : 'hidden lg:block'">
-                </div>
-
-                <!-- Navegación -->
-                <nav class="sidebar-nav flex-1 overflow-y-auto py-6 text-[13px]" :class="sidebarOpen ? 'px-4' : 'px-2'">
-                    <div class="sidebar-section px-3 pb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45">
-                        Principal
-                    </div>
-
-                    <div class="space-y-1">
-                        <a href="/expedientes" title="Bandeja de entrada"
-                            :class="activo('/expedientes') ? 'bg-white text-verde-profundo shadow-sm' : 'text-white/85 hover:bg-white/10'"
-                            class="sidebar-item flex items-center gap-3 px-3.5 py-2.5 rounded-lg font-medium">
-                            <i class="fa-solid fa-inbox w-5 text-center text-[15px]"
-                                :class="activo('/expedientes') ? 'text-verde-profundo' : 'text-white/70'"></i>
-                            <span class="sidebar-label">Bandeja de entrada</span>
-                        </a>
-                    </div>
-
-                    <template x-if="usuario?.rol === 'ENCARGADA'">
-                        <div class="space-y-1 mt-1">
-                            <a href="/encargada/dashboard" title="Dashboard"
-                                :class="activo('/encargada/dashboard') ? 'bg-white text-verde-profundo shadow-sm' : 'text-white/85 hover:bg-white/10'"
-                                class="sidebar-item flex items-center gap-3 px-3.5 py-2.5 rounded-lg font-medium">
-                                <i class="fa-solid fa-chart-line w-5 text-center text-[15px]"
-                                    :class="activo('/encargada/dashboard') ? 'text-verde-profundo' : 'text-white/70'"></i>
-                                <span class="sidebar-label">Dashboard</span>
-                            </a>
-
-                            <a href="/bandeja/sorteo" title="Sorteo de expedientes"
-                                :class="activo('/bandeja/sorteo') ? 'bg-white text-verde-profundo shadow-sm' : 'text-white/85 hover:bg-white/10'"
-                                class="sidebar-item flex items-center gap-3 px-3.5 py-2.5 rounded-lg font-medium">
-                                <i class="fa-solid fa-shuffle w-5 text-center text-[15px]"
-                                    :class="activo('/bandeja/sorteo') ? 'text-verde-profundo' : 'text-white/70'"></i>
-                                <span class="sidebar-label">Sorteo de expedientes</span>
-                            </a>
-                        </div>
-                    </template>
-
-                    <template x-if="usuario?.rol === 'TECNICO'">
-                        <div class="space-y-1 mt-1">
-                            <a href="/expedientes/nuevo" title="Apertura de causa"
-                                :class="activo('/expedientes/nuevo') ? 'bg-white text-verde-profundo shadow-sm' : 'text-white/85 hover:bg-white/10'"
-                                class="sidebar-item flex items-center gap-3 px-3.5 py-2.5 rounded-lg font-medium">
-                                <i class="fa-solid fa-folder-plus w-5 text-center text-[15px]"
-                                    :class="activo('/expedientes/nuevo') ? 'text-verde-profundo' : 'text-white/70'"></i>
-                                <span class="sidebar-label">Apertura de causa</span>
-                            </a>
-                        </div>
-                    </template>
-
-                    <template x-if="usuario?.rol === 'ADMIN'">
-                        <div class="space-y-1 mt-6">
-                            <div class="sidebar-section px-3 pb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45">
-                                Administración
-                            </div>
-
-                            <a href="/administrador/dashboard" title="Dashboard"
-                                :class="activo('/administrador/dashboard') ? 'bg-white text-verde-profundo shadow-sm' : 'text-white/85 hover:bg-white/10'"
-                                class="sidebar-item flex items-center gap-3 px-3.5 py-2.5 rounded-lg font-medium">
-                                <i class="fa-solid fa-chart-line w-5 text-center text-[15px]"
-                                    :class="activo('/administrador/dashboard') ? 'text-verde-profundo' : 'text-white/70'"></i>
-                                <span class="sidebar-label">Dashboard</span>
-                            </a>
-
-                            <a href="/administrador/usuarios" title="Usuarios"
-                                :class="activo('/administrador/usuarios') ? 'bg-white text-verde-profundo shadow-sm' : 'text-white/85 hover:bg-white/10'"
-                                class="sidebar-item flex items-center gap-3 px-3.5 py-2.5 rounded-lg font-medium">
-                                <i class="fa-solid fa-users w-5 text-center text-[15px]"
-                                    :class="activo('/administrador/usuarios') ? 'text-verde-profundo' : 'text-white/70'"></i>
-                                <span class="sidebar-label">Usuarios</span>
-                            </a>
-
-                            <a href="/administrador/monitoreo" title="Monitoreo de expedientes"
-                                :class="activo('/administrador/monitoreo') ? 'bg-white text-verde-profundo shadow-sm' : 'text-white/85 hover:bg-white/10'"
-                                class="sidebar-item flex items-center gap-3 px-3.5 py-2.5 rounded-lg font-medium">
-                                <i class="fa-solid fa-binoculars w-5 text-center text-[15px]"
-                                    :class="activo('/administrador/monitoreo') ? 'text-verde-profundo' : 'text-white/70'"></i>
-                                <span class="sidebar-label">Monitoreo de expedientes</span>
-                            </a>
-
-                            <a href="/administrador/feriados" title="Feriados"
-                                :class="activo('/administrador/feriados') ? 'bg-white text-verde-profundo shadow-sm' : 'text-white/85 hover:bg-white/10'"
-                                class="sidebar-item flex items-center gap-3 px-3.5 py-2.5 rounded-lg font-medium">
-                                <i class="fa-solid fa-calendar-days w-5 text-center text-[15px]"
-                                    :class="activo('/administrador/feriados') ? 'text-verde-profundo' : 'text-white/70'"></i>
-                                <span class="sidebar-label">Feriados</span>
-                            </a>
-                        </div>
-                    </template>
-                </nav>
-
-                <!-- Usuario y cierre de sesión -->
-                <div class="sidebar-footer shrink-0 border-t border-white/10 py-4" :class="sidebarOpen ? 'px-4' : 'px-3'">
-                    <div class="sidebar-user flex items-center gap-3 mb-3">
-                        <div
-                            class="w-9 h-9 rounded-full bg-white text-verde-profundo flex items-center justify-center text-sm font-bold shrink-0">
-                            <span x-text="inicialUsuario()"></span>
-                        </div>
-                        <div class="sidebar-user-info min-w-0">
-                            <p class="text-[13px] font-semibold text-white truncate" x-text="usuario?.nombre || '...'"></p>
-                            <p class="text-[11px] text-white/60 truncate" x-text="rolLegible(usuario?.rol)"></p>
-                        </div>
-                    </div>
-
-                    <button @click="cerrarSesion"
-                        class="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-white/35 text-xs font-medium text-white hover:bg-white/10 transition focus:outline-none focus:ring-2 focus:ring-white/40"
-                        :class="sidebarOpen ? '' : 'lg:py-3'" aria-label="Cerrar sesión">
-                        <i class="fa-solid fa-arrow-right-from-bracket"></i>
-                        <span class="sidebar-label">Cerrar sesión</span>
-                    </button>
-                </div>
-            </aside>
+            <!-- Sidebar modular -->
+            @include('layouts.sidebar')
 
             <!-- Header + contenido -->
             <div class="min-h-screen flex flex-col transition-[padding] duration-200 ease-in-out"
@@ -325,22 +201,26 @@
 
                 <!-- Barra superior -->
                 <header
-                    class="sticky top-0 z-30 h-[72px] shrink-0 bg-white border-b border-black/5 flex items-center gap-3 sm:gap-4 px-4 sm:px-6">
+                    class="sticky top-0 z-30 h-[72px] shrink-0 bg-white border-b border-black/5 flex items-center gap-2 sm:gap-3 px-4 sm:px-6">
                     <button @click="toggleSidebar" :aria-expanded="sidebarOpen ? 'true' : 'false'"
                         aria-controls="sidebar-principal" aria-label="Mostrar u ocultar menú lateral"
-                        class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-[#E7F0E7] text-verde-profundo hover:bg-[#DCEBDD] transition focus:outline-none focus:ring-2 focus:ring-verde-institucional/40">
+                        class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-[#E7F0E7] text-verde-profundo hover:bg-[#DCEBDD] transition focus:outline-none focus:ring-2 focus:ring-verde-institucional/40 shrink-0">
                         <i class="fa-solid fa-bars text-base"></i>
                     </button>
 
-                    <h1 class="text-base sm:text-lg font-bold text-verde-profundo truncate">
+                    <h1 class="text-base sm:text-lg font-bold text-verde-profundo truncate min-w-0">
                         @yield('titulo', 'Panel')
                     </h1>
 
-                    <div class="flex-1"></div>
+                    <div class="flex-1 min-w-0"></div>
 
-                    <div class="hidden md:block text-xs text-gris text-right whitespace-nowrap">
+                    @include('layouts.buscador')
+
+                    <div class="hidden xl:block text-xs text-gris text-right whitespace-nowrap">
                         Consejo de la Magistratura <span class="text-gris/50">·</span> Control y Fiscalización
                     </div>
+
+                    @include('layouts.notificaciones')
                 </header>
 
                 <!-- Contenido -->
@@ -381,6 +261,9 @@
         function workstation(initial = {}) {
             return {
                 usuario: initial.usuario ?? null,
+                cargandoUsuario: false,
+                usuarioError: null,
+                cerrandoSesion: false,
                 toasts: [],
                 _toastId: 0,
                 sidebarOpen: (() => {
@@ -396,7 +279,6 @@
                 })(),
 
                 initSidebar() {
-                    // En pantallas pequeñas el sidebar arranca siempre oculto
                     if (window.innerWidth < 1024) {
                         this.sidebarOpen = false;
                     }
@@ -414,8 +296,6 @@
                 activo(ruta) {
                     const actual = window.location.pathname;
                     if (ruta === '/expedientes') {
-                        // Resalta la bandeja en /expedientes y en el detalle /expedientes/{id},
-                        // pero no en /expedientes/nuevo (que tiene su propio enlace).
                         return actual === '/expedientes'
                             || (actual.startsWith('/expedientes/') && actual !== '/expedientes/nuevo');
                     }
@@ -432,28 +312,40 @@
                         ADMIN: 'Administrador',
                         ENCARGADA: 'Encargada',
                         TECNICO: 'Técnico',
+                        AUD_JURIDICO: 'Auditor jurídico',
+                        AUD_FINANCIERO: 'Auditor financiero',
                     };
                     return etiquetas[rol] ?? (rol || '');
                 },
 
                 async cargarUsuario() {
+                    this.cargandoUsuario = true;
+                    this.usuarioError = null;
                     try {
                         const { ok, data } = await window.apiFetch('/api/me');
                         if (ok) {
                             this.usuario = data;
-                            this.usuario.nombre = [data.nombres, data.apellidos].filter(Boolean).join(' ');
-                            this.usuario.rol = data.rol?.codigo || '';
+                            this.usuario.nombre = [data.nombres, data.apellidos].filter(Boolean).join(' ').trim();
+                            this.usuario.rol = data.rol?.codigo || data.rol || '';
+                        } else {
+                            this.usuarioError = data?.message || 'No se pudo cargar la información del usuario.';
                         }
                     } catch (error) {
-                        // 401 redirige a /login desde apiFetch
+                        this.usuarioError = 'No se pudo cargar la información del usuario.';
+                    } finally {
+                        this.cargandoUsuario = false;
                     }
                 },
 
                 async cerrarSesion() {
+                    if (this.cerrandoSesion) return;
+                    this.cerrandoSesion = true;
                     try {
                         await window.apiFetch('/api/logout', { method: 'POST' });
                     } catch (error) {
-                        // Ya redirigirá apiFetch si 401; de lo contrario seguimos
+                        // apiFetch puede redirigir en 401; continuamos a login
+                    } finally {
+                        this.cerrandoSesion = false;
                     }
                     window.location.href = '/login';
                 },

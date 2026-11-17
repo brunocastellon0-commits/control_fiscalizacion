@@ -5,6 +5,7 @@ use App\Http\Controllers\AdjuntoController;
 use App\Http\Controllers\Administrador\AdminDashboardController;
 use App\Http\Controllers\Administrador\AdminFeriadosController;
 use App\Http\Controllers\Administrador\AdminMonitoreoController;
+use App\Http\Controllers\Administrador\AdminRequisitosController;
 use App\Http\Controllers\Administrador\AdminUsuariosController;
 use App\Http\Controllers\AmpliacionController;
 use App\Http\Controllers\AuthController;
@@ -12,10 +13,11 @@ use App\Http\Controllers\CatalogoActuadoController;
 use App\Http\Controllers\CatalogoEstadoController;
 use App\Http\Controllers\CierreExpedienteController;
 use App\Http\Controllers\DescargoFinancieroController;
-use App\Http\Controllers\EvaluacionAdmisibilidadController;
 use App\Http\Controllers\Encargada\EncargadaDashboardController;
+use App\Http\Controllers\EvaluacionAdmisibilidadController;
 use App\Http\Controllers\ExpedienteController;
 use App\Http\Controllers\ImpugnacionController;
+use App\Http\Controllers\NotificacionController;
 use App\Http\Controllers\PlanificacionController;
 use App\Http\Controllers\ReglamentoController;
 use App\Http\Controllers\TransparenciaController;
@@ -107,6 +109,19 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::put('/admin/feriados/{feriado}', [AdminFeriadosController::class, 'update']);
     Route::delete('/admin/feriados/{feriado}', [AdminFeriadosController::class, 'destroy']);
 
+    // Catálogo de requisitos de admisibilidad
+    Route::get('/admin/requisitos', [AdminRequisitosController::class, 'index']);
+    Route::post('/admin/requisitos', [AdminRequisitosController::class, 'store']);
+    Route::put('/admin/requisitos/{requisito}', [AdminRequisitosController::class, 'update']);
+    Route::delete('/admin/requisitos/{requisito}', [AdminRequisitosController::class, 'destroy']);
+
     // Monitoreo administrativo
     Route::get('/admin/monitoreo', [AdminMonitoreoController::class, 'index']);
+
+    // Notificaciones in-app (plazos y avisos)
+    Route::get('/notificaciones/resumen', [NotificacionController::class, 'resumen']);
+    Route::post('/notificaciones/marcar-leida', [NotificacionController::class, 'marcarLeida']);
+
+    // Reportes SRS: respaldo CTR-08, exportaciones y carátula oficial
+    require __DIR__.'/api/reportes.php';
 });

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 140" width="120" height="140">
+    <path d="M60 4 112 22v52c0 34-22 54-52 62C30 128 8 108 8 74V22Z" fill="#0F4C3A" stroke="#C8A951" stroke-width="4"/>
+    <path d="M60 15 102 30v44c0 27-18 44-42 52-24-8-42-25-42-52V30Z" fill="none" stroke="#F4F1E6" stroke-width="1.5"/>
+    <text x="60" y="61" font-family="DejaVu Sans, Arial, sans-serif" font-size="25" font-weight="bold" text-anchor="middle" fill="#FFFFFF">CM</text>
+    <text x="60" y="79" font-family="DejaVu Sans, Arial, sans-serif" font-size="7" font-weight="bold" text-anchor="middle" fill="#DCEBDD">CONSEJO DE LA</text>
+    <text x="60" y="89" font-family="DejaVu Sans, Arial, sans-serif" font-size="6.4" font-weight="bold" text-anchor="middle" fill="#DCEBDD">MAGISTRATURA</text>
+    <text x="60" y="104" font-family="DejaVu Sans, Arial, sans-serif" font-size="6.4" text-anchor="middle" fill="#C8A951">BOLIVIA</text>
+</svg>
