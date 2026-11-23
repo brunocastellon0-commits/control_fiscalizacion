@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Models\Expediente;
+use App\Services\PasosExpedienteService;
 use App\Services\SemaforoPlazoService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -58,6 +59,7 @@ class ExpedienteResource extends JsonResource
             'partes_vigentes' => ParteResource::collection($this->whenLoaded('partesVigentes')),
             'plazos' => PlazoResource::collection($this->whenLoaded('plazos')),
             'actuados' => ActuadoResource::collection($this->whenLoaded('actuados')),
+            'pasos' => $this->whenLoaded('actuados', fn () => app(PasosExpedienteService::class)->calcular($expediente)),
             'sem_plazo' => $this->semPlazoMasUrgente($expediente),
         ];
     }

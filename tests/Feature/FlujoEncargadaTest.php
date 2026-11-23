@@ -156,7 +156,7 @@ it('expone el contexto completo del tablero: semáforo, vencimientos, feriados, 
     expect($porEstado->firstWhere('codigo', 'EN_EVALUACION')['total'] ?? null)->toBe(1);
 });
 
-it('el segundo Visto Bueno tras la aprobación y la devolución posterior devuelven 403 (estado inválido)', function () {
+it('el Visto Bueno y la devolución posteriores al Cronograma devuelven 403 porque AC022 ya está en Ejecución', function () {
     Storage::fake('local');
 
     $semilla = feSemilla();
@@ -173,15 +173,15 @@ it('el segundo Visto Bueno tras la aprobación y la devolución posterior devuel
     Sanctum::actingAs($semilla['encargada'], ['*']);
 
     $this->postJson("/api/expedientes/{$expediente->id}/planificacion/visto-bueno", [
-        'descripcion' => 'Aprobación del cronograma; arranca el reloj de ejecución (test).',
-    ])->assertCreated();
+        'descripcion' => 'Intento de Visto Bueno sobre un Cronograma que ya está en ejecución (test).',
+    ])->assertForbidden();
 
     $this->postJson("/api/expedientes/{$expediente->id}/planificacion/visto-bueno", [
-        'descripcion' => 'Segundo visto bueno sobre un expediente ya en ejecución (test).',
+        'descripcion' => 'Segundo intento de Visto Bueno (test).',
     ])->assertForbidden();
 
     $this->postJson("/api/expedientes/{$expediente->id}/planificacion/devolver", [
-        'justificacion' => 'Devolución intentada tras la aprobación definitiva (test).',
+        'justificacion' => 'Intento de devolución sobre un Cronograma que ya está en ejecución (test).',
     ])->assertForbidden();
 
     $vbEmitidos = Actuado::where('expediente_id', $expediente->id)
@@ -190,6 +190,7 @@ it('el segundo Visto Bueno tras la aprobación y la devolución posterior devuel
 
     $expediente->refresh();
 
-    expect($vbEmitidos)->toBe(1)
-        ->and($expediente->estado_actual_id)->toBe($semilla['ejecucion']->id);
+    expect($vbEmitidos)->toBe(0)
+        ->and($expediente->estado_actual_id)->toBe($semilla['ejecucion']->id)
+        ->and($expediente->asignacionActiva()->value('usuario_id'))->toBe($semilla['tecnico']->id);
 });

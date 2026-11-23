@@ -35,9 +35,6 @@
                                         <span x-show="req.es_critico" class="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded bg-red-100 text-red-700 font-semibold">Crítico</span>
                                     </div>
                                     <p class="text-xs text-gris mt-0.5" x-show="req.descripcion" x-text="req.descripcion"></p>
-                                    <textarea x-show="!req._cumplido" x-model="req._observacion" rows="2" maxlength="500"
-                                        class="mt-2 w-full border border-gris-claro rounded-lg text-xs px-2.5 py-2 focus:border-verde-institucional focus:ring-verde-institucional"
-                                        placeholder="Observación (si no se cumple)"></textarea>
                                 </div>
                             </label>
                         </div>
@@ -54,9 +51,9 @@
                 </div>
 
                 <template x-if="resultadoEvaluacion">
-                    <div class="rounded-lg border p-3 text-sm" :class="resultadoEvaluacion.resultado === 'ADMISION' ? 'bg-green-50 border-green-200 text-green-800' : (resultadoEvaluacion.resultado === 'OBSERVACION' ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-red-50 border-red-200 text-red-800')">
-                        <p class="font-semibold">Resultado: <span x-text="resultadoEvaluacion.resultado || resultadoEvaluacion.estado || 'Registrado'"></span></p>
-                        <p class="text-xs mt-1" x-show="resultadoEvaluacion.mensaje" x-text="resultadoEvaluacion.mensaje"></p>
+                    <div class="rounded-lg border p-3 text-sm" :class="resultadoEvaluacion.resultado === 'ACT_ADMISION' ? 'bg-green-50 border-green-200 text-green-800' : (resultadoEvaluacion.resultado === 'ACT_OBSERVACION' ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-red-50 border-red-200 text-red-800')">
+                        <p class="font-semibold">Resultado: <span x-text="etiquetaResultadoEvaluacion(resultadoEvaluacion.resultado)"></span></p>
+                        <p class="text-xs mt-1" x-text="detalleResultadoEvaluacion(resultadoEvaluacion)"></p>
                     </div>
                 </template>
             </form>

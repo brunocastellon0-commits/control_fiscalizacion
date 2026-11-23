@@ -10,10 +10,12 @@ use App\Models\Plazo;
 use App\Models\Reglamento;
 use App\Models\Rol;
 use App\Models\Usuario;
+use App\Notifications\CronogramaCargado;
 use App\Services\PlanificacionService;
 use Carbon\Carbon;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 
@@ -172,9 +174,10 @@ function planificacionPlazoVigente(Expediente $expediente, ParametroPlazo $param
     ]);
 }
 
-it('el Técnico de AC022 carga el Cronograma y pasa a PENDIENTE_VISTO_BUENO, cerrando el plazo de planificación', function () {
+it('el Técnico de AC022 carga el Cronograma, continúa en Ejecución y solo notifica a la Encargada', function () {
     Carbon::setTestNow('2026-09-10 10:00:00');
     Storage::fake('local');
+    Notification::fake();
 
     $semilla = planificacionSemilla();
     $expediente = planificacionCrearExpediente($semilla['planificacion']->id, $semilla['ac022']->id, 'TECNICO', $semilla['tecnico']->id);
@@ -188,19 +191,26 @@ it('el Técnico de AC022 carga el Cronograma y pasa a PENDIENTE_VISTO_BUENO, cer
         'adjunto' => UploadedFile::fake()->create('cronograma.pdf', 100, 'application/pdf'),
     ])->assertCreated()
         ->assertJsonPath('data.tipo_actuado.codigo', PlanificacionService::CODIGO_ACT_CRONOGRAMA)
-        ->assertJsonPath('data.estado_nuevo.codigo', PlanificacionService::ESTADO_PENDIENTE_VISTO_BUENO);
+        ->assertJsonPath('data.estado_nuevo.codigo', PlanificacionService::ESTADO_EJECUCION);
 
     $actuado = Actuado::findOrFail((int) $response->json('data.id'));
 
     $expediente->refresh();
 
-    expect($expediente->estado_actual_id)->toBe($semilla['pendienteVb']->id);
+    expect($expediente->estado_actual_id)->toBe($semilla['ejecucion']->id);
 
     $asignacionActiva = $expediente->asignacionActiva()->first();
     expect($asignacionActiva)->not->toBeNull()
-        ->and($asignacionActiva->usuario_id)->toBe($semilla['encargada']->id);
+        ->and($asignacionActiva->usuario_id)->toBe($semilla['tecnico']->id);
 
     expect($expediente->plazos()->where('tipo_plazo', 'PLANIFICACION')->where('estado', 'VIGENTE')->count())->toBe(0);
+
+    $plazoEjecucion = $expediente->plazos()
+        ->where('tipo_plazo', 'EJECUCION')
+        ->where('estado', 'VIGENTE')
+        ->first();
+    expect($plazoEjecucion)->not->toBeNull()
+        ->and($plazoEjecucion->dias_habiles_otorgados)->toBe(10);
 
     expect($actuado->contenido['tipo'])->toBe('PLANIFICACION')
         ->and($actuado->contenido)->not->toHaveKey('fecha_limite');
@@ -209,6 +219,9 @@ it('el Técnico de AC022 carga el Cronograma y pasa a PENDIENTE_VISTO_BUENO, cer
     expect($adjunto)->not->toBeNull()
         ->and($adjunto->mime_type)->toBe('application/pdf');
     Storage::disk('local')->assertExists($adjunto->ruta_almacenamiento);
+
+    Notification::assertSentTo($semilla['encargada'], CronogramaCargado::class);
+    Notification::assertNotSentTo($semilla['tecnico'], CronogramaCargado::class);
 
     Carbon::setTestNow();
 });
@@ -327,7 +340,7 @@ it('devuelve 422 si la carga del Cronograma llega sin adjunto', function () {
         ->assertJsonValidationErrors('adjunto');
 });
 
-it('el Visto Bueno sobre Cronograma pasa a EN_EJECUCION con 10 días hábiles y devuelve la bandeja al Técnico', function () {
+it('el Cronograma de AC022 ya no requiere Visto Bueno: la Encargada no puede aprobarlo', function () {
     Carbon::setTestNow('2026-09-10 10:00:00');
     Storage::fake('local');
 
@@ -345,10 +358,8 @@ it('el Visto Bueno sobre Cronograma pasa a EN_EJECUCION con 10 días hábiles y 
     Sanctum::actingAs($semilla['encargada'], ['*']);
 
     $this->postJson("/api/expedientes/{$expediente->id}/planificacion/visto-bueno", [
-        'descripcion' => 'Se aprueba el Cronograma presentado; inicia la ejecución.',
-    ])->assertCreated()
-        ->assertJsonPath('data.tipo_actuado.codigo', PlanificacionService::CODIGO_ACT_VISTO_BUENO)
-        ->assertJsonPath('data.estado_nuevo.codigo', 'EN_EJECUCION');
+        'descripcion' => 'Intento de Visto Bueno sobre un Cronograma que ya está en ejecución (test).',
+    ])->assertForbidden();
 
     $expediente->refresh();
 
@@ -357,19 +368,18 @@ it('el Visto Bueno sobre Cronograma pasa a EN_EJECUCION con 10 días hábiles y 
     $asignacionActiva = $expediente->asignacionActiva()->first();
     expect($asignacionActiva->usuario_id)->toBe($semilla['tecnico']->id);
 
-    $plazoEjecucion = $expediente->plazos()->where('tipo_plazo', 'EJECUCION')->first();
-    expect($plazoEjecucion)->not->toBeNull()
-        ->and($plazoEjecucion->estado)->toBe('VIGENTE')
-        ->and($plazoEjecucion->dias_habiles_otorgados)->toBe(10)
-        ->and($plazoEjecucion->parametro_plazo_id)->toBe($semilla['paramEjecucion']->id)
-        ->and($plazoEjecucion->fecha_limite->toDateString())->toBe('2026-09-24');
+    $plazosEjecucion = $expediente->plazos()->where('tipo_plazo', 'EJECUCION')->get();
+    expect($plazosEjecucion)->toHaveCount(1)
+        ->and($plazosEjecucion->first()->estado)->toBe('VIGENTE')
+        ->and($plazosEjecucion->first()->dias_habiles_otorgados)->toBe(10)
+        ->and($plazosEjecucion->first()->parametro_plazo_id)->toBe($semilla['paramEjecucion']->id)
+        ->and($plazosEjecucion->first()->fecha_limite->toDateString())->toBe('2026-09-24');
 
-    $actuadoVb = $expediente->actuados()
+    $actuadosVb = $expediente->actuados()
         ->whereHas('tipoActuado', fn ($query) => $query->where('codigo', PlanificacionService::CODIGO_ACT_VISTO_BUENO))
-        ->first();
+        ->count();
 
-    expect($actuadoVb)->not->toBeNull()
-        ->and($actuadoVb->usuario_id)->toBe($semilla['encargada']->id);
+    expect($actuadosVb)->toBe(0);
 
     Carbon::setTestNow();
 });
@@ -446,7 +456,7 @@ it('devuelve 403 si se intenta cargar planificación fuera del estado EN_PLANIFI
     ])->assertForbidden();
 });
 
-it('la Encargada devuelve el Cronograma con observaciones: EN_PLANIFICACION, bandeja al Técnico y plazo de 2 días nuevo', function () {
+it('la Encargada no puede devolver un Cronograma de AC022 porque ya está en Ejecución', function () {
     Carbon::setTestNow('2026-09-10 10:00:00');
     Storage::fake('local');
 
@@ -465,38 +475,22 @@ it('la Encargada devuelve el Cronograma con observaciones: EN_PLANIFICACION, ban
     Sanctum::actingAs($semilla['encargada'], ['*']);
 
     $this->postJson("/api/expedientes/{$expediente->id}/planificacion/devolver", [
-        'justificacion' => 'El Cronograma omite el alcance de la investigacion y debe corregirse (test).',
-    ])->assertCreated()
-        ->assertJsonPath('data.tipo_actuado.codigo', PlanificacionService::CODIGO_ACT_DEVOLUCION)
-        ->assertJsonPath('data.estado_nuevo.codigo', 'EN_PLANIFICACION');
+        'justificacion' => 'Intento de devolución sobre un Cronograma que ya está en ejecución (test).',
+    ])->assertForbidden();
 
     $expediente->refresh();
 
-    expect($expediente->estado_actual_id)->toBe($semilla['planificacion']->id);
+    expect($expediente->estado_actual_id)->toBe($semilla['ejecucion']->id);
 
     $asignacionActiva = $expediente->asignacionActiva()->first();
     expect($asignacionActiva)->not->toBeNull()
         ->and($asignacionActiva->usuario_id)->toBe($semilla['tecnico']->id);
 
-    $plazosPlanificacion = $expediente->plazos()->where('tipo_plazo', 'PLANIFICACION')->get();
-    expect($plazosPlanificacion)->toHaveCount(2)
-        ->and($plazosPlanificacion->where('estado', 'CERRADO'))->toHaveCount(1)
-        ->and($plazosPlanificacion->where('estado', 'VIGENTE'))->toHaveCount(1)
-        ->and($plazosPlanificacion->where('estado', 'VIGENTE')->first()->dias_habiles_otorgados)->toBe(2);
-
-    $actuadoDevolucion = $expediente->actuados()
+    $actuadosDevolucion = $expediente->actuados()
         ->whereHas('tipoActuado', fn ($query) => $query->where('codigo', PlanificacionService::CODIGO_ACT_DEVOLUCION))
-        ->first();
+        ->count();
 
-    expect($actuadoDevolucion)->not->toBeNull()
-        ->and($actuadoDevolucion->usuario_id)->toBe($semilla['encargada']->id)
-        ->and($actuadoDevolucion->estado_anterior_id)->toBe($semilla['pendienteVb']->id)
-        ->and($actuadoDevolucion->estado_nuevo_id)->toBe($semilla['planificacion']->id)
-        ->and($actuadoDevolucion->contenido['descripcion'])->toBe('El Cronograma omite el alcance de la investigacion y debe corregirse (test).')
-        ->and($actuadoDevolucion->contenido['usuario_destino_id'])->toBe($semilla['tecnico']->id);
-
-    $asignacionesTecnico = $expediente->asignaciones()->where('usuario_id', $semilla['tecnico']->id)->get();
-    expect($asignacionesTecnico->where('activa', true))->toHaveCount(1);
+    expect($actuadosDevolucion)->toBe(0);
 
     Carbon::setTestNow();
 });

@@ -13,6 +13,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CatalogoActuadoController;
 use App\Http\Controllers\CatalogoEstadoController;
 use App\Http\Controllers\Encargada\EncargadaDashboardController;
+use App\Http\Controllers\Encargada\EncargadaSupervisionController;
 use App\Http\Controllers\ExpedienteController;
 use App\Http\Controllers\ReglamentoController;
 use App\Http\Controllers\TransferenciaUnidadController;
@@ -54,3 +55,6 @@ Route::post('/expedientes/{expediente}/registrar-recepcion', [TransferenciaUnida
 
 // Dashboard operativo de la Encargada
 Route::get('/encargada/dashboard', [EncargadaDashboardController::class, 'index']);
+
+// Bandeja de supervisión de la Encargada (cronogramas informativos)
+Route::get('/encargada/bandeja-supervision', [EncargadaSupervisionController::class, 'index']);
