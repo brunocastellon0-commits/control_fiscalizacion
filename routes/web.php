@@ -7,6 +7,7 @@ use App\Http\Controllers\Administrador\RequisitosController;
 use App\Http\Controllers\Administrador\UsuariosController;
 use App\Http\Controllers\Encargada\DashboardController as EncargadaDashboardController;
 use App\Http\Controllers\Encargada\EncargadaBandejaController;
+use App\Http\Controllers\Encargada\EncargadaHistorialController;
 use App\Http\Controllers\Financiero\FinancieroDashboardController;
 use App\Http\Controllers\ReporteController;
 use App\Http\Controllers\WorkstationController;
@@ -23,6 +24,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/expedientes', [WorkstationController::class, 'bandejaOperador'])->name('expedientes.bandeja');
     Route::get('/bandeja/sorteo', [WorkstationController::class, 'bandejaSorteo'])->name('expedientes.bandeja-sorteo');
     Route::get('/expedientes/nuevo', [WorkstationController::class, 'apertura'])->name('expedientes.apertura');
+    Route::get('/ventanilla/aperturas', [WorkstationController::class, 'historialAperturas'])->name('ventanilla.aperturas');
+    Route::get('/ventanilla/aperturas/{expediente}', [WorkstationController::class, 'detalleApertura'])->name('ventanilla.aperturas.detalle');
+    Route::get('/operativo/historial', [WorkstationController::class, 'historialOperativo'])->name('operativo.historial');
+    Route::get('/operativo/historial/{expediente}', [WorkstationController::class, 'detalleHistorialOperativo'])->name('operativo.historial.detalle');
     Route::get('/expedientes/{expediente}', [WorkstationController::class, 'detalle'])->name('expedientes.detalle');
     Route::get('/reportes', [ReporteController::class, 'index'])->name('reportes.index');
 });
@@ -41,6 +46,10 @@ Route::middleware('auth')
             ->name('dashboard');
         Route::get('/bandeja-supervision', [EncargadaBandejaController::class, 'index'])
             ->name('bandeja-supervision');
+        Route::get('/historial', [EncargadaHistorialController::class, 'index'])
+            ->name('historial');
+        Route::get('/historial/{expediente}', [EncargadaHistorialController::class, 'show'])
+            ->name('historial.detalle');
     });
 
 Route::middleware('auth')

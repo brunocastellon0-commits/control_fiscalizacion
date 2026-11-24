@@ -18,8 +18,8 @@ use Illuminate\Support\Facades\Route;
  */
 function versionadoSemillaNormativa(): array
 {
-    $rol = Rol::factory()->create();
-    $tecnico = Usuario::factory()->create(['rol_id' => $rol->id]);
+    $rol = Rol::factory()->create(['codigo' => Rol::CODIGO_VENTANILLA]);
+    $ventanilla = Usuario::factory()->create(['rol_id' => $rol->id]);
     $estado = CatalogoEstado::factory()->create(['codigo' => 'PENDIENTE_SORTEO']);
     $catalogo = CatalogoActuado::create([
         'codigo' => 'ACT_REGISTRO_DIGITALIZACION',
@@ -61,11 +61,11 @@ function versionadoSemillaNormativa(): array
         'estado_actual_id' => $estado->id,
         'resumen_hechos' => 'Causa bajo verificación de inmutabilidad normativa.',
         'fecha_ingreso' => now(),
-        'creado_por' => $tecnico->id,
+        'creado_por' => $ventanilla->id,
     ]);
 
     return compact(
-        'rol', 'tecnico', 'estado', 'catalogo',
+        'rol', 'ventanilla', 'estado', 'catalogo',
         'reglamentoOrigen', 'reglamentoDestino', 'expediente',
     );
 }
@@ -116,7 +116,7 @@ it('la creación de expedientes e hijos sigue funcionando con reglamento_id', fu
         'naturaleza' => 'JURISDICCIONAL',
         'reglamento_id' => $semilla['reglamentoOrigen']->id,
         'resumen_hechos' => 'Apertura bajo RN-06.',
-    ], $semilla['tecnico']);
+    ], $semilla['ventanilla']);
 
     expect($apertura->reglamento_id)->toBe($semilla['reglamentoOrigen']->id);
 
@@ -128,7 +128,7 @@ it('la creación de expedientes e hijos sigue funcionando con reglamento_id', fu
         'reglamento_id' => $apertura->reglamento_id,
         'estado_actual_id' => $semilla['estado']->id,
         'fecha_ingreso' => now(),
-        'creado_por' => $semilla['tecnico']->id,
+        'creado_por' => $semilla['ventanilla']->id,
     ]);
 
     expect($hijo->reglamento_id)->toBe($semilla['reglamentoOrigen']->id);

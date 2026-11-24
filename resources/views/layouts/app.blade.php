@@ -225,6 +225,8 @@
 
                 <!-- Contenido -->
                 <main class="flex-1 bg-gris-claro">
+                    @include('layouts.breadcrumb')
+
                     @yield('contenido')
                 </main>
             </div>

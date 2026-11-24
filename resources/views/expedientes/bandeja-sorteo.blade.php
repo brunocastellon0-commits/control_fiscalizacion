@@ -3,7 +3,7 @@
 @section('titulo', 'Sorteo de expedientes')
 
 @section('contenido')
-    <div class="p-6" x-data="bandejaSorteo()" x-init="cargar(1)">
+    <div class="p-6" x-data="bandejaSorteo()" x-init="iniciar()">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
             <div>
                 <h1 class="text-xl font-bold text-grafito">Sorteo de expedientes</h1>
@@ -167,11 +167,35 @@
                 sorteandoId: null,
                 sortearTodosEnviando: false,
 
-                async cargar(pagina) {
+                async iniciar() {
+                    const parametros = new URLSearchParams(window.location.search);
+                    const expedienteId = parametros.get('expediente');
+
+                    await this.cargar(1, expedienteId);
+
+                    if (expedienteId) {
+                        const encontrado = this.expedientes.find((exp) => String(exp.id) === String(expedienteId));
+
+                        if (encontrado) {
+                            this.abrirSorteo(encontrado);
+                        }
+
+                        window.history.replaceState({}, '', '/bandeja/sorteo');
+                        await this.cargar(1);
+                    }
+                },
+
+                async cargar(pagina, expedienteId = null) {
                     this.cargando = true;
                     this.error = null;
                     try {
-                        const { ok, data } = await window.apiFetch(`/api/bandeja/sorteo?page=${pagina}`);
+                        const parametros = new URLSearchParams({ page: String(pagina) });
+
+                        if (expedienteId) {
+                            parametros.set('expediente', String(expedienteId));
+                        }
+
+                        const { ok, data } = await window.apiFetch(`/api/bandeja/sorteo?${parametros.toString()}`);
                         if (!ok) {
                             this.error = data?.message || 'No se pudo cargar la bandeja de sorteo. Intente nuevamente.';
                             this.expedientes = [];
@@ -204,6 +228,15 @@
                     this.sortearEnviando = true;
                     this.errorSorteo = null;
                     this.sorteandoId = this.seleccionado.id;
+
+                    const fichaWindow = window.open('', '_blank');
+
+                    if (fichaWindow) {
+                        fichaWindow.document.open();
+                        fichaWindow.document.write('Generando la ficha de sorteo…');
+                        fichaWindow.document.close();
+                    }
+
                     try {
                         const { ok, data } = await window.apiFetch(`/api/expedientes/${this.seleccionado.id}/sortear`, {
                             method: 'POST',
@@ -216,16 +249,28 @@
                             const nombre = ganador
                                 ? ganador.apellidos + ', ' + ganador.nombres
                                 : 'funcionario asignado';
+
+                            const fichaUrl = data?.data?.ficha_sorteo?.url || null;
+
+                            if (fichaUrl && fichaWindow) {
+                                const separador = fichaUrl.includes('?') ? '&' : '?';
+                                fichaWindow.location.href = fichaUrl + separador + 'impresion=1';
+                            } else if (fichaWindow) {
+                                fichaWindow.close();
+                            }
+
                             window.apiToast('exito', 'Sorteo completado. Asignado a: ' + nombre + '.');
                             this.seleccionado = null;
                             await this.cargar(this.meta.current_page);
                         } else {
+                            if (fichaWindow) fichaWindow.close();
                             const errores = data?.errors;
                             this.errorSorteo = errores
                                 ? Object.values(errores).flat().join(' ')
                                 : (data?.message || 'No se pudo realizar el sorteo.');
                         }
                     } catch (e) {
+                        if (fichaWindow) fichaWindow.close();
                         this.errorSorteo = e.message;
                     } finally {
                         this.sortearEnviando = false;

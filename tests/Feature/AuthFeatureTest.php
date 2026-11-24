@@ -59,6 +59,29 @@ it('permite el login stateful por cookies y NO emite token Bearer', function () 
     $this->getJson('/api/me')->assertOk();
 });
 
+it('el login de ventanilla habilita su workstation', function () {
+    paso9CrearUsuarioActivo(Rol::CODIGO_VENTANILLA, 'ventanilla_login');
+
+    pasoActuarComoFrontend($this);
+
+    postJson('/api/login', [
+        'username' => 'ventanilla_login',
+        'password' => 'password',
+    ])
+        ->assertOk()
+        ->assertJsonPath('usuario.rol', Rol::CODIGO_VENTANILLA);
+
+    $this->assertAuthenticated('web');
+    $this->get('/ventanilla/aperturas')->assertOk();
+});
+
+it('prepara la vista de login para redirigir a ventanilla a sus aperturas', function () {
+    $this->get('/login')
+        ->assertOk()
+        ->assertSee("case 'VENTANILLA':", false)
+        ->assertSee("destino = '/ventanilla/aperturas';", false);
+});
+
 it('rechaza con 403 el login de una peticion no-frontend (sin sesion)', function () {
     paso9CrearUsuarioActivo(Rol::CODIGO_ENCARGADA, 'encargada');
 

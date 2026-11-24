@@ -48,7 +48,7 @@ class ReporteDatosService
                 'titulo' => 'Solicitudes registradas',
                 'descripcion' => 'Libro matriz digital de ingresos de causas.',
                 'columnas' => [
-                    ['clave' => 'nurej', 'titulo' => 'NUREJ'],
+                    ['clave' => 'nurej', 'titulo' => 'NURED'],
                     ['clave' => 'fecha_ingreso', 'titulo' => 'Fecha de ingreso'],
                     ['clave' => 'via', 'titulo' => 'Vía'],
                     ['clave' => 'reglamento', 'titulo' => 'Reglamento'],
@@ -61,7 +61,7 @@ class ReporteDatosService
                 'titulo' => 'Recepción inter-unidad',
                 'descripcion' => 'Auditoría y trazabilidad de trámites derivados y aceptados.',
                 'columnas' => [
-                    ['clave' => 'nurej', 'titulo' => 'NUREJ'],
+                    ['clave' => 'nurej', 'titulo' => 'NURED'],
                     ['clave' => 'unidad_destino', 'titulo' => 'Unidad destino'],
                     ['clave' => 'estado_transferencia', 'titulo' => 'Estado'],
                     ['clave' => 'fecha_remision', 'titulo' => 'Fecha de remisión'],
@@ -85,7 +85,7 @@ class ReporteDatosService
                 'titulo' => 'Notificaciones pendientes',
                 'descripcion' => 'Seguimiento de expedientes en plazo de subsanación.',
                 'columnas' => [
-                    ['clave' => 'nurej', 'titulo' => 'NUREJ'],
+                    ['clave' => 'nurej', 'titulo' => 'NURED'],
                     ['clave' => 'fecha_inicio', 'titulo' => 'Inicio'],
                     ['clave' => 'fecha_limite', 'titulo' => 'Fecha límite'],
                     ['clave' => 'dias_restantes', 'titulo' => 'Días restantes'],
@@ -98,7 +98,7 @@ class ReporteDatosService
                 'titulo' => 'Resoluciones finales',
                 'descripcion' => 'Salidas institucionales: demanda disciplinaria, sumariante o archivo.',
                 'columnas' => [
-                    ['clave' => 'nurej', 'titulo' => 'NUREJ'],
+                    ['clave' => 'nurej', 'titulo' => 'NURED'],
                     ['clave' => 'via', 'titulo' => 'Vía'],
                     ['clave' => 'salida', 'titulo' => 'Salida institucional'],
                     ['clave' => 'estado', 'titulo' => 'Estado'],
@@ -124,12 +124,12 @@ class ReporteDatosService
                 'titulo' => 'Carátula oficial',
                 'descripcion' => 'Generación automática de la foja 0 del expediente en PDF.',
                 'columnas' => [
-                    ['clave' => 'nurej', 'titulo' => 'NUREJ'],
+                    ['clave' => 'nurej', 'titulo' => 'NURED'],
                     ['clave' => 'fecha_ingreso', 'titulo' => 'Fecha de ingreso'],
                     ['clave' => 'via', 'titulo' => 'Vía'],
                     ['clave' => 'estado', 'titulo' => 'Estado'],
                     ['clave' => 'partes', 'titulo' => 'Partes vigentes'],
-                    ['clave' => 'nurej_padre', 'titulo' => 'NUREJ padre'],
+                    ['clave' => 'nurej_padre', 'titulo' => 'NURED padre'],
                 ],
             ],
             'R09' => [
@@ -137,8 +137,8 @@ class ReporteDatosService
                 'titulo' => 'Trazabilidad padre-hijo',
                 'descripcion' => 'Vínculo procesal entre el expediente raíz y sus derivados.',
                 'columnas' => [
-                    ['clave' => 'nurej_padre', 'titulo' => 'NUREJ padre'],
-                    ['clave' => 'nurej_hijo', 'titulo' => 'NUREJ hijo'],
+                    ['clave' => 'nurej_padre', 'titulo' => 'NURED padre'],
+                    ['clave' => 'nurej_hijo', 'titulo' => 'NURED hijo'],
                     ['clave' => 'fecha_ingreso', 'titulo' => 'Fecha del hijo'],
                     ['clave' => 'estado_padre', 'titulo' => 'Estado padre'],
                     ['clave' => 'estado_hijo', 'titulo' => 'Estado hijo'],

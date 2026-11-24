@@ -27,12 +27,12 @@ class ExpedienteDemoSorteoSeeder extends Seeder
             return;
         }
 
-        $tecnico = Usuario::where('username', 'tecnico')->first();
+        $ventanilla = Usuario::where('username', 'ventanilla')->first();
         $reglamento = Reglamento::where('codigo', 'AC_022_2018')->first();
         $catalogoRegistro = CatalogoActuado::where('codigo', 'ACT_REGISTRO_DIGITALIZACION')->first();
 
-        if (! $tecnico || ! $reglamento || ! $catalogoRegistro) {
-            $this->command->error('Faltan dependencias base (tecnico, reglamento AC_022_2018 o ACT_REGISTRO_DIGITALIZACION). Ejecutar DatabaseSeeder.');
+        if (! $ventanilla || ! $reglamento || ! $catalogoRegistro) {
+            $this->command->error('Faltan dependencias base (ventanilla, reglamento AC_022_2018 o ACT_REGISTRO_DIGITALIZACION). Ejecutar DatabaseSeeder.');
 
             return;
         }
@@ -66,7 +66,7 @@ class ExpedienteDemoSorteoSeeder extends Seeder
                             ['tipo' => 'DENUNCIADO', 'nombre_completo' => 'Entidad Municipal', 'cargo_institucion' => 'Dirección Administrativa'],
                         ],
                     ],
-                    tecnico: $tecnico,
+                    ventanilla: $ventanilla,
                     adjunto: $this->crearPdfDummy(),
                 );
                 $this->command->line("  - NUREJ: {$expediente->nurej_code} | {$via} | PENDIENTE_SORTEO");

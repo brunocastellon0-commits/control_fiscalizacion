@@ -241,7 +241,7 @@
     <p class="subtitulo">Documento de identificación de la causa — Foja Cero</p>
 
     <div class="nurej">
-        <small>NUREJ</small>
+        <small>NURED</small>
         {{ $expediente->nurej_code }}
     </div>
 
@@ -249,11 +249,11 @@
 
     <table class="datos">
         <tr>
-            <th>NUREJ padre</th>
-            <td>{{ $expediente->padre?->nurej_code ?? 'Sin NUREJ padre' }}</td>
+            <th>NURED padre</th>
+            <td>{{ $expediente->padre?->nurej_code ?? 'Sin NURED padre' }}</td>
         </tr>
         <tr>
-            <th>NUREJ derivados</th>
+            <th>NURED derivados</th>
             <td>
                 @if ($expediente->hijos->isEmpty())
                     Sin derivaciones registradas

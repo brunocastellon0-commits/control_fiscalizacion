@@ -32,12 +32,12 @@ class ExpedienteDemoSeeder extends Seeder
 
         $this->asegurarDependencias();
 
-        $tecnico = Usuario::where('username', 'tecnico')->first();
+        $ventanilla = Usuario::where('username', 'ventanilla')->first();
         $encargada = Usuario::where('username', 'encargada')->first();
         $audJuridico = Usuario::where('username', 'aud_juridico')->first();
 
-        if (! $tecnico || ! $encargada || ! $audJuridico) {
-            $this->command->error('Faltan usuarios base (tecnico, encargada, aud_juridico). Ejecutar primero UsuarioSeeder.');
+        if (! $ventanilla || ! $encargada || ! $audJuridico) {
+            $this->command->error('Faltan usuarios base (ventanilla, encargada, aud_juridico). Ejecutar primero UsuarioSeeder.');
 
             return;
         }
@@ -48,16 +48,16 @@ class ExpedienteDemoSeeder extends Seeder
         $actuadoService = app(ActuadoService::class);
 
         $this->command->info('Creando 3 expedientes en PENDIENTE_SORTEO...');
-        $this->crearPendientesSorteo($expedienteService, $tecnico, $reglamento);
+        $this->crearPendientesSorteo($expedienteService, $ventanilla, $reglamento);
 
         $this->command->info('Creando 1 expediente en EN_EVALUACION (asignado a auditor)...');
-        $this->crearEnEvaluacion($expedienteService, $actuadoService, $tecnico, $encargada, $audJuridico, $reglamento);
+        $this->crearEnEvaluacion($expedienteService, $actuadoService, $ventanilla, $encargada, $audJuridico, $reglamento);
 
         $this->command->info('Creando 1 expediente con cadena de custodia (OBSERVADO)...');
-        $this->crearConCadena($expedienteService, $actuadoService, $tecnico, $encargada, $audJuridico, $reglamento);
+        $this->crearConCadena($expedienteService, $actuadoService, $ventanilla, $encargada, $audJuridico, $reglamento);
 
         $this->command->info('Creando 1 expediente con variantes de semaforo (plazos)...');
-        $this->crearVariantesPlazo($expedienteService, $actuadoService, $tecnico, $encargada, $audJuridico, $reglamento);
+        $this->crearVariantesPlazo($expedienteService, $actuadoService, $ventanilla, $encargada, $audJuridico, $reglamento);
 
         $this->command->info('Expedientes demo creados correctamente.');
     }
@@ -98,7 +98,7 @@ class ExpedienteDemoSeeder extends Seeder
 
     private function crearPendientesSorteo(
         ExpedienteService $expedienteService,
-        Usuario $tecnico,
+        Usuario $ventanilla,
         Reglamento $reglamento,
     ): void {
         $casos = [
@@ -134,7 +134,7 @@ class ExpedienteDemoSeeder extends Seeder
                     'resumen_hechos' => static::TAG_DEMO.' '.$caso['resumen'],
                     'partes' => $caso['partes'],
                 ],
-                tecnico: $tecnico,
+                ventanilla: $ventanilla,
                 adjunto: $adjunto,
             );
             $this->command->line('  - NUREJ: '.$expediente->nurej_code.' | PENDIENTE_SORTEO');
@@ -144,7 +144,7 @@ class ExpedienteDemoSeeder extends Seeder
     private function crearEnEvaluacion(
         ExpedienteService $expedienteService,
         ActuadoService $actuadoService,
-        Usuario $tecnico,
+        Usuario $ventanilla,
         Usuario $encargada,
         Usuario $audJuridico,
         Reglamento $reglamento,
@@ -160,7 +160,7 @@ class ExpedienteDemoSeeder extends Seeder
                     ['tipo' => 'DENUNCIADO', 'nombre_completo' => 'Impuesto Municipal S.A.'],
                 ],
             ],
-            tecnico: $tecnico,
+            ventanilla: $ventanilla,
             adjunto: $adjunto,
         );
         $this->command->line('  - NUREJ: '.$expediente->nurej_code.' | apertura OK');
@@ -180,7 +180,7 @@ class ExpedienteDemoSeeder extends Seeder
     private function crearConCadena(
         ExpedienteService $expedienteService,
         ActuadoService $actuadoService,
-        Usuario $tecnico,
+        Usuario $ventanilla,
         Usuario $encargada,
         Usuario $audJuridico,
         Reglamento $reglamento,
@@ -196,7 +196,7 @@ class ExpedienteDemoSeeder extends Seeder
                     ['tipo' => 'DENUNCIADO', 'nombre_completo' => 'Entidad Estatal Regional'],
                 ],
             ],
-            tecnico: $tecnico,
+            ventanilla: $ventanilla,
             adjunto: $adjunto,
         );
         $this->command->line('  - NUREJ: '.$expediente->nurej_code.' | apertura OK');
@@ -228,7 +228,7 @@ class ExpedienteDemoSeeder extends Seeder
     private function crearVariantesPlazo(
         ExpedienteService $expedienteService,
         ActuadoService $actuadoService,
-        Usuario $tecnico,
+        Usuario $ventanilla,
         Usuario $encargada,
         Usuario $audJuridico,
         Reglamento $reglamento,
@@ -244,7 +244,7 @@ class ExpedienteDemoSeeder extends Seeder
                     ['tipo' => 'DENUNCIADO', 'nombre_completo' => 'Servicio Departamental de Salud'],
                 ],
             ],
-            tecnico: $tecnico,
+            ventanilla: $ventanilla,
             adjunto: $adjunto,
         );
         $this->command->line('  - NUREJ: '.$expediente->nurej_code.' | apertura OK');

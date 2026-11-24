@@ -61,6 +61,17 @@ it('oculta y bloquea los reportes al rol ADMIN', function () {
     $this->getJson('/api/reportes/R01/datos')->assertForbidden();
 });
 
+it('oculta y bloquea los reportes al rol de Ventanilla', function () {
+    $ventanilla = rptUsuario(Rol::CODIGO_VENTANILLA);
+
+    $this->actingAs($ventanilla)->get('/reportes')->assertForbidden();
+
+    Sanctum::actingAs($ventanilla);
+    $this->getJson('/api/reportes/R01/datos')->assertForbidden();
+    $this->getJson('/api/reportes/R01/exportar/excel')->assertForbidden();
+    $this->getJson('/api/reportes/R01/exportar/pdf')->assertForbidden();
+});
+
 it('bloquea los reportes a usuarios inactivos', function () {
     $usuario = rptUsuario(Rol::CODIGO_TECNICO, activo: false);
 

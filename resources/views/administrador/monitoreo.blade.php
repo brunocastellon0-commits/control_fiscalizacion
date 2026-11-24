@@ -80,7 +80,7 @@
                                   absolute left-3 top-3 text-gris"></i>
 
                         <input type="text" x-model="filtros.buscar" @input.debounce.400ms="cargar()"
-                            placeholder="NUREJ o descripción..." class="w-full pl-9 border-gris-claro rounded-lg text-sm">
+                            placeholder="NURED o descripción..." class="w-full pl-9 border-gris-claro rounded-lg text-sm">
 
                     </div>
 

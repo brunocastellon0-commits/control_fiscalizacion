@@ -27,10 +27,10 @@ use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 /**
- * Semilla integral (F16): catálogos reales del proyecto y los tres operadores
- * que participan del ciclo AC055 (Encargada, Técnico y Auditor Financiero).
+ * Semilla integral (F16): catálogos reales del proyecto y los operadores
+ * que participan del ciclo AC055 (Encargada, Ventanilla, Técnico y Auditor Financiero).
  *
- * @return array{encargada: Usuario, tecnico: Usuario, auditor: Usuario, ac055: Reglamento, rolAuditor: Rol}
+ * @return array{encargada: Usuario, ventanilla: Usuario, tecnico: Usuario, auditor: Usuario, ac055: Reglamento, rolAuditor: Rol}
  */
 function fiSemilla(TestCase $test): array
 {
@@ -47,11 +47,13 @@ function fiSemilla(TestCase $test): array
     }
 
     $rolEncargada = Rol::where('codigo', Rol::CODIGO_ENCARGADA)->firstOrFail();
+    $rolVentanilla = Rol::where('codigo', Rol::CODIGO_VENTANILLA)->firstOrFail();
     $rolTecnico = Rol::where('codigo', Rol::CODIGO_TECNICO)->firstOrFail();
     $rolAuditor = Rol::where('codigo', Rol::CODIGO_AUD_FINANCIERO)->firstOrFail();
 
     return [
         'encargada' => Usuario::factory()->create(['rol_id' => $rolEncargada->id, 'activo' => true]),
+        'ventanilla' => Usuario::factory()->create(['rol_id' => $rolVentanilla->id, 'activo' => true]),
         'tecnico' => Usuario::factory()->create(['rol_id' => $rolTecnico->id, 'activo' => true]),
         'auditor' => Usuario::factory()->create(['rol_id' => $rolAuditor->id, 'activo' => true]),
         'ac055' => Reglamento::where('codigo', 'AC_055_2018')->firstOrFail(),
@@ -190,7 +192,7 @@ function fiCrearExpedienteAsignado(array $s, Usuario $operador): Expediente
         'estado_actual_id' => CatalogoEstado::where('codigo', 'EN_EVALUACION')->value('id'),
         'resumen_hechos' => 'Expediente ajeno usado para verificar el compartimento entre causas.',
         'fecha_ingreso' => now(),
-        'creado_por' => $s['tecnico']->id,
+        'creado_por' => $s['ventanilla']->id,
     ]);
 
     $actuado = Actuado::create([
@@ -233,7 +235,7 @@ function fiHashEsperado(?string $hashAnterior, Actuado $actuado): string
  */
 function fiLlevarAEjecucion(TestCase $test, array $s): Expediente
 {
-    Sanctum::actingAs($s['tecnico'], ['*']);
+    Sanctum::actingAs($s['ventanilla'], ['*']);
 
     $test->postJson('/api/expedientes', array_merge(
         fiPayloadApertura($s['ac055']->id),
@@ -276,8 +278,8 @@ it('recorre el ciclo completo AC055: sorteo, admisión, MPA, visto bueno, descar
     $s = fiSemilla($this);
     fiInsertarFeriadoDePrueba();
 
-    // ---- 1. Apertura (Técnico) -------------------------------------------
-    Sanctum::actingAs($s['tecnico'], ['*']);
+    // ---- 1. Apertura (Ventanilla) ---------------------------------------
+    Sanctum::actingAs($s['ventanilla'], ['*']);
 
     $this->postJson('/api/expedientes', array_merge(
         fiPayloadApertura($s['ac055']->id),
@@ -498,8 +500,8 @@ it('mantiene el compartimento estanco y los roles del recorrido (RF-03)', functi
     $this->postJson("/api/expedientes/{$expediente->id}/descargos/comunicar", fiPayloadComunicar())
         ->assertForbidden();
 
-    // El Técnico que abrió la causa pierde el acceso al ser sorteada.
-    Sanctum::actingAs($s['tecnico'], ['*']);
+    // La Ventanilla que abrió la causa ya no accede al detalle operativo.
+    Sanctum::actingAs($s['ventanilla'], ['*']);
 
     $this->getJson("/api/expedientes/{$expediente->id}")->assertForbidden();
 
@@ -536,7 +538,7 @@ it('mantiene el compartimento estanco y los roles del recorrido (RF-03)', functi
 
     expect(fiEstado($expediente))->toBe('PENDIENTE_VISTO_BUENO_FINAL');
 
-    // Visto bueno final: solo la Encargada activa, jamás el Técnico creador.
+    // Visto bueno final: solo la Encargada activa, jamás el creador.
     Sanctum::actingAs($s['tecnico'], ['*']);
 
     $this->postJson("/api/expedientes/{$expediente->id}/cierre/visto-bueno", fiPayloadVistoBuenoFinal())

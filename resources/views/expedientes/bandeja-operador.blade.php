@@ -27,7 +27,7 @@
                         <div class="relative">
                             <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gris text-xs"></i>
                             <input type="text" x-model="filtros.busqueda"
-                                placeholder="NUREJ o nombre de parte interesada..."
+                                placeholder="NURED o nombre de parte interesada..."
                                 class="w-full border border-gris-claro rounded-lg pl-9 pr-3 py-2 text-sm text-grafito focus:border-verde-institucional focus:ring-verde-institucional">
                         </div>
                     </div>

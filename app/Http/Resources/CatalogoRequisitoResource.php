@@ -24,6 +24,7 @@ class CatalogoRequisitoResource extends JsonResource
             'descripcion' => $requisito->descripcion,
             'orden' => $requisito->orden,
             'es_critico' => $requisito->es_critico,
+            'cumple' => $this->when(isset($requisito->cumple), fn () => (bool) $requisito->cumple),
             'reglamento' => $this->whenLoaded('reglamento', fn () => $requisito->reglamento ? [
                 'id' => $requisito->reglamento->id,
                 'codigo' => $requisito->reglamento->codigo,

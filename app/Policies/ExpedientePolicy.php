@@ -82,27 +82,108 @@ class ExpedientePolicy
             return true;
         }
 
-        if ($expediente->asignacionActiva?->usuario_id === $user->id) {
-            return true;
-        }
-
-        // El creador (ventanilla de ingreso) conserva lectura mientras la
-        // causa no haya sido sorteada; una vez asignada, pierde acceso (RF-03).
-        return $expediente->creado_por === $user->id
-            && $expediente->asignaciones()->doesntExist();
+        return $expediente->asignacionActiva?->usuario_id === $user->id;
     }
 
     /**
-     * Apertura de causa nueva: solo rol TECNICO activo.
+     * Apertura de causa nueva: solo rol VENTANILLA activo.
      */
     public function aperturaCausa(Usuario $user): bool
     {
-        return $user->activo && ($user->rol?->codigo ?? null) === Rol::CODIGO_TECNICO;
+        return $user->activo && ($user->rol?->codigo ?? null) === Rol::CODIGO_VENTANILLA;
+    }
+
+    /**
+     * Historial de lectura de las causas registradas por la Ventanilla.
+     */
+    public function historialAperturas(Usuario $user): bool
+    {
+        return $user->activo && ($user->rol?->codigo ?? null) === Rol::CODIGO_VENTANILLA;
+    }
+
+    /**
+     * Detalle de solo lectura: la Ventanilla solo ve las causas que aperturó.
+     */
+    public function verDetalleApertura(Usuario $user, Expediente $expediente): bool
+    {
+        return $this->historialAperturas($user) && $expediente->creado_por === $user->id;
+    }
+
+    /**
+     * Historial de lectura de los operativos: Técnico, Auditor Jurídico y
+     * Auditor Financiero consultan las causas por las que pasaron.
+     */
+    public function historialAsignaciones(Usuario $user): bool
+    {
+        return $user->activo && in_array($user->rol?->codigo ?? null, [
+            Rol::CODIGO_TECNICO,
+            Rol::CODIGO_AUD_JURIDICO,
+            Rol::CODIGO_AUD_FINANCIERO,
+        ], true);
+    }
+
+    /**
+     * Detalle de solo lectura del historial operativo. Basta haber tenido una
+     * asignación en el expediente, activa o inactiva. No amplía el permiso
+     * general `view`, por lo que no habilita acciones ni descargas.
+     */
+    public function verDetalleHistorialAsignado(Usuario $user, Expediente $expediente): bool
+    {
+        return $this->historialAsignaciones($user)
+            && $expediente->asignaciones()->where('usuario_id', $user->id)->exists();
+    }
+
+    /**
+     * Historial general de solo lectura de la Encargada. No depende de
+     * asignación: el control jerárquico le permite supervisar todas las causas,
+     * incluidas las finalizadas y las remitidas a unidad externa.
+     */
+    public function historialGeneralEncargada(Usuario $user): bool
+    {
+        return $user->activo
+            && ($user->rol?->codigo ?? null) === Rol::CODIGO_ENCARGADA;
+    }
+
+    /**
+     * Detalle reducido del historial general. Es una consulta dedicada y no
+     * amplía `view`: no habilita acciones ni descarga de adjuntos.
+     */
+    public function verDetalleHistorialEncargada(Usuario $user, Expediente $expediente): bool
+    {
+        return $this->historialGeneralEncargada($user);
+    }
+
+    /**
+     * Boleta de apertura: la Ventanilla que registró la causa y la Encargada.
+     * No se reutiliza `view` para no ampliar el acceso al detalle operativo.
+     */
+    public function descargarBoletaApertura(Usuario $user, Expediente $expediente): bool
+    {
+        if (! $user->activo) {
+            return false;
+        }
+
+        if ($this->historialGeneralEncargada($user)) {
+            return true;
+        }
+
+        return ($user->rol?->codigo ?? null) === Rol::CODIGO_VENTANILLA
+            && (int) $expediente->creado_por === (int) $user->id;
+    }
+
+    /**
+     * Ficha de sorteo: documento de constancia exclusivo de la Encargada,
+     * tal como se definió para el módulo de historial general.
+     */
+    public function descargarFichaSorteo(Usuario $user, Expediente $expediente): bool
+    {
+        return $this->historialGeneralEncargada($user);
     }
 
     /**
      * Consulta de catalogos de soporte (actuados, reglamentos, estados):
-     * roles operativos, Encargada y ADMIN activos.
+     * roles operativos, Encargada y ADMIN activos. La Ventanilla accede
+     * únicamente a reglamentos, que necesita para aperturar causas.
      */
     public function verCatalogoActuados(Usuario $user): bool
     {
@@ -111,7 +192,8 @@ class ExpedientePolicy
 
     public function verCatalogoReglamentos(Usuario $user): bool
     {
-        return $this->esRolConAccesoCatalogos($user);
+        return $this->esRolConAccesoCatalogos($user)
+            || ($user->activo && ($user->rol?->codigo ?? null) === Rol::CODIGO_VENTANILLA);
     }
 
     public function verCatalogoEstados(Usuario $user): bool

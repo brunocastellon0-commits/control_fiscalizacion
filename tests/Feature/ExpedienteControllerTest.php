@@ -18,6 +18,9 @@ function paso7SemillaController(): array
     $rolTecnico = Rol::factory()->create(['codigo' => Rol::CODIGO_TECNICO]);
     $tecnico = Usuario::factory()->create(['rol_id' => $rolTecnico->id]);
 
+    $rolVentanilla = Rol::factory()->create(['codigo' => Rol::CODIGO_VENTANILLA]);
+    $ventanilla = Usuario::factory()->create(['rol_id' => $rolVentanilla->id]);
+
     $rolEncargada = Rol::factory()->create(['codigo' => Rol::CODIGO_ENCARGADA]);
     $encargada = Usuario::factory()->create(['rol_id' => $rolEncargada->id]);
 
@@ -53,6 +56,7 @@ function paso7SemillaController(): array
 
     return compact(
         'rolTecnico', 'tecnico',
+        'rolVentanilla', 'ventanilla',
         'rolEncargada', 'encargada',
         'rolOperador', 'operador',
         'reglamento',
@@ -107,14 +111,14 @@ function paso7AsignarActivamente(Expediente $expediente, Usuario $usuario, int $
     ]);
 }
 
-it('permite a un tecnico abrir una causa y responde 201 con estructura', function () {
+it('permite a la ventanilla abrir una causa y responde 201 con estructura', function () {
     Storage::fake('local');
     [
-        'tecnico' => $tecnico,
+        'ventanilla' => $ventanilla,
         'reglamento' => $reglamento,
     ] = paso7SemillaController();
 
-    Sanctum::actingAs($tecnico, ['*']);
+    Sanctum::actingAs($ventanilla, ['*']);
 
     $response = $this->post('/api/expedientes', array_merge(
         paso7PayloadApertura($reglamento->id),
@@ -135,18 +139,18 @@ it('permite a un tecnico abrir una causa y responde 201 con estructura', functio
 
 it('devuelve 422 cuando la apertura carece del adjunto obligatorio', function () {
     [
-        'tecnico' => $tecnico,
+        'ventanilla' => $ventanilla,
         'reglamento' => $reglamento,
     ] = paso7SemillaController();
 
-    Sanctum::actingAs($tecnico, ['*']);
+    Sanctum::actingAs($ventanilla, ['*']);
 
     $this->post('/api/expedientes', paso7PayloadApertura($reglamento->id))
         ->assertStatus(422)
         ->assertJsonValidationErrors('adjunto');
 });
 
-it('devuelve 403 a un usuario sin rol tecnico al intentar abrir causa', function () {
+it('devuelve 403 a un usuario sin rol ventanilla al intentar abrir causa', function () {
     [
         'encargada' => $encargada,
         'reglamento' => $reglamento,

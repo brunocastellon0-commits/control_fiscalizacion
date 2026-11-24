@@ -22,7 +22,7 @@
             Principal
         </div>
 
-        <template x-if="usuario?.rol && usuario.rol !== 'ENCARGADA' && usuario.rol !== 'ADMIN'">
+        <template x-if="usuario?.rol && usuario.rol !== 'ENCARGADA' && usuario.rol !== 'ADMIN' && usuario.rol !== 'VENTANILLA'">
             <div class="space-y-1">
                 <a href="/expedientes" title="Bandeja de entrada"
                     :class="activo('/expedientes') ? 'bg-white text-verde-profundo shadow-sm' : 'text-white/85 hover:bg-white/10'"
@@ -52,6 +52,14 @@
                     <span class="sidebar-label">Bandeja de supervisión</span>
                 </a>
 
+                <a href="/encargada/historial" title="Historial general"
+                    :class="activo('/encargada/historial') ? 'bg-white text-verde-profundo shadow-sm' : 'text-white/85 hover:bg-white/10'"
+                    class="sidebar-item flex items-center gap-3 px-3.5 py-2.5 rounded-lg font-medium">
+                    <i class="fa-solid fa-clock-rotate-left w-5 text-center text-[15px]"
+                        :class="activo('/encargada/historial') ? 'text-verde-profundo' : 'text-white/70'"></i>
+                    <span class="sidebar-label">Historial general</span>
+                </a>
+
                 <a href="/bandeja/sorteo" title="Sorteo de expedientes"
                     :class="activo('/bandeja/sorteo') ? 'bg-white text-verde-profundo shadow-sm' : 'text-white/85 hover:bg-white/10'"
                     class="sidebar-item flex items-center gap-3 px-3.5 py-2.5 rounded-lg font-medium">
@@ -62,7 +70,7 @@
             </div>
         </template>
 
-        <template x-if="usuario?.rol === 'TECNICO'">
+        <template x-if="usuario?.rol === 'VENTANILLA'">
             <div class="space-y-1 mt-1">
                 <a href="/expedientes/nuevo" title="Apertura de causa"
                     :class="activo('/expedientes/nuevo') ? 'bg-white text-verde-profundo shadow-sm' : 'text-white/85 hover:bg-white/10'"
@@ -70,6 +78,26 @@
                     <i class="fa-solid fa-folder-plus w-5 text-center text-[15px]"
                         :class="activo('/expedientes/nuevo') ? 'text-verde-profundo' : 'text-white/70'"></i>
                     <span class="sidebar-label">Apertura de causa</span>
+                </a>
+
+                <a href="/ventanilla/aperturas" title="Mis aperturas"
+                    :class="activo('/ventanilla/aperturas') ? 'bg-white text-verde-profundo shadow-sm' : 'text-white/85 hover:bg-white/10'"
+                    class="sidebar-item flex items-center gap-3 px-3.5 py-2.5 rounded-lg font-medium">
+                    <i class="fa-solid fa-clock-rotate-left w-5 text-center text-[15px]"
+                        :class="activo('/ventanilla/aperturas') ? 'text-verde-profundo' : 'text-white/70'"></i>
+                    <span class="sidebar-label">Mis aperturas</span>
+                </a>
+            </div>
+        </template>
+
+        <template x-if="usuario?.rol === 'TECNICO' || usuario?.rol === 'AUD_JURIDICO' || usuario?.rol === 'AUD_FINANCIERO'">
+            <div class="space-y-1 mt-1">
+                <a href="/operativo/historial" title="Historial de expedientes"
+                    :class="activo('/operativo/historial') ? 'bg-white text-verde-profundo shadow-sm' : 'text-white/85 hover:bg-white/10'"
+                    class="sidebar-item flex items-center gap-3 px-3.5 py-2.5 rounded-lg font-medium">
+                    <i class="fa-solid fa-clock-rotate-left w-5 text-center text-[15px]"
+                        :class="activo('/operativo/historial') ? 'text-verde-profundo' : 'text-white/70'"></i>
+                    <span class="sidebar-label">Historial de expedientes</span>
                 </a>
             </div>
         </template>
@@ -137,7 +165,7 @@
             </div>
         </template>
 
-        <template x-if="usuario?.rol && usuario.rol !== 'ADMIN'">
+        <template x-if="usuario?.rol && usuario.rol !== 'ADMIN' && usuario.rol !== 'VENTANILLA'">
             <div class="space-y-1 mt-4">
                 <div class="sidebar-section px-3 pb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45">
                     Reportes

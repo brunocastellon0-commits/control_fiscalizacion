@@ -43,15 +43,17 @@ class ActuadoService
      * Mapea cada código de actuado del catálogo con el tipo de plazo que abre.
      * Fuera de este mapa, el actuado no dispara ningún plazo.
      *
-     * El reloj de investigación (EJECUCION) NO arranca con la admisión: lo
-     * hace recién con el Visto Bueno a la Planificación (RN-04/RN-05). La
-     * admisión solo abre el plazo de planificación del Técnico (2 días hábiles
-     * para cargar el Cronograma).
+     * El reloj de investigación (EJECUCION) NO arranca con la admisión. En el
+     * Acuerdo 022 arranca al registrar el Cronograma de Trabajo; en los
+     * Acuerdos 054/055 arranca con el Visto Bueno a la Planificación
+     * (RN-04/RN-05). La admisión solo abre el plazo de planificación del
+     * Técnico (2 días hábiles para cargar el Cronograma).
      */
     protected const MAPA_TIPO_PLAZO = [
         'ACT_SORTEO_INICIAL' => 'EVALUACION',
         'ACT_OBSERVACION' => 'SUBSANACION',
         'ACT_ADMISION' => 'PLANIFICACION',
+        'ACT_CRONOGRAMA_TRABAJO' => 'EJECUCION',
         'ACT_VISTO_BUENO_PLANIFICACION' => 'EJECUCION',
         // Impugnaciones (RN-08)
         'ACT_RECHAZO' => 'IMPUGNACION_REMITIR',           // 1 día: el operador remite a la Encargada

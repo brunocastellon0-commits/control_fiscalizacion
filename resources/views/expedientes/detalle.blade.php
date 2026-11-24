@@ -6,7 +6,7 @@
     @php
         $rolUsuario = auth()->user()?->rol?->codigo;
     @endphp
-    <div x-data="detalleExpediente({{ (int) $expedienteId }}, @js($rolUsuario))" x-init="init()" class="p-6" x-cloak>
+    <div x-data="detalleExpediente({{ (int) $expedienteId }}, @js($rolUsuario))" x-init="init()" @keydown.escape.window="hashActuado = null; avisoPaso = null" class="p-6" x-cloak>
         <div x-show="loading" class="flex justify-center py-20">
             <i class="fa-solid fa-circle-notch fa-spin text-4xl text-verde-institucional"></i>
         </div>
@@ -21,179 +21,126 @@
 
         <template x-if="!loading && !error && expediente">
             <div class="space-y-6">
-                <div class="bg-white p-6 rounded-xl border border-gris-claro shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div class="min-w-0">
-                        <div class="flex flex-wrap items-center gap-2 mb-1">
-                            <h1 class="text-2xl font-mono font-bold text-grafito" x-text="expediente.nurej_code"></h1>
-                            <span class="px-3 py-1 text-xs font-bold rounded bg-gris-claro text-gris border border-gris-claro"
-                                x-text="expediente.estado_actual?.nombre || expediente.estado_actual?.codigo || 'Sin estado'"></span>
+                <div class="bg-white rounded-xl border border-gris-claro shadow-sm overflow-hidden">
+                    <div class="border-b border-gris-claro p-5">
+                        <p class="text-[10px] font-bold uppercase tracking-widest text-verde-institucional mb-1">Carátula del expediente</p>
+                        <div class="flex flex-wrap items-center gap-x-5 gap-y-2">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <h1 class="text-2xl font-mono font-bold text-grafito" x-text="expediente.nurej_code"></h1>
+                                <span class="px-3 py-1 text-xs font-bold rounded bg-gris-claro text-gris border border-gris-claro"
+                                    x-text="expediente.estado_actual?.nombre || expediente.estado_actual?.codigo || 'Sin estado'"></span>
+                            </div>
+                            <p class="text-sm text-gris">
+                                Vía: <span class="font-medium text-grafito" x-text="expediente.via || '—'"></span>
+                                <span class="mx-1">|</span>
+                                Ingreso: <span x-text="formatDate(expediente.fecha_ingreso)"></span>
+                            </p>
+                            <template x-if="expediente.asignacion_activa?.usuario">
+                                <p class="text-xs text-gris">
+                                    Responsable:
+                                    <span class="font-semibold text-grafito" x-text="(expediente.asignacion_activa.usuario.nombres || '') + ' ' + (expediente.asignacion_activa.usuario.apellidos || '')"></span>
+                                    <span class="ml-1 px-2 py-0.5 rounded bg-gris-claro text-gris" x-text="expediente.asignacion_activa.rol?.nombre || expediente.asignacion_activa.rol?.codigo || ''"></span>
+                                </p>
+                            </template>
                         </div>
-                        <p class="text-sm text-gris">
-                            Vía: <span class="font-medium text-grafito" x-text="expediente.via || '—'"></span>
-                            <span class="mx-1">|</span>
-                            Naturaleza: <span class="font-medium text-grafito" x-text="expediente.naturaleza || '—'"></span>
-                            <span class="mx-1">|</span>
-                            Ingreso: <span x-text="formatDate(expediente.fecha_ingreso)"></span>
-                        </p>
-                        <template x-if="expediente.reglamento">
-                            <p class="text-xs text-gris mt-1">
-                                Reglamento: <span class="font-semibold text-grafito" x-text="(expediente.reglamento.codigo || '') + (expediente.reglamento.nombre ? ' · ' + expediente.reglamento.nombre : '')"></span>
-                            </p>
-                        </template>
-                        <template x-if="expediente.asignacion_activa?.usuario">
-                            <p class="text-xs text-gris mt-1">
-                                Asignado a: <span class="font-semibold text-grafito" x-text="(expediente.asignacion_activa.usuario.nombres || '') + ' ' + (expediente.asignacion_activa.usuario.apellidos || '')"></span>
-                                <span class="ml-1 px-2 py-0.5 rounded bg-gris-claro text-gris" x-text="expediente.asignacion_activa.rol?.nombre || expediente.asignacion_activa.rol?.codigo || ''"></span>
-                            </p>
-                        </template>
                     </div>
 
-                    <template x-if="expediente.sem_plazo">
-                        <div class="flex items-center gap-3 px-4 py-3 rounded-lg border shadow-sm shrink-0" :class="getSemaforoClass(expediente.sem_plazo.codigo_color)">
-                            <span class="relative inline-flex rounded-full h-3.5 w-3.5" :class="getSemaforoDotClass(expediente.sem_plazo.codigo_color)"></span>
-                            <div class="flex flex-col">
-                                <span class="text-sm font-bold uppercase tracking-wide" x-text="semEtiqueta(expediente.sem_plazo.codigo_color)"></span>
-                                <span class="text-xs font-medium" x-show="expediente.sem_plazo.dias_restantes !== null && expediente.sem_plazo.dias_restantes !== undefined">
-                                    <span x-text="expediente.sem_plazo.dias_restantes"></span> días hábiles restantes
-                                </span>
-                            </div>
+                    <div class="border-b border-gris-claro px-4 py-3 sm:px-5">
+                        @include('expedientes.detalle.pasos')
+                    </div>
+
+                    <div x-show="avisoPaso" x-cloak class="border-t border-amber-300 bg-amber-50 px-5 py-3 flex items-start gap-3 text-sm text-amber-900">
+                        <i class="fa-solid fa-circle-info mt-0.5 shrink-0"></i>
+                        <div class="flex-1">
+                            <p class="font-semibold" x-text="avisoPaso?.titulo"></p>
+                            <p class="mt-0.5" x-text="avisoPaso?.mensaje"></p>
                         </div>
-                    </template>
+                        <button type="button" @click="avisoPaso = null" title="Cerrar aviso" aria-label="Cerrar aviso" class="text-amber-700 hover:text-amber-900">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
                 </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div class="space-y-6 lg:col-span-1">
-                        <div class="bg-white rounded-xl border border-gris-claro shadow-sm overflow-hidden">
-                            <div class="bg-gris-claro px-4 py-3 border-b border-gris-claro">
-                                <h3 class="text-sm font-bold text-grafito uppercase"><i class="fa-solid fa-list text-verde-institucional mr-2"></i> Hechos</h3>
-                            </div>
-                            <div class="p-4 text-sm text-gris leading-relaxed whitespace-pre-line" x-text="expediente.resumen_hechos || 'Sin resumen registrado.'"></div>
+                <div class="bg-white rounded-xl border border-gris-claro shadow-sm" x-show="pasoActivo === 'recepcion'" x-cloak>
+                    <div class="flex gap-1 px-4 overflow-x-auto border-b border-gris-claro" role="tablist" aria-label="Secciones del expediente">
+                        <template x-for="seccion in secciones" :key="seccion.codigo">
+                            <button type="button" role="tab"
+                                @click="seleccionarSeccion(seccion.codigo)"
+                                :aria-selected="seccionActiva === seccion.codigo ? 'true' : 'false'"
+                                :title="seccion.titulo"
+                                class="px-4 py-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-colors whitespace-nowrap"
+                                :class="seccionActiva === seccion.codigo
+                                    ? 'border-verde-institucional text-verde-profundo'
+                                    : 'border-transparent text-gris hover:text-grafito hover:border-gris-claro'">
+                                <i class="fa-solid mr-1.5" :class="seccion.icono"></i>
+                                <span x-text="seccion.etiqueta"></span>
+                            </button>
+                        </template>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
+                    <div class="xl:col-span-2 flex flex-col gap-6">
+                        <div x-show="pasoActivo === 'recepcion'">
+                            @include('expedientes.detalle.recepcion')
                         </div>
 
-                        <div class="bg-white rounded-xl border border-gris-claro shadow-sm overflow-hidden">
-                            <div class="bg-gris-claro px-4 py-3 border-b border-gris-claro">
-                                <h3 class="text-sm font-bold text-grafito uppercase"><i class="fa-solid fa-users text-verde-institucional mr-2"></i> Partes procesales</h3>
-                            </div>
-                            <ul class="divide-y divide-gris-claro">
-                                <template x-if="(expediente.partes_vigentes || []).length > 0">
-                                    <template x-for="parte in expediente.partes_vigentes" :key="parte.id || parte.nombre_completo">
-                                        <li class="p-4 flex flex-col gap-1">
-                                            <span class="text-[10px] font-bold text-verde-institucional uppercase tracking-wider" x-text="parte.tipo || 'Parte'"></span>
-                                            <span class="text-sm font-semibold text-grafito" x-text="parte.nombre_completo"></span>
-                                            <span class="text-xs text-gris" x-text="parte.documento_identidad || 'Sin CI/NIT'"></span>
-                                            <span class="text-xs text-gris" x-show="parte.cargo_institucion" x-text="parte.cargo_institucion"></span>
-                                        </li>
-                                    </template>
+                        <template x-if="seccionActiva === 'resumen'">
+                            <div class="flex flex-col gap-6">
+                                <template x-if="pasoActivo === 'admisibilidad'">
+                                    <div>@include('expedientes.detalle.evaluacion')</div>
                                 </template>
-                                <template x-if="!(expediente.partes_vigentes || []).length">
-                                    <li class="p-4 text-sm text-gris">Sin partes registradas.</li>
-                                </template>
-                            </ul>
-                        </div>
 
-                        @include('expedientes.detalle.evaluacion')
+                                <template x-if="pasoActivo === 'planificacion'">
+                                    <div>@include('expedientes.detalle.planificacion')</div>
+                                </template>
+
+                                <template x-if="pasoActivo === 'ejecucion'">
+                                    <div>@include('expedientes.detalle.ejecucion')</div>
+                                </template>
+
+                                <template x-if="pasoActivo === 'cierre'">
+                                    <div>@include('expedientes.detalle.cierre')</div>
+                                </template>
+                            </div>
+                        </template>
+
+                        <template x-if="trazabilidadAbierta || seccionActiva === 'historial'">
+                            <div>@include('expedientes.detalle.trazabilidad')</div>
+                        </template>
+
+                        <template x-if="pasoSiguiente()">
+                            <div class="space-y-2">
+                                <button type="button" @click="irASiguientePaso()"
+                                    :disabled="!puedeAvanzarPaso()"
+                                    :title="puedeAvanzarPaso()
+                                        ? `Avanza al paso ${pasoSiguiente().numero}: ${pasoSiguiente().nombre}`
+                                        : 'Complete y guarde el trabajo de esta etapa para habilitar el avance'"
+                                    class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-verde-profundo text-white text-sm font-semibold hover:bg-verde-institucional transition disabled:cursor-not-allowed disabled:opacity-50">
+                                    <span x-text="etiquetaSiguientePaso()"></span>
+                                    <i class="fa-solid" :class="puedeAvanzarPaso() ? 'fa-arrow-right' : 'fa-lock'"></i>
+                                </button>
+                                <p x-show="!puedeAvanzarPaso()" class="text-[11px] text-gris">
+                                    Complete y guarde el trabajo de esta etapa para habilitar el avance.
+                                </p>
+                            </div>
+                        </template>
                     </div>
 
-                    <div class="lg:col-span-2 space-y-4">
+                    <aside class="space-y-6">
+                        @include('expedientes.detalle.estado-expediente')
                         @include('expedientes.detalle.acciones-operativas')
-
-                        <template x-if="(expediente.plazos || []).length > 0">
-                            <div class="bg-white rounded-xl border border-gris-claro shadow-sm overflow-hidden">
-                                <div class="bg-gris-claro px-4 py-3 border-b border-gris-claro">
-                                    <h3 class="text-sm font-bold text-grafito uppercase"><i class="fa-solid fa-hourglass-half text-verde-institucional mr-2"></i> Plazos</h3>
-                                </div>
-                                <ul class="divide-y divide-gris-claro">
-                                    <template x-for="plazo in plazosOrdenados()" :key="plazo.id || plazo.tipo_plazo + plazo.fecha_limite">
-                                        <li class="p-4 flex flex-col md:flex-row md:items-center gap-2">
-                                            <div class="flex-1 min-w-0">
-                                                <div class="flex items-center gap-2 flex-wrap">
-                                                    <span class="text-xs font-bold text-grafito uppercase" x-text="plazo.tipo_plazo || 'Plazo'"></span>
-                                                    <span class="text-[10px] px-2 py-0.5 rounded bg-gris-claro text-gris uppercase" x-text="plazo.estado || ''"></span>
-                                                </div>
-                                                <p class="text-xs text-gris mt-1">
-                                                    <span x-text="formatDate(plazo.fecha_inicio)"></span> → <span x-text="formatDate(plazo.fecha_limite)"></span>
-                                                    <span x-show="plazo.dias_habiles_otorgados"> · <span x-text="plazo.dias_habiles_otorgados"></span> días hábiles</span>
-                                                </p>
-                                            </div>
-                                            <template x-if="plazo.sem_plazo">
-                                                <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded text-xs font-bold border shrink-0" :class="getSemaforoClass(plazo.sem_plazo.codigo_color)">
-                                                    <span class="rounded-full h-2.5 w-2.5" :class="getSemaforoDotClass(plazo.sem_plazo.codigo_color)"></span>
-                                                    <span x-text="semEtiqueta(plazo.sem_plazo.codigo_color)"></span>
-                                                </span>
-                                            </template>
-                                        </li>
-                                    </template>
-                                </ul>
-                            </div>
-                        </template>
-
-                        <div class="bg-white rounded-xl border border-gris-claro shadow-sm overflow-hidden">
-                            <div class="bg-gris-claro px-4 py-3 border-b border-gris-claro flex items-center justify-between">
-                                <h3 class="text-sm font-bold text-grafito uppercase"><i class="fa-solid fa-timeline text-verde-institucional mr-2"></i> Historial de actuados</h3>
-                                <span class="text-xs text-gris" x-text="(expediente.actuados || []).length + ' registro(s)'"></span>
-                            </div>
-                            <div class="p-6 relative">
-                                <div class="absolute left-[23px] top-8 bottom-8 w-0.5 bg-gris-claro" x-show="(expediente.actuados || []).length"></div>
-                                <template x-if="(expediente.actuados || []).length > 0">
-                                    <div class="space-y-6 relative">
-                                        <template x-for="actuado in expediente.actuados" :key="actuado.id">
-                                            <div class="flex gap-4 items-start">
-                                                <div class="flex-shrink-0 w-5 h-5 rounded-full bg-verde-profundo border-2 border-verde-institucional relative z-10 mt-1"></div>
-                                                <div class="flex-1 bg-gris-claro rounded-lg p-4 border border-gris-claro">
-                                                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 mb-2">
-                                                        <span class="text-sm font-bold text-grafito" x-text="actuado.tipo_actuado?.nombre || actuado.tipo_actuado?.codigo || 'Actuado'"></span>
-                                                        <span class="text-xs text-gris shrink-0" x-text="formatDateTime(actuado.fecha_hora || actuado.created_at)"></span>
-                                                    </div>
-                                                    <template x-if="actuado.estado_nuevo || actuado.estado_anterior">
-                                                        <div class="flex items-center gap-2 mb-2 flex-wrap text-[10px] font-bold uppercase tracking-wider">
-                                                            <span class="px-2 py-0.5 rounded bg-white text-gris border border-gris-claro" x-text="actuado.estado_anterior?.nombre || actuado.estado_anterior?.codigo || '—'"></span>
-                                                            <i class="fa-solid fa-arrow-right text-gris"></i>
-                                                            <span class="px-2 py-0.5 rounded bg-verde-profundo/10 text-verde-profundo border border-verde-institucional/30" x-text="actuado.estado_nuevo?.nombre || actuado.estado_nuevo?.codigo || '—'"></span>
-                                                        </div>
-                                                    </template>
-                                                    <p class="text-sm text-gris whitespace-pre-line" x-text="actuado.descripcion || ''"></p>
-
-                                                    <div class="bg-grafito rounded p-2.5 mt-3 text-[10px] font-mono text-gris-claro break-all leading-tight" x-show="hashVisible === actuado.id">
-                                                        <div class="flex items-center justify-between mb-1">
-                                                            <span class="text-xs text-white/80">Cadena de Custodia (SHA-256)</span>
-                                                            <button type="button" @click="hashVisible = null" class="text-white/60 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
-                                                        </div>
-                                                        <div><span class="text-verde-institucional">HASH_ANTERIOR:</span> <span x-text="actuado.hash_anterior || '-'"></span></div>
-                                                        <div class="mt-1"><span class="text-verde-institucional">HASH_ACTUADO:</span> <span x-text="actuado.hash_actuado || '-'"></span></div>
-                                                    </div>
-                                                    <button type="button" x-show="hashVisible !== actuado.id && (actuado.hash_actuado || actuado.hash_anterior)" @click="hashVisible = actuado.id"
-                                                        class="mt-2 text-xs text-verde-institucional hover:underline">
-                                                        <i class="fa-solid fa-lock mr-1"></i>Ver cadena de custodia
-                                                    </button>
-
-                                                    <template x-if="(actuado.adjuntos || []).length > 0">
-                                                        <div class="mt-3 pt-3 border-t border-gris-claro flex flex-wrap gap-2">
-                                                            <template x-for="adj in actuado.adjuntos" :key="adj.id">
-                                                                <a :href="`/api/adjuntos/${adj.id}/descargar`" target="_blank"
-                                                                    class="inline-flex items-center px-3 py-1.5 bg-white border border-gris-claro text-xs font-medium text-grafito rounded hover:bg-[#F15A24]/10 hover:text-[#B53F12] hover:border-[#F15A24]/30 transition">
-                                                                    <i class="fa-solid fa-file-pdf mr-1.5 text-[#F15A24]"></i> Ver documento
-                                                                </a>
-                                                            </template>
-                                                        </div>
-                                                    </template>
-                                                </div>
-                                            </div>
-                                        </template>
-                                    </div>
-                                </template>
-                                <template x-if="!(expediente.actuados || []).length">
-                                    <p class="text-sm text-gris text-center py-8">Aún no hay actuados registrados en este expediente.</p>
-                                </template>
-                            </div>
-                        </div>
-                    </div>
+                        @include('expedientes.detalle.historial-resumen')
+                    </aside>
                 </div>
+
             </div>
         </template>
 
         @include('expedientes.detalle.modal-actuado')
         @include('expedientes.detalle.modal-enmienda')
         @include('expedientes.detalle.remision-unidad')
+        @include('expedientes.detalle.modal-hash')
     </div>
 
     <script>
@@ -204,7 +151,13 @@
                 expediente: null,
                 loading: true,
                 error: null,
-                hashVisible: null,
+                hashActuado: null,
+
+                pasoActivo: 'recepcion',
+                seccionActiva: 'resumen',
+                avisoPaso: null,
+                trazabilidadAbierta: false,
+                seguimientoPestana: 'plazos',
 
                 // Actuados / catálogo (B4.5)
                 modalActuadoOpen: false,
@@ -223,6 +176,31 @@
                 errorRequisitos: null,
                 submittingEvaluacion: false,
                 resultadoEvaluacion: null,
+
+                // Planificación (paso 3)
+                submittingPlanificacion: false,
+                errorPlanificacion: null,
+                formPlanificacion: { descripcion: '', fecha_limite_propuesta: '' },
+                archivoPlanificacion: null,
+                submittingVistoBuenoPlanificacion: false,
+                formVistoBuenoPlanificacion: { descripcion: '' },
+                submittingDevolverPlanificacion: false,
+                formDevolverPlanificacion: { justificacion: '' },
+
+                // Ejecución (paso 4)
+                submittingAmpliacion: false,
+                formAmpliacion: { justificacion: '' },
+                submittingDescargos: false,
+                formDescargos: { comunicar: { descripcion: '' }, recibir: { descripcion: '' } },
+                archivoComunicacion: null,
+                archivoRecepcion: null,
+
+                // Cierre (paso 5)
+                submittingVistoBuenoFinal: false,
+                formVistoBuenoFinal: { descripcion: '' },
+                submittingReparto: false,
+                formReparto: { destino: '', justificacion: '' },
+                destinosReparto: ['Juzgado Disciplinario', 'Sumariante', 'Asesoría Legal', 'Asesoría Jurídica'],
 
                 // Enmienda (B4.2 / CTR-09)
                 modalEnmiendaOpen: false,
@@ -243,6 +221,19 @@
                 submittingIncompetencia: false,
                 formIncompetencia: { unidad_destino_id: '', motivo: '' },
 
+                get pasos() {
+                    return this.expediente?.pasos || [];
+                },
+
+                get secciones() {
+                    return [
+                        { codigo: 'resumen', etiqueta: 'Resumen', icono: 'fa-th-large', titulo: 'Muestra la carátula, las partes y los hechos del expediente' },
+                        { codigo: 'partes', etiqueta: 'Partes Procesales', icono: 'fa-users', titulo: 'Muestra denunciante y denunciado en una sola sección' },
+                        { codigo: 'hechos', etiqueta: 'Hechos', icono: 'fa-file-lines', titulo: 'Muestra el resumen de los hechos denunciados' },
+                        { codigo: 'historial', etiqueta: 'Historial', icono: 'fa-clock', titulo: 'Muestra plazos y línea de tiempo de actuados' },
+                    ];
+                },
+
                 async init() {
                     await this.cargarExpediente();
                     await this.cargarCatalogoActuados();
@@ -253,6 +244,262 @@
                     return this.rolInicial || '';
                 },
 
+                esEncargada() {
+                    return this.rolUsuarioActual() === 'ENCARGADA';
+                },
+
+                esAc022() {
+                    return this.expediente?.reglamento?.codigo === 'AC_022_2018';
+                },
+
+                esAc055() {
+                    return this.expediente?.reglamento?.codigo === 'AC_055_2018';
+                },
+
+                estadoCodigo() {
+                    return this.expediente?.estado_actual?.codigo || '';
+                },
+
+                estadoFinal() {
+                    return this.expediente?.estado_actual?.es_final === true
+                        || ['CONCLUIDO', 'CONCLUIDO_REMITIDO', 'DERIVADO_TRANSPARENCIA', 'ARCHIVO_DEFINITIVO', 'ARCHIVO_POR_ABANDONO']
+                            .includes(this.estadoCodigo());
+                },
+
+                puedeEnmendar() {
+                    return !this.esEncargada() && this.pasoEditable();
+                },
+
+                puedeSolicitarIncompetencia() {
+                    return !this.esEncargada() && this.pasoEditable();
+                },
+
+                pasoPorCodigo(codigo) {
+                    return this.pasos.find(paso => paso.codigo === codigo) || null;
+                },
+
+                etiquetaPaso(codigo) {
+                    const etiquetas = { completado: 'Completado', activo: 'En curso', bloqueado: 'Bloqueado' };
+                    return etiquetas[this.pasoPorCodigo(codigo)?.estado] || '—';
+                },
+
+                pasoActivoServicio() {
+                    return this.pasos.find(paso => paso.estado === 'activo') || null;
+                },
+
+                progresoPasos() {
+                    const total = this.pasos.length;
+                    if (total === 0) {
+                        return 0;
+                    }
+                    if (total === 1) {
+                        return this.pasos[0].estado === 'completado' ? 100 : 0;
+                    }
+
+                    const indiceActivo = this.pasos.findIndex(paso => paso.estado === 'activo');
+                    if (indiceActivo >= 0) {
+                        return Math.min(100, Math.max(0, (indiceActivo / (total - 1)) * 100));
+                    }
+
+                    const completados = this.pasos.filter(paso => paso.estado === 'completado').length;
+                    if (completados === 0) {
+                        return 0;
+                    }
+
+                    return Math.min(100, ((completados - 1) / (total - 1)) * 100);
+                },
+
+                etiquetaProgresoPasos() {
+                    const paso = this.pasoActivoServicio();
+                    if (paso) {
+                        return `Paso ${paso.numero} de ${this.pasos.length} · ${paso.nombre}`;
+                    }
+
+                    const completados = this.pasos.filter(paso => paso.estado === 'completado');
+                    const ultimo = completados[completados.length - 1];
+
+                    return ultimo
+                        ? `Paso ${ultimo.numero} de ${this.pasos.length} · ${ultimo.nombre} · completado`
+                        : '';
+                },
+
+                pasoCompletado(codigo = this.pasoActivo) {
+                    return this.pasoPorCodigo(codigo)?.estado === 'completado';
+                },
+
+                pasoEditable() {
+                    const paso = this.pasoPorCodigo(this.pasoActivo);
+                    return !!paso
+                        && paso.codigo !== 'recepcion'
+                        && paso.estado === 'activo'
+                        && !this.estadoFinal();
+                },
+
+                resultadoEvaluacionGuardado() {
+                    if (this.tieneActuado('ACT_ADMISION')) {
+                        return { resultado: 'ACT_ADMISION' };
+                    }
+                    if (this.tieneActuado('ACT_OBSERVACION')) {
+                        return {
+                            resultado: 'ACT_OBSERVACION',
+                            requisitos_faltantes: (this.requisitos || []).filter(req => !req._cumplido).length,
+                        };
+                    }
+                    if (this.tieneActuado('ACT_RECHAZO')) {
+                        return {
+                            resultado: 'ACT_RECHAZO',
+                            faltantes_criticos: (this.requisitos || []).filter(req => req.es_critico && !req._cumplido).map(req => req.id),
+                        };
+                    }
+                    return null;
+                },
+
+                seleccionarPaso(paso) {
+                    if (!paso) {
+                        return;
+                    }
+                    if (paso.estado === 'bloqueado') {
+                        this.avisoPaso = {
+                            titulo: `Paso ${paso.numero} bloqueado: ${paso.nombre}`,
+                            mensaje: paso.mensaje_bloqueo || 'Complete el paso anterior para continuar.',
+                        };
+                        return;
+                    }
+                    this.pasoActivo = paso.codigo;
+                    this.seccionActiva = 'resumen';
+                    this.trazabilidadAbierta = false;
+                    this.avisoPaso = paso.estado === 'completado' && paso.codigo !== 'recepcion'
+                        ? {
+                            titulo: `Paso ${paso.numero} completado: ${paso.nombre}`,
+                            mensaje: 'Este paso solo puede consultarse. Los datos registrados se muestran bloqueados para conservar la trazabilidad.',
+                        }
+                        : null;
+                },
+
+                seleccionarSeccion(seccion) {
+                    if (this.pasoActivo === 'recepcion') {
+                        this.seccionActiva = seccion;
+                    }
+                    this.avisoPaso = null;
+                    if (seccion === 'historial') {
+                        this.trazabilidadAbierta = true;
+                        this.seguimientoPestana = 'trazabilidad';
+                    } else {
+                        this.trazabilidadAbierta = false;
+                    }
+                },
+
+                pasoSiguiente() {
+                    const actual = this.pasoPorCodigo(this.pasoActivo);
+                    if (!actual) {
+                        return null;
+                    }
+                    const indice = this.pasos.findIndex(paso => paso.codigo === actual.codigo);
+                    return indice >= 0 && indice + 1 < this.pasos.length ? this.pasos[indice + 1] : null;
+                },
+
+                puedeAvanzarPaso() {
+                    const actual = this.pasoPorCodigo(this.pasoActivo);
+
+                    return !!actual
+                        && !!this.pasoSiguiente()
+                        && actual.estado === 'completado';
+                },
+
+                etiquetaSiguientePaso() {
+                    const siguiente = this.pasoSiguiente();
+                    return siguiente ? `Siguiente paso: ${siguiente.nombre}` : '';
+                },
+
+                irASiguientePaso() {
+                    if (!this.puedeAvanzarPaso()) {
+                        return;
+                    }
+
+                    const siguiente = this.pasoSiguiente();
+                    if (!siguiente) {
+                        return;
+                    }
+                    this.seleccionarPaso(siguiente);
+                    if (siguiente.estado === 'bloqueado') {
+                        this.$nextTick(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
+                    }
+                },
+
+                etiquetaResultadoEvaluacion(codigo) {
+                    const etiquetas = {
+                        ACT_ADMISION: 'Admisión',
+                        ACT_OBSERVACION: 'Observación',
+                        ACT_RECHAZO: 'Rechazo',
+                    };
+                    return etiquetas[codigo] || codigo || 'Registrado';
+                },
+
+                detalleResultadoEvaluacion(resumen) {
+                    if (!resumen) {
+                        return '';
+                    }
+                    if (resumen.resultado === 'ACT_ADMISION') {
+                        return 'Todos los requisitos de admisibilidad cumplidos.';
+                    }
+                    if (resumen.resultado === 'ACT_OBSERVACION') {
+                        return `${Number(resumen.requisitos_faltantes || 0)} requisito(s) no crítico(s) sin cumplir.`;
+                    }
+                    if (resumen.resultado === 'ACT_RECHAZO') {
+                        return `${(resumen.faltantes_criticos || []).length} requisito(s) crítico(s) ausente(s).`;
+                    }
+                    return '';
+                },
+
+                partesPorTipo(tipo) {
+                    return (this.expediente?.partes_vigentes || [])
+                        .filter(parte => (parte.tipo || '').toUpperCase() === tipo);
+                },
+
+                partesOtras() {
+                    return (this.expediente?.partes_vigentes || [])
+                        .filter(parte => !['DENUNCIANTE', 'DENUNCIADO'].includes((parte.tipo || '').toUpperCase()));
+                },
+
+                actuadosRecientes(limite = 3) {
+                    const actuados = this.expediente?.actuados || [];
+                    return actuados.slice(-limite).reverse();
+                },
+
+                sincronizarPasoActivo({ forzar = false } = {}) {
+                    const actual = this.pasoPorCodigo(this.pasoActivo);
+                    if (!forzar && actual && actual.estado === 'activo') {
+                        return;
+                    }
+                    const activo = this.pasoActivoServicio();
+                    if (activo) {
+                        this.pasoActivo = activo.codigo;
+                        this.avisoPaso = null;
+                        return;
+                    }
+                    const completados = this.pasos.filter(paso => paso.estado === 'completado');
+                    if (completados.length > 0) {
+                        this.pasoActivo = completados[completados.length - 1].codigo;
+                        this.avisoPaso = null;
+                    }
+                },
+
+                tieneActuado(codigo) {
+                    return (this.expediente?.actuados || []).some(actuado => actuado.tipo_actuado?.codigo === codigo);
+                },
+
+                actuadoDe(codigo) {
+                    return (this.expediente?.actuados || []).find(actuado => actuado.tipo_actuado?.codigo === codigo) || null;
+                },
+
+                tieneInformeFinal() {
+                    return (this.expediente?.actuados || []).some(actuado => (actuado.tipo_actuado?.codigo || '').startsWith('ACT_INFORME'));
+                },
+
+                actuadosFinales() {
+                    return (this.catalogoActuados || []).filter(actuado => (actuado.codigo || '').startsWith('ACT_INFORME'));
+                },
+
                 async cargarExpediente() {
                     this.loading = true;
                     this.error = null;
@@ -260,6 +507,7 @@
                         const { ok, status, data } = await window.apiFetch(`/api/expedientes/${this.expedienteId}`);
                         if (ok) {
                             this.expediente = data.data || data;
+                            this.sincronizarPasoActivo({ forzar: true });
                         } else if (status === 403) {
                             window.apiToast('error', data?.message || 'No tiene permisos para ver este expediente.');
                             setTimeout(() => window.location.href = '/expedientes', 1500);
@@ -271,6 +519,12 @@
                     } finally {
                         this.loading = false;
                     }
+                },
+
+                async recargarTrasAccion() {
+                    await this.cargarExpediente();
+                    await this.cargarCatalogoActuados();
+                    await this.cargarRequisitos();
                 },
 
                 async cargarCatalogoActuados() {
@@ -294,15 +548,16 @@
                     }
                 },
 
-                async abrirModalActuado() {
+                async abrirModalActuado(catalogoId = null) {
                     this.modalActuadoOpen = true;
                     this.errorActuado = null;
-                    this.formActuado = { catalogo_actuado_id: '', descripcion: '' };
+                    this.formActuado = { catalogo_actuado_id: catalogoId ? String(catalogoId) : '', descripcion: '' };
                     this.archivoSeleccionado = null;
                     this.requiereAdjunto = false;
                     const input = document.getElementById('adjuntoActuado');
                     if (input) input.value = '';
                     await this.cargarCatalogoActuados();
+                    if (catalogoId) this.verificarRequisitoAdjunto();
                 },
                 cerrarModalActuado() { this.modalActuadoOpen = false; },
 
@@ -329,8 +584,7 @@
                         if (ok || status === 201) {
                             window.apiToast('exito', data?.message || 'Actuado registrado correctamente.');
                             this.modalActuadoOpen = false;
-                            await this.cargarExpediente();
-                            await this.cargarCatalogoActuados();
+                            await this.recargarTrasAccion();
                         } else {
                             this.errorActuado = data?.message || 'No se pudo registrar el actuado.';
                             if (data?.errors) window.apiToast('error', this.errorActuado, data.errors);
@@ -352,7 +606,6 @@
                             this.requisitos = (Array.isArray(lista) ? lista : []).map(r => ({
                                 ...r,
                                 _cumplido: !!(r.cumplido ?? r.cumple ?? false),
-                                _observacion: r.observacion || '',
                             }));
                         } else if (status === 403 || status === 404) {
                             this.requisitos = [];
@@ -373,15 +626,9 @@
                     this.resultadoEvaluacion = null;
                     try {
                         const payload = {
-                            evaluaciones: this.requisitos.map(r => ({
-                                requisito_id: r.id,
-                                cumplido: !!r._cumplido,
-                                observacion: r._cumplido ? null : (r._observacion || null),
-                            })),
                             requisitos: this.requisitos.map(r => ({
                                 requisito_id: r.id,
-                                cumplido: !!r._cumplido,
-                                observacion: r._cumplido ? null : (r._observacion || null),
+                                cumple: !!r._cumplido,
                             })),
                         };
                         const { ok, status, data } = await window.apiFetch(`/api/expedientes/${this.expedienteId}/evaluacion`, {
@@ -391,9 +638,7 @@
                         if (ok || status === 201) {
                             this.resultadoEvaluacion = data?.resumen || data?.data || data || { resultado: 'Registrado' };
                             window.apiToast('exito', 'Evaluación de admisibilidad registrada.');
-                            await this.cargarExpediente();
-                            await this.cargarCatalogoActuados();
-                            await this.cargarRequisitos();
+                            await this.recargarTrasAccion();
                         } else {
                             window.apiToast('error', data?.message || 'No se pudo registrar la evaluación.', data?.errors);
                         }
@@ -401,6 +646,172 @@
                         window.apiToast('error', e.message || 'Error al registrar la evaluación.');
                     } finally {
                         this.submittingEvaluacion = false;
+                    }
+                },
+
+                async submitPlanificacion() {
+                    this.submittingPlanificacion = true;
+                    this.errorPlanificacion = null;
+                    try {
+                        const formData = new FormData();
+                        formData.append('descripcion', this.formPlanificacion.descripcion);
+                        if (!this.esAc022()) {
+                            formData.append('fecha_limite_propuesta', this.formPlanificacion.fecha_limite_propuesta);
+                        }
+                        if (this.archivoPlanificacion) {
+                            formData.append('adjunto', this.archivoPlanificacion);
+                        }
+                        const { ok, status, data } = await window.apiFetch(`/api/expedientes/${this.expedienteId}/planificacion`, {
+                            method: 'POST',
+                            body: formData,
+                        });
+                        if (ok || status === 201) {
+                            window.apiToast('exito', data?.message || 'Planificación registrada correctamente.');
+                            this.formPlanificacion = { descripcion: '', fecha_limite_propuesta: '' };
+                            this.archivoPlanificacion = null;
+                            await this.recargarTrasAccion();
+                        } else {
+                            this.errorPlanificacion = data?.message || 'No se pudo registrar la planificación.';
+                            window.apiToast('error', this.errorPlanificacion, data?.errors);
+                        }
+                    } catch (e) {
+                        this.errorPlanificacion = e.message || 'Error al registrar la planificación.';
+                    } finally {
+                        this.submittingPlanificacion = false;
+                    }
+                },
+
+                async submitVistoBuenoPlanificacion() {
+                    this.submittingVistoBuenoPlanificacion = true;
+                    try {
+                        const { ok, data } = await window.apiFetch(`/api/expedientes/${this.expedienteId}/planificacion/visto-bueno`, {
+                            method: 'POST',
+                            body: { descripcion: this.formVistoBuenoPlanificacion.descripcion },
+                        });
+                        if (ok) {
+                            window.apiToast('exito', data?.message || 'Planificación aprobada.');
+                            await this.recargarTrasAccion();
+                        } else {
+                            window.apiToast('error', data?.message || 'No se pudo aprobar la planificación.', data?.errors);
+                        }
+                    } catch (e) {
+                        window.apiToast('error', e.message || 'Error al aprobar la planificación.');
+                    } finally {
+                        this.submittingVistoBuenoPlanificacion = false;
+                    }
+                },
+
+                async submitDevolverPlanificacion() {
+                    this.submittingDevolverPlanificacion = true;
+                    try {
+                        const { ok, data } = await window.apiFetch(`/api/expedientes/${this.expedienteId}/planificacion/devolver`, {
+                            method: 'POST',
+                            body: { justificacion: this.formDevolverPlanificacion.justificacion },
+                        });
+                        if (ok) {
+                            window.apiToast('exito', data?.message || 'Planificación devuelta con observaciones.');
+                            await this.recargarTrasAccion();
+                        } else {
+                            window.apiToast('error', data?.message || 'No se pudo devolver la planificación.', data?.errors);
+                        }
+                    } catch (e) {
+                        window.apiToast('error', e.message || 'Error al devolver la planificación.');
+                    } finally {
+                        this.submittingDevolverPlanificacion = false;
+                    }
+                },
+
+                async submitAmpliacion() {
+                    this.submittingAmpliacion = true;
+                    try {
+                        const { ok, status, data } = await window.apiFetch(`/api/expedientes/${this.expedienteId}/ampliacion`, {
+                            method: 'POST',
+                            body: { justificacion: this.formAmpliacion.justificacion },
+                        });
+                        if (ok || status === 201) {
+                            window.apiToast('exito', data?.message || 'Solicitud de ampliación enviada.');
+                            this.formAmpliacion = { justificacion: '' };
+                            await this.recargarTrasAccion();
+                        } else {
+                            window.apiToast('error', data?.message || 'No se pudo solicitar la ampliación.', data?.errors);
+                        }
+                    } catch (e) {
+                        window.apiToast('error', e.message || 'Error al solicitar la ampliación.');
+                    } finally {
+                        this.submittingAmpliacion = false;
+                    }
+                },
+
+                async submitDescargos(tipo) {
+                    this.submittingDescargos = true;
+                    try {
+                        const formData = new FormData();
+                        formData.append('descripcion', this.formDescargos[tipo].descripcion);
+                        const archivo = tipo === 'comunicar' ? this.archivoComunicacion : this.archivoRecepcion;
+                        if (archivo) {
+                            formData.append('adjunto', archivo);
+                        }
+                        const endpoint = tipo === 'comunicar' ? 'descargos/comunicar' : 'descargos/recibir';
+                        const { ok, status, data } = await window.apiFetch(`/api/expedientes/${this.expedienteId}/${endpoint}`, {
+                            method: 'POST',
+                            body: formData,
+                        });
+                        if (ok || status === 201) {
+                            window.apiToast('exito', data?.message || 'Operación registrada correctamente.');
+                            this.formDescargos[tipo].descripcion = '';
+                            if (tipo === 'comunicar') {
+                                this.archivoComunicacion = null;
+                            } else {
+                                this.archivoRecepcion = null;
+                            }
+                            await this.recargarTrasAccion();
+                        } else {
+                            window.apiToast('error', data?.message || 'No se pudo registrar la operación.', data?.errors);
+                        }
+                    } catch (e) {
+                        window.apiToast('error', e.message || 'Error al registrar la operación.');
+                    } finally {
+                        this.submittingDescargos = false;
+                    }
+                },
+
+                async submitVistoBuenoFinal() {
+                    this.submittingVistoBuenoFinal = true;
+                    try {
+                        const { ok, data } = await window.apiFetch(`/api/expedientes/${this.expedienteId}/cierre/visto-bueno`, {
+                            method: 'POST',
+                            body: { descripcion: this.formVistoBuenoFinal.descripcion },
+                        });
+                        if (ok) {
+                            window.apiToast('exito', data?.message || 'Visto Bueno Final registrado.');
+                            await this.recargarTrasAccion();
+                        } else {
+                            window.apiToast('error', data?.message || 'No se pudo registrar el Visto Bueno Final.', data?.errors);
+                        }
+                    } catch (e) {
+                        window.apiToast('error', e.message || 'Error al registrar el Visto Bueno Final.');
+                    } finally {
+                        this.submittingVistoBuenoFinal = false;
+                    }
+                },
+
+                async submitReparto() {
+                    this.submittingReparto = true;
+                    try {
+                        const { ok, data } = await window.apiFetch(`/api/expedientes/${this.expedienteId}/cierre/reparto`, {
+                            method: 'POST',
+                            body: { ...this.formReparto },
+                        });
+                        if (ok) {
+                            window.apiToast('exito', data?.message || 'Reparto institucional ejecutado.');
+                            await this.recargarTrasAccion();
+                        } else {
+                            window.apiToast('error', data?.message || 'No se pudo ejecutar el reparto.', data?.errors);
+                        }
+                    } catch (e) {
+                        window.apiToast('error', e.message || 'Error al ejecutar el reparto.');
+                    } finally {
+                        this.submittingReparto = false;
                     }
                 },
 

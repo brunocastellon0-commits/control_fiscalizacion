@@ -5,10 +5,12 @@ namespace App\Services;
 use App\Models\Actuado;
 use App\Models\Asignacion;
 use App\Models\CatalogoActuado;
+use App\Models\CatalogoEstado;
 use App\Models\Expediente;
 use App\Models\Plazo;
 use App\Models\Rol;
 use App\Models\Usuario;
+use App\Notifications\CronogramaCargado;
 use Carbon\Carbon;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -34,6 +36,8 @@ class PlanificacionService
 
     public const ESTADO_PENDIENTE_VISTO_BUENO = 'PENDIENTE_VISTO_BUENO';
 
+    public const ESTADO_EJECUCION = 'EN_EJECUCION';
+
     public const TIPO_PLAZO_PLANIFICACION = 'PLANIFICACION';
 
     public const METADATO_FECHA_LIMITE = 'fecha_limite';
@@ -43,16 +47,17 @@ class PlanificacionService
     ) {}
 
     /**
-     * US-2.4: carga la planificación del expediente y la remite a la bandeja
-     * de la Encargada para su Visto Bueno. Transaccional:
+     * US-2.4: carga la planificación del expediente. Transaccional:
      *
      * 1. Valida que el expediente esté en EN_PLANIFICACION.
      * 2. Resuelve el actuado según el reglamento: AC_022_2018 → Cronograma
      *    (Técnico); AC_054_2018/AC_055_2018 → MPA (Auditor). El MPA exige
      *    fecha_limite_propuesta, que se guarda en metadatos del actuado.
      * 3. Cierra el plazo de PLANIFICACION (el operador cumplió al entregar).
-     * 4. Emite el actuado vía ActuadoService, que reasigna la bandeja del
-     *    operador a la Encargada y transiciona a PENDIENTE_VISTO_BUENO.
+     * 4. Con el Cronograma de Trabajo el Técnico conserva la bandeja, el
+     *    expediente pasa a EN_EJECUCION y la Encargada solo recibe un aviso.
+     *    Con el MPA se mantiene el Visto Bueno: se reasigna a la Encargada y
+     *    el expediente pasa a PENDIENTE_VISTO_BUENO.
      */
     public function cargarPlanificacion(
         Expediente $expediente,
@@ -65,6 +70,7 @@ class PlanificacionService
             $this->validarEstado($expediente, static::ESTADO_PLANIFICACION);
 
             $catalogo = $this->catalogoSegunReglamento($expediente);
+            $esCronograma = $catalogo->codigo === static::CODIGO_ACT_CRONOGRAMA;
 
             $metadatos = ['tipo' => 'PLANIFICACION'];
 
@@ -76,15 +82,27 @@ class PlanificacionService
 
             $encargada = $this->resolverEncargada();
 
-            return $this->actuadoService->registerActuado(
+            $usuarioDestinoId = $esCronograma ? null : $encargada->id;
+            $estadoNuevoIdExplicito = $esCronograma
+                ? CatalogoEstado::where('codigo', static::ESTADO_EJECUCION)->firstOrFail()->id
+                : null;
+
+            $actuado = $this->actuadoService->registerActuado(
                 expediente: $expediente,
                 catalogoActuado: $catalogo,
                 emisor: $emisor,
                 descripcion: $descripcion,
-                usuarioDestinoId: $encargada->id,
+                usuarioDestinoId: $usuarioDestinoId,
                 metadatos: $metadatos,
                 adjunto: $adjunto,
+                estadoNuevoIdExplicito: $estadoNuevoIdExplicito,
             );
+
+            if ($esCronograma) {
+                $encargada->notify(new CronogramaCargado($expediente, $actuado));
+            }
+
+            return $actuado;
         }, 3);
     }
 
@@ -94,8 +112,9 @@ class PlanificacionService
      *
      * 1. Valida que el expediente esté en PENDIENTE_VISTO_BUENO.
      * 2. Si la planificación cargada fue un MPA (AC054/055), el plazo de
-     *    EJECUCION usa la fecha límite dinámica propuesta (RN-05). Para el
-     *    Cronograma (AC022) el reloj corre los 10 días hábiles base.
+     *    EJECUCION usa la fecha límite dinámica propuesta (RN-05). El
+     *    Cronograma de AC022 ya no transita por este Visto Bueno: abre la
+     *    ejecución directamente al cargarse.
      * 3. Reasigna la bandeja de la Encargada al operador original (buscando
      *    su asignación previa inactiva).
      */
