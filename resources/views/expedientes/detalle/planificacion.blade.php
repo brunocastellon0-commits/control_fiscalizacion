@@ -33,7 +33,7 @@
             </div>
         </template>
 
-        <form @submit.prevent="submitPlanificacion()" x-show="pasoActivo === 'planificacion' && !esEncargada() && pasoPorCodigo('planificacion')?.estado === 'activo'"
+        <form @submit.prevent="submitPlanificacion()" x-show="pasoEditable() && !esEncargada()"
             x-cloak class="space-y-3 border-t border-gris-claro pt-4">
             <p class="text-sm font-semibold text-grafito" x-text="esAc022() ? 'Cargar Cronograma de Trabajo' : 'Registrar MPA'"></p>
             <div>
@@ -64,7 +64,7 @@
             </div>
         </form>
 
-        <template x-if="pasoActivo === 'planificacion' && esEncargada() && estadoCodigo() === 'PENDIENTE_VISTO_BUENO'">
+        <template x-if="pasoEditable() && esEncargada() && estadoCodigo() === 'PENDIENTE_VISTO_BUENO'">
             <div class="space-y-3 border-t border-gris-claro pt-4">
                 <p class="text-sm font-semibold text-grafito">Visto Bueno a la planificación</p>
                 <textarea x-model="formVistoBuenoPlanificacion.descripcion" rows="2" minlength="5"

@@ -19,7 +19,7 @@
                     <i class="fa-solid fa-hourglass-half mr-1"></i> Solicitud de ampliación enviada. En espera de aprobación de la Encargada.
                 </p>
             </template>
-            <template x-if="pasoPorCodigo('ejecucion')?.estado === 'activo' && !esEncargada()">
+            <template x-if="pasoEditable() && !esEncargada()">
                 <div class="border-t border-gris-claro pt-4">
                     <button type="button" @click="abrirModalActuado()"
                         title="Registra una diligencia de la investigación como actuado inmutable"
@@ -42,7 +42,7 @@
             <template x-if="!tieneActuado('ACT_APROBAR_AMPLIACION') && !tieneActuado('ACT_SOLICITAR_AMPLIACION')">
                 <p class="text-xs text-gris">La ampliación excepcional de 5 días hábiles debe ser aprobada por la Encargada.</p>
             </template>
-            <form @submit.prevent="submitAmpliacion()" x-show="!esEncargada() && pasoPorCodigo('ejecucion')?.estado === 'activo' && estadoCodigo() === 'EN_EJECUCION' && !tieneActuado('ACT_SOLICITAR_AMPLIACION')"
+            <form @submit.prevent="submitAmpliacion()" x-show="!esEncargada() && pasoEditable() && estadoCodigo() === 'EN_EJECUCION' && !tieneActuado('ACT_SOLICITAR_AMPLIACION')"
                 x-cloak class="space-y-3 border-t border-gris-claro pt-3">
                 <div>
                     <label class="block text-xs font-semibold text-grafito uppercase mb-1">Justificación <span class="text-[#F15A24]">*</span></label>
@@ -78,7 +78,7 @@
                 <p class="text-xs font-semibold text-green-800"><i class="fa-solid fa-circle-check mr-1"></i> Descargos recibidos; la ejecución se reanudó.</p>
             </template>
 
-            <form @submit.prevent="submitDescargos('comunicar')" x-show="!esEncargada() && pasoPorCodigo('ejecucion')?.estado === 'activo' && !tieneActuado('ACT_COMUNICACION_HALLAZGOS')"
+            <form @submit.prevent="submitDescargos('comunicar')" x-show="!esEncargada() && pasoEditable() && !tieneActuado('ACT_COMUNICACION_HALLAZGOS')"
                 x-cloak class="space-y-3 border-t border-gris-claro pt-3">
                 <p class="text-sm font-semibold text-grafito">Comunicar hallazgos</p>
                 <textarea x-model="formDescargos.comunicar.descripcion" rows="2" minlength="5" required
@@ -95,7 +95,7 @@
                 </div>
             </form>
 
-            <form @submit.prevent="submitDescargos('recibir')" x-show="!esEncargada() && pasoPorCodigo('ejecucion')?.estado === 'activo' && tieneActuado('ACT_COMUNICACION_HALLAZGOS') && !tieneActuado('ACT_RECEPCION_DESCARGOS')"
+            <form @submit.prevent="submitDescargos('recibir')" x-show="!esEncargada() && pasoEditable() && tieneActuado('ACT_COMUNICACION_HALLAZGOS') && !tieneActuado('ACT_RECEPCION_DESCARGOS')"
                 x-cloak class="space-y-3 border-t border-gris-claro pt-3">
                 <p class="text-sm font-semibold text-grafito">Registrar recepción de descargos</p>
                 <textarea x-model="formDescargos.recibir.descripcion" rows="2" minlength="5" required

@@ -95,6 +95,7 @@ it('bloquea los pasos posteriores mientras el expediente está en evaluación', 
         ->and($pasos[0]['descripcion'])->toBe('Solo consulta')
         ->and(array_column($pasos, 'estado'))->toBe(['completado', 'activo', 'bloqueado', 'bloqueado', 'bloqueado'])
         ->and($pasos[2]['mensaje_bloqueo'])->toContain('admisibilidad')
+        ->and($this->getJson('/api/expedientes/'.$expediente->id)->json('data.estado_actual.es_final'))->toBeFalse()
         ->and($pasos[3]['mensaje_bloqueo'])->toContain('cronograma')
         ->and($pasos[4]['mensaje_bloqueo'])->toContain('informe final');
 });
@@ -139,6 +140,10 @@ it('muestra los cinco pasos, el aviso de bloqueo y los formularios de cada etapa
         ->assertSee('Pasos del expediente')
         ->assertSee('Secciones del expediente')
         ->assertSee('Carátula del expediente')
+        ->assertSee('Progreso del trámite')
+        ->assertSee('aria-current')
+        ->assertSee('puedeAvanzarPaso()')
+        ->assertSee('Complete y guarde el trabajo de esta etapa para habilitar el avance.')
         ->assertSee('Ver cadena de custodia')
         ->assertSee('group-hover:opacity-100')
         ->assertSee('Información general')
@@ -147,6 +152,8 @@ it('muestra los cinco pasos, el aviso de bloqueo y los formularios de cada etapa
         ->assertSee('Estado del expediente')
         ->assertSee('Historial de movimientos')
         ->assertSee('Evaluación de admisibilidad')
+        ->assertSee('Revise los requisitos según el reglamento de la causa.')
+        ->assertDontSee('Objetivo del paso')
         ->assertSee('Planificación')
         ->assertSee('Ejecución de la investigación')
         ->assertSee('Cierre del expediente')
@@ -155,7 +162,27 @@ it('muestra los cinco pasos, el aviso de bloqueo y los formularios de cada etapa
         ->assertSee('/planificacion')
         ->assertSee('/ampliacion')
         ->assertSee('descargos/comunicar')
-        ->assertSee('/cierre/visto-bueno');
+        ->assertSee('/cierre/visto-bueno')
+        ->assertDontSee('Ver todos los plazos')
+        ->assertDontSee('Etapa actual:')
+        ->assertDontSee('irAEtapaActual');
+});
+
+it('muestra los pasos completados como solo consulta y bloquea sus acciones', function () {
+    ['expediente' => $expediente, 'usuario' => $usuario] = pasosSemilla('EN_EJECUCION', [
+        'ACT_ADMISION',
+        'ACT_CRONOGRAMA_TRABAJO',
+    ]);
+
+    actingAs($usuario)
+        ->get('/expedientes/'.$expediente->id)
+        ->assertOk()
+        ->assertSee('pasoEditable()', false)
+        ->assertSee("pasoCompletado('admisibilidad')", false)
+        ->assertSee('Evaluación registrada. Los requisitos se muestran tal como se guardaron y no pueden modificarse.')
+        ->assertSee('Completado, solo consulta.')
+        ->assertSee('sincronizarPasoActivo({ forzar: true })', false)
+        ->assertDontSee(":disabled=\"pasoActivo === 'recepcion' || estadoFinal()\"", false);
 });
 
 it('deniega 403 al operador sin asignación que intenta usar un formulario de paso bloqueado', function () {

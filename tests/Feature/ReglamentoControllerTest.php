@@ -108,3 +108,23 @@ it('el admin activo puede leer el catalogo de reglamentos', function () {
 
     $this->getJson('/api/reglamentos')->assertOk();
 });
+
+it('la ventanilla activa puede leer los reglamentos que necesita para aperturar', function () {
+    $ventanilla = pasoCUsuario(Rol::CODIGO_VENTANILLA);
+    Reglamento::factory()->create(['codigo' => 'AA_VENTANILLA']);
+
+    Sanctum::actingAs($ventanilla, ['*']);
+
+    $this->getJson('/api/reglamentos')
+        ->assertOk()
+        ->assertJsonPath('data.0.codigo', 'AA_VENTANILLA');
+});
+
+it('la ventanilla no gana acceso a catalogos que no utiliza', function () {
+    $ventanilla = pasoCUsuario(Rol::CODIGO_VENTANILLA);
+
+    Sanctum::actingAs($ventanilla, ['*']);
+
+    $this->getJson('/api/catalogo/actuados')->assertForbidden();
+    $this->getJson('/api/estados')->assertForbidden();
+});

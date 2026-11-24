@@ -40,7 +40,7 @@
                 </select>
             </div>
             <div>
-                <label class="block text-xs font-medium text-grafito mb-1">Buscar por NUREJ</label>
+                <label class="block text-xs font-medium text-grafito mb-1">Buscar por NURED</label>
                 <input type="text" x-model="filtros.q" placeholder="Ej.: 123/2026"
                     class="w-full border border-gris-claro rounded-lg px-3 py-2 text-sm text-grafito focus:border-verde-institucional focus:ring-verde-institucional">
             </div>

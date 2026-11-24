@@ -9,7 +9,7 @@
             <template x-if="catalogoCargado && catalogoActuados.length > 0">
                 <span class="relative inline-flex group">
                     <button type="button" @click="abrirModalActuado()"
-                        :disabled="pasoActivo === 'recepcion' || estadoFinal()"
+                        :disabled="!pasoEditable()"
                         title="Registra un actuado formal según la etapa; no edita ni borra el historial"
                         class="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-verde-profundo text-white text-xs font-medium hover:bg-verde-institucional transition disabled:opacity-50 disabled:cursor-not-allowed">
                         <i class="fa-solid fa-file-circle-plus"></i> Emitir actuado

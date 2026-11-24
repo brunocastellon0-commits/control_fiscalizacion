@@ -2,9 +2,9 @@
     <div class="relative w-full">
         <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gris/70 text-xs"></i>
         <input type="search" x-model="q" @input.debounce.300ms="buscar()" @focus="siHayResultados()"
-            placeholder="Buscar expediente por NUREJ..."
+            placeholder="Buscar expediente por NURED..."
             class="w-full rounded-lg border border-gris-claro bg-white pl-8 pr-3 py-2 text-xs text-grafito focus:border-verde-institucional focus:ring-verde-institucional"
-            aria-label="Buscar expediente por NUREJ">
+            aria-label="Buscar expediente por NURED">
     </div>
 
     <div x-show="abierto" x-cloak x-transition
@@ -16,7 +16,7 @@
             <div class="p-3 text-xs text-[#B53F12]"><i class="fa-solid fa-triangle-exclamation mr-1"></i><span x-text="error"></span></div>
         </template>
         <template x-if="!cargando && !error && resultados.length === 0 && q.trim().length >= 3">
-            <div class="p-3 text-xs text-gris">No se encontraron expedientes con ese NUREJ.</div>
+            <div class="p-3 text-xs text-gris">No se encontraron expedientes con ese NURED.</div>
         </template>
         <template x-if="!cargando && resultados.length > 0">
             <ul class="max-h-72 overflow-y-auto divide-y divide-gris-claro">

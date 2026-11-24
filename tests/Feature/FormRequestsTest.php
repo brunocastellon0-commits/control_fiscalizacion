@@ -18,17 +18,19 @@ use Illuminate\Support\Str;
 function paso4SemillaRolesUsuarios(): array
 {
     $rolEncargada = Rol::factory()->create(['codigo' => Rol::CODIGO_ENCARGADA]);
+    $rolVentanilla = Rol::factory()->create(['codigo' => Rol::CODIGO_VENTANILLA]);
     $rolTecnico = Rol::factory()->create(['codigo' => Rol::CODIGO_TECNICO]);
     $rolAuditor = Rol::factory()->create(['codigo' => Rol::CODIGO_AUD_JURIDICO]);
     $rolAdmin = Rol::factory()->create(['codigo' => Rol::CODIGO_ADMIN]);
 
     $encargada = Usuario::factory()->create(['rol_id' => $rolEncargada->id, 'activo' => true]);
+    $ventanilla = Usuario::factory()->create(['rol_id' => $rolVentanilla->id, 'activo' => true]);
     $tecnico = Usuario::factory()->create(['rol_id' => $rolTecnico->id, 'activo' => true]);
     $tecnicoInactivo = Usuario::factory()->create(['rol_id' => $rolTecnico->id, 'activo' => false]);
     $auditor = Usuario::factory()->create(['rol_id' => $rolAuditor->id, 'activo' => true]);
     $admin = Usuario::factory()->create(['rol_id' => $rolAdmin->id, 'activo' => true]);
 
-    return compact('rolEncargada', 'rolTecnico', 'rolAuditor', 'rolAdmin', 'encargada', 'tecnico', 'tecnicoInactivo', 'auditor', 'admin');
+    return compact('rolEncargada', 'rolVentanilla', 'rolTecnico', 'rolAuditor', 'rolAdmin', 'encargada', 'ventanilla', 'tecnico', 'tecnicoInactivo', 'auditor', 'admin');
 }
 
 function paso4PayloadExpedienteValido(int $reglamentoId): array
@@ -93,15 +95,15 @@ function paso4AsignarBandeja(int $expedienteId, CatalogoActuado $actuado, Usuari
     ]);
 }
 
-describe('StoreExpedienteRequest (apertura de causa, rol TECNICO)', function () {
+describe('StoreExpedienteRequest (apertura de causa, rol VENTANILLA)', function () {
     beforeEach(function () {
         Route::post('/_test/expedientes', fn (StoreExpedienteRequest $request) => response()->json(['ok' => true]));
         $this->semilla = paso4SemillaRolesUsuarios();
         $this->reglamento = Reglamento::factory()->create();
     });
 
-    test('un tecnico puede abrir una causa con payload valido', function () {
-        $this->actingAs($this->semilla['tecnico'])
+    test('la ventanilla puede abrir una causa con payload valido', function () {
+        $this->actingAs($this->semilla['ventanilla'])
             ->post('/_test/expedientes', array_merge(
                 paso4PayloadExpedienteValido($this->reglamento->id),
                 ['adjunto' => UploadedFile::fake()->create('denuncia.pdf', 100, 'application/pdf')],
@@ -110,14 +112,14 @@ describe('StoreExpedienteRequest (apertura de causa, rol TECNICO)', function () 
             ->assertJson(['ok' => true]);
     });
 
-    test('un usuario sin rol TECNICO recibe 403', function () {
+    test('un usuario sin rol VENTANILLA recibe 403', function () {
         $this->actingAs($this->semilla['encargada'])
             ->postJson('/_test/expedientes', paso4PayloadExpedienteValido($this->reglamento->id))
             ->assertForbidden();
     });
 
     test('un payload invalido recibe 422', function () {
-        $this->actingAs($this->semilla['tecnico'])
+        $this->actingAs($this->semilla['ventanilla'])
             ->postJson('/_test/expedientes', [
                 'via' => 'DESCONOCIDA',
                 'reglamento_id' => 999999,

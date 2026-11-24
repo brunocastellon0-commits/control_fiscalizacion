@@ -10,7 +10,7 @@ class StoreExpedienteRequest extends FormRequest
 {
     /**
      * B2.3: delega en la policy `aperturaCausa` (exige usuario activo y rol
-     * TECNICO), en lugar de un check inline de rol sin validar `activo`.
+     * VENTANILLA), en lugar de un check inline de rol sin validar `activo`.
      */
     public function authorize(): bool
     {

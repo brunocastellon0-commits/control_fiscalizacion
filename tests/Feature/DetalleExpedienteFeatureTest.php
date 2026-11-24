@@ -126,8 +126,8 @@ it('carga la vista de detalle por sesion web con asignacion activa', function ()
         ->assertSee('Cadena de Custodia');
 });
 
-it('el creador sin asignacion puede ver su expediente antes del sorteo', function () {
-    $creador = Usuario::factory()->create(['rol_id' => Rol::factory()->create(['codigo' => Rol::CODIGO_TECNICO])->id]);
+it('el creador sin asignacion no accede al detalle operativo aunque este pendiente de sorteo', function () {
+    $creador = Usuario::factory()->create(['rol_id' => Rol::factory()->create(['codigo' => Rol::CODIGO_VENTANILLA])->id]);
     $reglamento = Reglamento::factory()->create();
     $estado = CatalogoEstado::factory()->create(['codigo' => 'PENDIENTE_SORTEO']);
 
@@ -142,11 +142,11 @@ it('el creador sin asignacion puede ver su expediente antes del sorteo', functio
 
     Sanctum::actingAs($creador, ['*']);
 
-    $this->getJson('/api/expedientes/'.$expediente->id)->assertOk();
+    $this->getJson('/api/expedientes/'.$expediente->id)->assertForbidden();
 });
 
 it('el creador pierde acceso una vez el expediente ya fue sorteado', function () {
-    $creador = Usuario::factory()->create(['rol_id' => Rol::factory()->create(['codigo' => Rol::CODIGO_TECNICO])->id]);
+    $creador = Usuario::factory()->create(['rol_id' => Rol::factory()->create(['codigo' => Rol::CODIGO_VENTANILLA])->id]);
     $asignado = Usuario::factory()->create(['rol_id' => Rol::factory()->create(['codigo' => Rol::CODIGO_AUD_JURIDICO])->id]);
     $reglamento = Reglamento::factory()->create();
     $estado = CatalogoEstado::factory()->create(['codigo' => 'EN_EVALUACION']);

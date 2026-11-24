@@ -32,6 +32,8 @@ class Expediente extends Model
         'resumen_hechos',
         'fecha_ingreso',
         'creado_por',
+        'boleta_apertura_path',
+        'ficha_sorteo_path',
     ];
 
     protected $casts = [

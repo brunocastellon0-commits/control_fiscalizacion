@@ -77,6 +77,8 @@ function stressSeedBase(): string
     return <<<'PHP'
         $suf = getenv('STR_SUF');
 
+        $rolVen = App\Models\Rol::firstWhere('codigo', 'VENTANILLA')
+            ?? App\Models\Rol::create(['codigo' => 'VENTANILLA', 'nombre' => 'Ventanilla', 'descripcion' => 'x']);
         $rolTec = App\Models\Rol::firstWhere('codigo', 'TECNICO')
             ?? App\Models\Rol::create(['codigo' => 'TECNICO', 'nombre' => 'Tecnico', 'descripcion' => 'x']);
         $rolEnc = App\Models\Rol::firstWhere('codigo', 'ENCARGADA')
@@ -90,6 +92,8 @@ function stressSeedBase(): string
         $reglamento = App\Models\Reglamento::firstWhere('codigo', 'AC_022_2018')
             ?? App\Models\Reglamento::create(['codigo' => 'AC_022_2018', 'nombre' => 'Acuerdo 22', 'version' => '1.0', 'vigente_desde' => '2018-05-15', 'activo' => true]);
 
+        $ventanilla = App\Models\Usuario::firstWhere('username', 'stress_v_'.$suf)
+            ?? App\Models\Usuario::create(['ci' => '444'.$suf, 'nombres' => 'Ven', 'apellidos' => 'Tanilla', 'username' => 'stress_v_'.$suf, 'password_hash' => 'x', 'rol_id' => $rolVen->id, 'activo' => true]);
         $tecnico = App\Models\Usuario::firstWhere('username', 'stress_t_'.$suf)
             ?? App\Models\Usuario::create(['ci' => '111'.$suf, 'nombres' => 'Tec', 'apellidos' => 'Nico', 'username' => 'stress_t_'.$suf, 'password_hash' => 'x', 'rol_id' => $rolTec->id, 'activo' => true]);
         $encargada = App\Models\Usuario::firstWhere('username', 'stress_e_'.$suf)
@@ -112,7 +116,9 @@ function stressSeedBase(): string
             'est_evaluacion' => $estEval->id,
             'reglamento' => $reglamento->id,
             'tecnico' => $tecnico->id,
+            'ventanilla' => $ventanilla->id,
             'encargada' => $encargada->id,
+            'ven_username' => $ventanilla->username,
             'tec_username' => $tecnico->username,
             'enc_username' => $encargada->username,
         ]);
@@ -123,7 +129,7 @@ function stressSeedBase(): string
 function stressCodigoApertura(): string
 {
     return <<<'PHP'
-        $tecnico = App\Models\Usuario::where('username', getenv('STR_TEC'))->firstOrFail();
+        $ventanilla = App\Models\Usuario::where('username', getenv('STR_VEN'))->firstOrFail();
         $reglamento = App\Models\Reglamento::where('codigo', 'AC_022_2018')->firstOrFail();
         $n = (int) getenv('STR_N');
         $out = [];
@@ -136,7 +142,7 @@ function stressCodigoApertura(): string
                     'reglamento_id' => $reglamento->id,
                     'resumen_hechos' => '[STRESS-MASA] corrida '.getenv('STR_PROC').' causa '.$i,
                 ],
-                tecnico: $tecnico,
+                ventanilla: $ventanilla,
             );
             $out[] = $exp->nurej_code;
         }
@@ -388,7 +394,7 @@ it('T4: apertura masiva concurrente (N procesos x M aperturas) con NUREJ únicos
 
     $procesos = stressSpawn(
         array_fill(0, $nProcesos, stressCodigoApertura()),
-        ['STR_SUF' => $suf, 'STR_TEC' => $base['tec_username'], 'STR_N' => (string) $aperturasPorProceso],
+        ['STR_SUF' => $suf, 'STR_VEN' => $base['ven_username'], 'STR_N' => (string) $aperturasPorProceso],
         180,
     );
 
@@ -507,7 +513,7 @@ it('T5: sortearTodas vs aperturas concurrentes sin deadlocks ni NUREJ duplicados
         }
         PHP;
 
-    $envAperturas = ['STR_SUF' => $suf, 'STR_TEC' => $base['tec_username'], 'STR_N' => '2'];
+    $envAperturas = ['STR_SUF' => $suf, 'STR_VEN' => $base['ven_username'], 'STR_N' => '2'];
     $procesos = stressSpawn(array_fill(0, 5, $codigoApertura), $envAperturas, 180);
 
     $sorteoProcess = new Process(

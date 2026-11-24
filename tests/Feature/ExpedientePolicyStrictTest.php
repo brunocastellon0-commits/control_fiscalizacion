@@ -289,14 +289,14 @@ it('bloquea el sorteo individual y en lote a una Encargada inactiva aunque su to
     $this->getJson('/api/bandeja/sorteo')->assertForbidden();
 });
 
-it('bloquea la apertura de causas a un tecnico inactivo aunque su token sea valido', function () {
-    $rolTecnico = Rol::factory()->create(['codigo' => Rol::CODIGO_TECNICO]);
-    $tecnicoInactivo = Usuario::factory()->create([
-        'rol_id' => $rolTecnico->id,
+it('bloquea la apertura de causas a una ventanilla inactiva aunque su token sea valido', function () {
+    $rolVentanilla = Rol::factory()->create(['codigo' => Rol::CODIGO_VENTANILLA]);
+    $ventanillaInactiva = Usuario::factory()->create([
+        'rol_id' => $rolVentanilla->id,
         'activo' => false,
     ]);
 
-    Sanctum::actingAs($tecnicoInactivo, ['*']);
+    Sanctum::actingAs($ventanillaInactiva, ['*']);
 
     $this->postJson('/api/expedientes', [])->assertForbidden();
 });

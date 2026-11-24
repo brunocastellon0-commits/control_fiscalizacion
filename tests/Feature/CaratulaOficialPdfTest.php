@@ -98,11 +98,15 @@ it('incluye NUREJ padre, derivados, fecha, vía, partes y sello de custodia', fu
         ->toContain((string) $derivado->nurej_code);
 });
 
-it('prohíbe la carátula al rol ADMIN y a usuarios inactivos', function () {
+it('prohíbe la carátula a roles sin acceso y a usuarios inactivos', function () {
     $expediente = carExpediente();
 
     $admin = carUsuario(Rol::CODIGO_ADMIN);
     Sanctum::actingAs($admin);
+    $this->get("/api/reportes/caratula/{$expediente->id}/pdf")->assertForbidden();
+
+    $ventanilla = carUsuario(Rol::CODIGO_VENTANILLA);
+    Sanctum::actingAs($ventanilla);
     $this->get("/api/reportes/caratula/{$expediente->id}/pdf")->assertForbidden();
 
     $inactivo = carUsuario(Rol::CODIGO_ENCARGADA, activo: false);

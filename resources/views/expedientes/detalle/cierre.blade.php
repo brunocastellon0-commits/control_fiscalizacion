@@ -21,7 +21,7 @@
             </p>
         </template>
 
-        <template x-if="!esEncargada() && !tieneInformeFinal()">
+        <template x-if="pasoEditable() && !esEncargada() && !tieneInformeFinal()">
             <div class="border-t border-gris-claro pt-4 space-y-3">
                 <p class="text-sm font-semibold text-grafito">Emitir informe final</p>
                 <p class="text-xs text-gris" x-show="actuadosFinales().length === 0">No hay informes finales habilitados para su rol en el estado actual del expediente.</p>
@@ -38,13 +38,13 @@
             </div>
         </template>
 
-        <template x-if="!esEncargada() && tieneInformeFinal() && pasoPorCodigo('cierre')?.estado === 'activo'">
+        <template x-if="pasoEditable() && !esEncargada() && tieneInformeFinal()">
             <p class="border-t border-gris-claro pt-4 text-xs text-gris">
                 <i class="fa-solid fa-hourglass-half mr-1"></i> Informe final registrado. En espera del Visto Bueno de la Encargada.
             </p>
         </template>
 
-        <template x-if="esEncargada() && estadoCodigo() === 'PENDIENTE_VISTO_BUENO_FINAL'">
+        <template x-if="pasoEditable() && esEncargada() && estadoCodigo() === 'PENDIENTE_VISTO_BUENO_FINAL'">
             <div class="space-y-3 border-t border-gris-claro pt-4">
                 <p class="text-sm font-semibold text-grafito">Visto Bueno Final</p>
                 <textarea x-model="formVistoBuenoFinal.descripcion" rows="2" minlength="10"
@@ -60,7 +60,7 @@
             </div>
         </template>
 
-        <template x-if="esEncargada() && estadoCodigo() === 'LISTO_PARA_REPARTO'">
+        <template x-if="pasoEditable() && esEncargada() && estadoCodigo() === 'LISTO_PARA_REPARTO'">
             <form @submit.prevent="submitReparto()" class="space-y-3 border-t border-gris-claro pt-4">
                 <p class="text-sm font-semibold text-grafito">Reparto institucional</p>
                 <div>
@@ -81,7 +81,7 @@
                 </div>
                 <div class="flex justify-end">
                     <button type="submit" :disabled="submittingReparto"
-                        title="Selecciona el destino exacto y cierra el NUREJ"
+                        title="Selecciona el destino exacto y cierra el NURED"
                         class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-verde-profundo text-white text-sm font-semibold hover:bg-verde-institucional disabled:opacity-50">
                         <i class="fa-solid fa-paper-plane"></i> Ejecutar reparto
                     </button>

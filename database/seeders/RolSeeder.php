@@ -14,6 +14,7 @@ class RolSeeder extends Seeder
     {
         $roles = [
             ['codigo' => Rol::CODIGO_ENCARGADA, 'nombre' => 'Encargada', 'descripcion' => 'Responsable de la unidad de fiscalización'],
+            ['codigo' => Rol::CODIGO_VENTANILLA, 'nombre' => 'Ventanilla', 'descripcion' => 'Registra la apertura de causas y consulta su historial'],
             ['codigo' => Rol::CODIGO_TECNICO, 'nombre' => 'Técnico', 'descripcion' => 'Técnico de fiscalización'],
             ['codigo' => Rol::CODIGO_AUD_JURIDICO, 'nombre' => 'Auditor Jurídico', 'descripcion' => 'Auditoría jurídica'],
             ['codigo' => Rol::CODIGO_AUD_FINANCIERO, 'nombre' => 'Auditor Financiero', 'descripcion' => 'Auditoría financiera'],

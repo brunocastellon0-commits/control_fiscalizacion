@@ -6,6 +6,7 @@ use App\Http\Requests\StoreEvaluacionAdmisibilidadRequest;
 use App\Http\Resources\CatalogoRequisitoResource;
 use App\Http\Resources\EvaluacionAdmisibilidadResource;
 use App\Models\CatalogoRequisito;
+use App\Models\EvaluacionAdmisibilidad;
 use App\Models\Expediente;
 use App\Services\EvaluacionAdmisibilidadService;
 use Illuminate\Http\JsonResponse;
@@ -25,13 +26,28 @@ class EvaluacionAdmisibilidadController extends Controller
     {
         $this->authorize('view', $expediente);
 
-        return CatalogoRequisitoResource::collection(
-            CatalogoRequisito::where('reglamento_id', $expediente->reglamento_id)
-                ->where('activo', true)
-                ->with('reglamento')
-                ->orderBy('orden')
-                ->get(),
-        );
+        $evaluaciones = EvaluacionAdmisibilidad::where('expediente_id', $expediente->id)
+            ->orderByDesc('id')
+            ->get()
+            ->keyBy('requisito_id');
+
+        $requisitos = CatalogoRequisito::where('reglamento_id', $expediente->reglamento_id)
+            ->where('activo', true)
+            ->with('reglamento')
+            ->orderBy('orden')
+            ->get()
+            ->map(function (CatalogoRequisito $requisito) use ($evaluaciones): CatalogoRequisito {
+                $evaluacion = $evaluaciones->get($requisito->id);
+
+                $requisito->setAttribute(
+                    'cumple',
+                    $evaluacion !== null ? (bool) $evaluacion->cumple : null,
+                );
+
+                return $requisito;
+            });
+
+        return CatalogoRequisitoResource::collection($requisitos);
     }
 
     /**

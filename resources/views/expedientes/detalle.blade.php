@@ -22,10 +22,10 @@
         <template x-if="!loading && !error && expediente">
             <div class="space-y-6">
                 <div class="bg-white rounded-xl border border-gris-claro shadow-sm overflow-hidden">
-                    <div class="flex flex-col xl:flex-row xl:items-stretch">
-                        <div class="min-w-0 p-5 xl:w-1/3 shrink-0">
-                            <p class="text-[10px] font-bold uppercase tracking-widest text-verde-institucional mb-1">Carátula del expediente</p>
-                            <div class="flex flex-wrap items-center gap-2 mb-1">
+                    <div class="border-b border-gris-claro p-5">
+                        <p class="text-[10px] font-bold uppercase tracking-widest text-verde-institucional mb-1">Carátula del expediente</p>
+                        <div class="flex flex-wrap items-center gap-x-5 gap-y-2">
+                            <div class="flex flex-wrap items-center gap-2">
                                 <h1 class="text-2xl font-mono font-bold text-grafito" x-text="expediente.nurej_code"></h1>
                                 <span class="px-3 py-1 text-xs font-bold rounded bg-gris-claro text-gris border border-gris-claro"
                                     x-text="expediente.estado_actual?.nombre || expediente.estado_actual?.codigo || 'Sin estado'"></span>
@@ -36,17 +36,17 @@
                                 Ingreso: <span x-text="formatDate(expediente.fecha_ingreso)"></span>
                             </p>
                             <template x-if="expediente.asignacion_activa?.usuario">
-                                <p class="text-xs text-gris mt-1">
+                                <p class="text-xs text-gris">
                                     Responsable:
                                     <span class="font-semibold text-grafito" x-text="(expediente.asignacion_activa.usuario.nombres || '') + ' ' + (expediente.asignacion_activa.usuario.apellidos || '')"></span>
                                     <span class="ml-1 px-2 py-0.5 rounded bg-gris-claro text-gris" x-text="expediente.asignacion_activa.rol?.nombre || expediente.asignacion_activa.rol?.codigo || ''"></span>
                                 </p>
                             </template>
                         </div>
+                    </div>
 
-                        <div class="min-w-0 flex-1 border-t xl:border-t-0 xl:border-l border-gris-claro px-4 py-3 xl:py-4">
-                            @include('expedientes.detalle.pasos')
-                        </div>
+                    <div class="border-b border-gris-claro px-4 py-3 sm:px-5">
+                        @include('expedientes.detalle.pasos')
                     </div>
 
                     <div x-show="avisoPaso" x-cloak class="border-t border-amber-300 bg-amber-50 px-5 py-3 flex items-start gap-3 text-sm text-amber-900">
@@ -80,23 +80,15 @@
                 </div>
 
                 <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
-                    <div class="xl:col-span-2 space-y-6">
+                    <div class="xl:col-span-2 flex flex-col gap-6">
                         <div x-show="pasoActivo === 'recepcion'">
                             @include('expedientes.detalle.recepcion')
                         </div>
 
                         <template x-if="seccionActiva === 'resumen'">
-                            <div class="space-y-6">
+                            <div class="flex flex-col gap-6">
                                 <template x-if="pasoActivo === 'admisibilidad'">
-                                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                                        <div class="lg:col-span-2">@include('expedientes.detalle.evaluacion')</div>
-                                        <div class="bg-white rounded-xl border border-gris-claro shadow-sm p-4 h-fit">
-                                            <h3 class="text-sm font-bold text-grafito uppercase mb-2"><i class="fa-solid fa-circle-info text-verde-institucional mr-2"></i> Objetivo del paso</h3>
-                                            <p class="text-xs text-gris leading-relaxed">
-                                                Revise los requisitos según el reglamento de la causa. El sistema determina admisión, observación o rechazo y deja constancia inmutable de la evaluación.
-                                            </p>
-                                        </div>
-                                    </div>
+                                    <div>@include('expedientes.detalle.evaluacion')</div>
                                 </template>
 
                                 <template x-if="pasoActivo === 'planificacion'">
@@ -118,13 +110,19 @@
                         </template>
 
                         <template x-if="pasoSiguiente()">
-                            <div class="flex justify-start">
+                            <div class="space-y-2">
                                 <button type="button" @click="irASiguientePaso()"
-                                    :title="`Avanza al paso ${pasoSiguiente().numero}: ${pasoSiguiente().nombre}`"
-                                    class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-verde-profundo text-white text-sm font-semibold hover:bg-verde-institucional transition">
+                                    :disabled="!puedeAvanzarPaso()"
+                                    :title="puedeAvanzarPaso()
+                                        ? `Avanza al paso ${pasoSiguiente().numero}: ${pasoSiguiente().nombre}`
+                                        : 'Complete y guarde el trabajo de esta etapa para habilitar el avance'"
+                                    class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-verde-profundo text-white text-sm font-semibold hover:bg-verde-institucional transition disabled:cursor-not-allowed disabled:opacity-50">
                                     <span x-text="etiquetaSiguientePaso()"></span>
-                                    <i class="fa-solid fa-arrow-right"></i>
+                                    <i class="fa-solid" :class="puedeAvanzarPaso() ? 'fa-arrow-right' : 'fa-lock'"></i>
                                 </button>
+                                <p x-show="!puedeAvanzarPaso()" class="text-[11px] text-gris">
+                                    Complete y guarde el trabajo de esta etapa para habilitar el avance.
+                                </p>
                             </div>
                         </template>
                     </div>
@@ -263,16 +261,17 @@
                 },
 
                 estadoFinal() {
-                    return ['CONCLUIDO', 'CONCLUIDO_REMITIDO', 'DERIVADO_TRANSPARENCIA', 'ARCHIVO_DEFINITIVO', 'ARCHIVO_POR_ABANDONO']
-                        .includes(this.estadoCodigo());
+                    return this.expediente?.estado_actual?.es_final === true
+                        || ['CONCLUIDO', 'CONCLUIDO_REMITIDO', 'DERIVADO_TRANSPARENCIA', 'ARCHIVO_DEFINITIVO', 'ARCHIVO_POR_ABANDONO']
+                            .includes(this.estadoCodigo());
                 },
 
                 puedeEnmendar() {
-                    return !this.esEncargada() && this.pasoActivo !== 'recepcion' && !this.estadoFinal();
+                    return !this.esEncargada() && this.pasoEditable();
                 },
 
                 puedeSolicitarIncompetencia() {
-                    return !this.esEncargada() && this.pasoActivo !== 'recepcion' && !this.estadoFinal();
+                    return !this.esEncargada() && this.pasoEditable();
                 },
 
                 pasoPorCodigo(codigo) {
@@ -282,6 +281,77 @@
                 etiquetaPaso(codigo) {
                     const etiquetas = { completado: 'Completado', activo: 'En curso', bloqueado: 'Bloqueado' };
                     return etiquetas[this.pasoPorCodigo(codigo)?.estado] || '—';
+                },
+
+                pasoActivoServicio() {
+                    return this.pasos.find(paso => paso.estado === 'activo') || null;
+                },
+
+                progresoPasos() {
+                    const total = this.pasos.length;
+                    if (total === 0) {
+                        return 0;
+                    }
+                    if (total === 1) {
+                        return this.pasos[0].estado === 'completado' ? 100 : 0;
+                    }
+
+                    const indiceActivo = this.pasos.findIndex(paso => paso.estado === 'activo');
+                    if (indiceActivo >= 0) {
+                        return Math.min(100, Math.max(0, (indiceActivo / (total - 1)) * 100));
+                    }
+
+                    const completados = this.pasos.filter(paso => paso.estado === 'completado').length;
+                    if (completados === 0) {
+                        return 0;
+                    }
+
+                    return Math.min(100, ((completados - 1) / (total - 1)) * 100);
+                },
+
+                etiquetaProgresoPasos() {
+                    const paso = this.pasoActivoServicio();
+                    if (paso) {
+                        return `Paso ${paso.numero} de ${this.pasos.length} · ${paso.nombre}`;
+                    }
+
+                    const completados = this.pasos.filter(paso => paso.estado === 'completado');
+                    const ultimo = completados[completados.length - 1];
+
+                    return ultimo
+                        ? `Paso ${ultimo.numero} de ${this.pasos.length} · ${ultimo.nombre} · completado`
+                        : '';
+                },
+
+                pasoCompletado(codigo = this.pasoActivo) {
+                    return this.pasoPorCodigo(codigo)?.estado === 'completado';
+                },
+
+                pasoEditable() {
+                    const paso = this.pasoPorCodigo(this.pasoActivo);
+                    return !!paso
+                        && paso.codigo !== 'recepcion'
+                        && paso.estado === 'activo'
+                        && !this.estadoFinal();
+                },
+
+                resultadoEvaluacionGuardado() {
+                    if (this.tieneActuado('ACT_ADMISION')) {
+                        return { resultado: 'ACT_ADMISION' };
+                    }
+                    if (this.tieneActuado('ACT_OBSERVACION')) {
+                        return {
+                            resultado: 'ACT_OBSERVACION',
+                            requisitos_faltantes: (this.requisitos || []).filter(req => !req._cumplido).length,
+                        };
+                    }
+                    if (this.tieneActuado('ACT_RECHAZO')) {
+                        return {
+                            resultado: 'ACT_RECHAZO',
+                            faltantes_criticos: (this.requisitos || []).filter(req => req.es_critico && !req._cumplido).map(req => req.id),
+                        };
+                    }
+                    return null;
                 },
 
                 seleccionarPaso(paso) {
@@ -298,7 +368,12 @@
                     this.pasoActivo = paso.codigo;
                     this.seccionActiva = 'resumen';
                     this.trazabilidadAbierta = false;
-                    this.avisoPaso = null;
+                    this.avisoPaso = paso.estado === 'completado' && paso.codigo !== 'recepcion'
+                        ? {
+                            titulo: `Paso ${paso.numero} completado: ${paso.nombre}`,
+                            mensaje: 'Este paso solo puede consultarse. Los datos registrados se muestran bloqueados para conservar la trazabilidad.',
+                        }
+                        : null;
                 },
 
                 seleccionarSeccion(seccion) {
@@ -315,8 +390,20 @@
                 },
 
                 pasoSiguiente() {
-                    const indice = this.pasos.findIndex(paso => paso.codigo === this.pasoActivo);
+                    const actual = this.pasoPorCodigo(this.pasoActivo);
+                    if (!actual) {
+                        return null;
+                    }
+                    const indice = this.pasos.findIndex(paso => paso.codigo === actual.codigo);
                     return indice >= 0 && indice + 1 < this.pasos.length ? this.pasos[indice + 1] : null;
+                },
+
+                puedeAvanzarPaso() {
+                    const actual = this.pasoPorCodigo(this.pasoActivo);
+
+                    return !!actual
+                        && !!this.pasoSiguiente()
+                        && actual.estado === 'completado';
                 },
 
                 etiquetaSiguientePaso() {
@@ -325,6 +412,10 @@
                 },
 
                 irASiguientePaso() {
+                    if (!this.puedeAvanzarPaso()) {
+                        return;
+                    }
+
                     const siguiente = this.pasoSiguiente();
                     if (!siguiente) {
                         return;
@@ -360,19 +451,6 @@
                     return '';
                 },
 
-                irAEtapaActual() {
-                    const paso = this.pasoPorCodigo(this.pasoActivo);
-                    if (!paso) {
-                        return;
-                    }
-                    this.seleccionarPaso(paso);
-                },
-
-                etiquetaBotonEtapa() {
-                    const paso = this.pasoPorCodigo(this.pasoActivo);
-                    return paso ? `Ir a ${paso.nombre}` : 'Ver expediente';
-                },
-
                 partesPorTipo(tipo) {
                     return (this.expediente?.partes_vigentes || [])
                         .filter(parte => (parte.tipo || '').toUpperCase() === tipo);
@@ -388,19 +466,21 @@
                     return actuados.slice(-limite).reverse();
                 },
 
-                sincronizarPasoActivo() {
+                sincronizarPasoActivo({ forzar = false } = {}) {
                     const actual = this.pasoPorCodigo(this.pasoActivo);
-                    if (actual && actual.estado !== 'bloqueado') {
+                    if (!forzar && actual && actual.estado === 'activo') {
                         return;
                     }
-                    const activo = this.pasos.find(paso => paso.estado === 'activo');
+                    const activo = this.pasoActivoServicio();
                     if (activo) {
                         this.pasoActivo = activo.codigo;
+                        this.avisoPaso = null;
                         return;
                     }
                     const completados = this.pasos.filter(paso => paso.estado === 'completado');
                     if (completados.length > 0) {
                         this.pasoActivo = completados[completados.length - 1].codigo;
+                        this.avisoPaso = null;
                     }
                 },
 
@@ -427,7 +507,7 @@
                         const { ok, status, data } = await window.apiFetch(`/api/expedientes/${this.expedienteId}`);
                         if (ok) {
                             this.expediente = data.data || data;
-                            this.sincronizarPasoActivo();
+                            this.sincronizarPasoActivo({ forzar: true });
                         } else if (status === 403) {
                             window.apiToast('error', data?.message || 'No tiene permisos para ver este expediente.');
                             setTimeout(() => window.location.href = '/expedientes', 1500);

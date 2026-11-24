@@ -252,7 +252,7 @@ it('devuelve 422 al intentar derivar un NUREJ desde un expediente ya derivado (R
         'motivo' => 'Intento de sub-derivación rechazado por la regla RN-10 del sistema.',
         'via_destino' => 'JURIDICO',
     ])->assertStatus(422)
-        ->assertJsonPath('message', 'No se pueden generar NUREJ hijos de un expediente ya derivado (RN-10).');
+        ->assertJsonPath('message', 'No se pueden generar NURED hijos de un expediente ya derivado (RN-10).');
 
     expect(Expediente::where('nurej_padre_id', $hijo->id)->count())->toBe(0)
         ->and(Expediente::where('nurej_padre_id', $padre->id)->count())->toBe(1);

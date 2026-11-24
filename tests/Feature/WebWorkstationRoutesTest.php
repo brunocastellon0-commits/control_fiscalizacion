@@ -57,8 +57,8 @@ it('deniega 403 a la encargada en la bandeja operativa de /expedientes', functio
     actingAs($usuario)->get('/expedientes')->assertForbidden();
 });
 
-it('carga la apertura de causa solo con sesión web autenticada y rol tecnico', function () {
-    $usuario = paso1WebCrearUsuarioActivo(Rol::CODIGO_TECNICO, 'tecnico_apertura');
+it('carga la apertura de causa solo con sesión web autenticada y rol ventanilla', function () {
+    $usuario = paso1WebCrearUsuarioActivo(Rol::CODIGO_VENTANILLA, 'ventanilla_apertura');
 
     actingAs($usuario)
         ->get('/expedientes/nuevo')
@@ -66,8 +66,8 @@ it('carga la apertura de causa solo con sesión web autenticada y rol tecnico', 
         ->assertSee('Apertura de causa');
 });
 
-it('deniega 403 a un rol no tecnico en la apertura de causa', function () {
-    $usuario = paso1WebCrearUsuarioActivo(Rol::CODIGO_AUD_JURIDICO, 'auditor_apertura');
+it('deniega 403 al tecnico en la apertura de causa', function () {
+    $usuario = paso1WebCrearUsuarioActivo(Rol::CODIGO_TECNICO, 'tecnico_apertura_denegado');
 
     $this->withHeader('Accept', 'application/json');
     actingAs($usuario)->get('/expedientes/nuevo')->assertForbidden();

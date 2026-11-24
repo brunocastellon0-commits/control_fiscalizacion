@@ -16,6 +16,7 @@ class UsuarioSeeder extends Seeder
     {
         $usuarios = [
             ['ci' => '1000001', 'nombres' => 'Ana', 'apellidos' => 'Encargada Test', 'cargo' => 'Encargada', 'username' => 'encargada', 'rol' => Rol::CODIGO_ENCARGADA],
+            ['ci' => '1000006', 'nombres' => 'Ventura', 'apellidos' => 'Ventanilla Test', 'cargo' => 'Ventanilla', 'username' => 'ventanilla', 'rol' => Rol::CODIGO_VENTANILLA],
             ['ci' => '1000002', 'nombres' => 'Luis', 'apellidos' => 'Tecnico Test', 'cargo' => 'Técnico', 'username' => 'tecnico', 'rol' => Rol::CODIGO_TECNICO],
             ['ci' => '1000003', 'nombres' => 'María', 'apellidos' => 'Auditor Juridico Test', 'cargo' => 'Auditor Jurídico', 'username' => 'aud_juridico', 'rol' => Rol::CODIGO_AUD_JURIDICO],
             ['ci' => '1000004', 'nombres' => 'Carlos', 'apellidos' => 'Auditor Financiero Test', 'cargo' => 'Auditor Financiero', 'username' => 'aud_financiero', 'rol' => Rol::CODIGO_AUD_FINANCIERO],

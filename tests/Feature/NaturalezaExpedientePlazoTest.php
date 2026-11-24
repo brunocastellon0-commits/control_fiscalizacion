@@ -17,7 +17,9 @@ use Laravel\Sanctum\Sanctum;
 function naturalezaSemillaApertura(): array
 {
     $rolTecnico = Rol::factory()->create(['codigo' => Rol::CODIGO_TECNICO]);
-    $tecnico = Usuario::factory()->create(['rol_id' => $rolTecnico->id]);
+
+    $rolVentanilla = Rol::factory()->create(['codigo' => Rol::CODIGO_VENTANILLA]);
+    $ventanilla = Usuario::factory()->create(['rol_id' => $rolVentanilla->id]);
 
     $pendiente = CatalogoEstado::factory()->create(['codigo' => 'PENDIENTE_SORTEO']);
 
@@ -33,7 +35,7 @@ function naturalezaSemillaApertura(): array
 
     $reglamento = Reglamento::factory()->create();
 
-    return compact('tecnico', 'pendiente', 'reglamento');
+    return compact('ventanilla', 'pendiente', 'reglamento');
 }
 
 function naturalezaPayloadApertura(int $reglamentoId, ?string $naturaleza): array
@@ -125,7 +127,7 @@ it('rechaza la apertura cuando falta la naturaleza', function () {
     Storage::fake('local');
     $semilla = naturalezaSemillaApertura();
 
-    Sanctum::actingAs($semilla['tecnico'], ['*']);
+    Sanctum::actingAs($semilla['ventanilla'], ['*']);
 
     $this->post('/api/expedientes', naturalezaPayloadApertura($semilla['reglamento']->id, null), [
         'Accept' => 'application/json',
@@ -139,7 +141,7 @@ it('rechaza la apertura con una naturaleza fuera del enum', function () {
     Storage::fake('local');
     $semilla = naturalezaSemillaApertura();
 
-    Sanctum::actingAs($semilla['tecnico'], ['*']);
+    Sanctum::actingAs($semilla['ventanilla'], ['*']);
 
     $this->post('/api/expedientes', naturalezaPayloadApertura($semilla['reglamento']->id, 'MIXTA'), [
         'Accept' => 'application/json',
@@ -153,7 +155,7 @@ it('persiste la naturaleza JURISDICCIONAL al abrir una causa', function () {
     Storage::fake('local');
     $semilla = naturalezaSemillaApertura();
 
-    Sanctum::actingAs($semilla['tecnico'], ['*']);
+    Sanctum::actingAs($semilla['ventanilla'], ['*']);
 
     $this->post('/api/expedientes', array_merge(
         naturalezaPayloadApertura($semilla['reglamento']->id, 'JURISDICCIONAL'),
@@ -167,7 +169,7 @@ it('persiste la naturaleza ADMINISTRATIVA al abrir una causa', function () {
     Storage::fake('local');
     $semilla = naturalezaSemillaApertura();
 
-    Sanctum::actingAs($semilla['tecnico'], ['*']);
+    Sanctum::actingAs($semilla['ventanilla'], ['*']);
 
     $this->post('/api/expedientes', array_merge(
         naturalezaPayloadApertura($semilla['reglamento']->id, 'ADMINISTRATIVA'),

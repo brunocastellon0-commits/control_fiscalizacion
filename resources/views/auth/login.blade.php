@@ -188,15 +188,15 @@
         <!-- Encabezado con Logo -->
         <div class="text-center mb-8">
             <div class="flex justify-center mb-4">
-                <img src="/images/logoconsejo_sinfondo.png" alt="Consejo de la Magistratura"
-                    class="w-full max-w-[200px] h-auto object-contain">
+                <img src="/images/logo-login.png" alt="Consejo de la Magistratura"
+                    class="w-full max-w-[350px] h-auto object-contain">
             </div>
 
             <!-- Título -->
-            <h1 class="text-2xl font-bold tracking-tight text-[#202625] uppercase leading-tight">
+            <!-- <h1 class="text-2xl font-bold tracking-tight text-[#202625] uppercase leading-tight">
                 Consejo de la<br>
                 <span class="text-[#0F4C3A]">Magistratura</span>
-            </h1>
+            </h1> -->
             <div class="flex items-center justify-center gap-2 mt-2">
                 <div class="h-px w-8 bg-gradient-to-r from-transparent to-[#1E7A52]"></div>
                 <p class="text-xs font-medium text-[#1E7A52] tracking-wider uppercase">
@@ -369,6 +369,10 @@
 
                             case 'TECNICO':
                                 destino = '/expedientes';
+                                break;
+
+                            case 'VENTANILLA':
+                                destino = '/ventanilla/aperturas';
                                 break;
 
                             case 'AUD_JURIDICO':

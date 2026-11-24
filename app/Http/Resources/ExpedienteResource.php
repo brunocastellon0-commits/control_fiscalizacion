@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Http\Resources\Concerns\IncluyeDocumentosExpediente;
 use App\Models\Expediente;
 use App\Services\PasosExpedienteService;
 use App\Services\SemaforoPlazoService;
@@ -10,6 +11,8 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class ExpedienteResource extends JsonResource
 {
+    use IncluyeDocumentosExpediente;
+
     /**
      * Transforma un expediente a su representacion del workstation,
      * incluyendo el semaforo del plazo vigente mas urgente.
@@ -35,6 +38,7 @@ class ExpedienteResource extends JsonResource
                 'id' => $expediente->estadoActual->id,
                 'codigo' => $expediente->estadoActual->codigo,
                 'nombre' => $expediente->estadoActual->nombre,
+                'es_final' => (bool) $expediente->estadoActual->es_final,
             ] : null),
             'resumen_hechos' => $expediente->resumen_hechos,
             'fecha_ingreso' => $expediente->fecha_ingreso?->format('Y-m-d H:i:s'),
@@ -60,6 +64,8 @@ class ExpedienteResource extends JsonResource
             'plazos' => PlazoResource::collection($this->whenLoaded('plazos')),
             'actuados' => ActuadoResource::collection($this->whenLoaded('actuados')),
             'pasos' => $this->whenLoaded('actuados', fn () => app(PasosExpedienteService::class)->calcular($expediente)),
+            'boleta_apertura' => $this->documentoBoletaApertura($expediente),
+            'ficha_sorteo' => $this->documentoFichaSorteo($expediente),
             'sem_plazo' => $this->semPlazoMasUrgente($expediente),
         ];
     }

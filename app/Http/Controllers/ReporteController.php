@@ -154,6 +154,12 @@ class ReporteController extends Controller
             403,
             'El rol ADMIN no tiene acceso a los reportes institucionales.',
         );
+
+        abort_if(
+            ($usuario->rol?->codigo ?? null) === Rol::CODIGO_VENTANILLA,
+            403,
+            'El rol de Ventanilla no tiene acceso a los reportes institucionales.',
+        );
     }
 
     /**

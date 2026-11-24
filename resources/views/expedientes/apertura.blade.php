@@ -152,7 +152,7 @@
             <div x-show="enviando" class="flex flex-col items-center justify-center py-20 text-center">
                 <i class="fa-solid fa-circle-notch fa-spin text-4xl text-verde-institucional mb-4"></i>
                 <p class="text-sm text-grafito font-medium">Registrando expediente...</p>
-                <p class="text-xs text-gris">Se generará el NUREJ y se guardará la documentación en la cadena de custodia.</p>
+                <p class="text-xs text-gris">Se generará el NURED y se guardará la documentación en la cadena de custodia.</p>
             </div>
         </div>
     </div>
@@ -245,6 +245,17 @@
 
                     this.enviando = true;
 
+                    // Se abre antes del envío para no perder el gesto del usuario:
+                    // los navegadores bloquean ventanas emergentes abiertas después
+                    // de una respuesta asíncrona.
+                    const boletaWindow = window.open('', '_blank');
+
+                    if (boletaWindow) {
+                        boletaWindow.document.open();
+                        boletaWindow.document.write('Generando la boleta de recepción…');
+                        boletaWindow.document.close();
+                    }
+
                     const formData = new FormData();
                     formData.append('via', this.form.via);
                     formData.append('naturaleza', this.form.naturaleza);
@@ -264,19 +275,30 @@
                         body: formData,
                     }).then(({ ok, status, data }) => {
                         if (ok || status === 201) {
+                            const boletaUrl = data?.data?.boleta_apertura?.url || data?.boleta_apertura?.url || null;
+
+                            if (boletaUrl && boletaWindow) {
+                                boletaWindow.location.href = boletaUrl;
+                            } else if (boletaWindow) {
+                                boletaWindow.close();
+                            }
+
                             window.apiToast('exito', 'Expediente registrado correctamente.');
-                            const id = data.data?.id;
                             setTimeout(() => {
-                                window.location.href = id ? `/expedientes/${id}` : '/expedientes';
+                                window.location.href = '/ventanilla/aperturas';
                             }, 900);
                         } else if (status === 403) {
+                            if (boletaWindow) boletaWindow.close();
                             window.apiToast('error', data.message || 'No tiene permisos para registrar expedientes.');
                         } else if (status === 422) {
+                            if (boletaWindow) boletaWindow.close();
                             window.apiToast('error', (data.message || 'Revise los campos marcados.'), data.errors);
                         } else {
+                            if (boletaWindow) boletaWindow.close();
                             window.apiToast('error', data.message || 'No se pudo registrar el expediente.');
                         }
                     }).catch((e) => {
+                        if (boletaWindow) boletaWindow.close();
                         console.error(e);
                         window.apiToast('error', e.message || 'Error inesperado al registrar.');
                     }).finally(() => {

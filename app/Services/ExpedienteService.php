@@ -10,6 +10,7 @@ use App\Models\Usuario;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class ExpedienteService
 {
@@ -17,10 +18,12 @@ class ExpedienteService
         protected NurejGeneratorService $generadorNurej,
         protected ActuadoService $actuadoService,
         protected SorteoAlgorithmService $sorteoService,
+        protected BoletaAperturaService $boletaAperturaService,
+        protected FichaSorteoService $fichaSorteoService,
     ) {}
 
     /**
-     * Apertura de causa por un técnico de fiscalización (rol TECNICO).
+     * Apertura de causa por la Ventanilla (rol VENTANILLA).
      *
      * En una única transacción: genera el NUREJ padre, crea el expediente en
      * PENDIENTE_SORTEO, registra el actuado ACT_REGISTRO_DIGITALIZACION
@@ -40,11 +43,11 @@ class ExpedienteService
      */
     public function aperturaCausa(
         array $datos,
-        Usuario $tecnico,
+        Usuario $ventanilla,
         ?string $ipOrigen = null,
         ?UploadedFile $adjunto = null,
     ): Expediente {
-        return DB::transaction(function () use ($datos, $tecnico, $ipOrigen, $adjunto) {
+        return DB::transaction(function () use ($datos, $ventanilla, $ipOrigen, $adjunto) {
             $nurejCode = $this->generadorNurej->generarPadre();
 
             $estadoPendiente = CatalogoEstado::where('codigo', 'PENDIENTE_SORTEO')->firstOrFail();
@@ -58,14 +61,14 @@ class ExpedienteService
                 'estado_actual_id' => $estadoPendiente->id,
                 'resumen_hechos' => $datos['resumen_hechos'] ?? null,
                 'fecha_ingreso' => now(),
-                'creado_por' => $tecnico->id,
+                'creado_por' => $ventanilla->id,
                 'created_at' => now(),
             ]);
 
             $actuado = $this->actuadoService->registerActuado(
                 expediente: $expediente,
                 catalogoActuado: $catalogoActuado,
-                emisor: $tecnico,
+                emisor: $ventanilla,
                 descripcion: 'Apertura de causa '.$nurejCode,
                 usuarioDestinoId: null,
                 metadatos: ['tipo' => 'APERTURA'],
@@ -87,6 +90,11 @@ class ExpedienteService
             }
 
             $expediente->refresh();
+
+            // La boleta es la constancia que Ventanilla entrega al ciudadano.
+            // Se genera dentro de la misma transacción: si falla, no queda una
+            // causa aperturada sin su comprobante.
+            $this->boletaAperturaService->generar($expediente, $ventanilla);
 
             return $expediente;
         }, 3);
@@ -127,7 +135,7 @@ class ExpedienteService
             $catalogoActuado = CatalogoActuado::where('codigo', 'ACT_SORTEO_INICIAL')->firstOrFail();
             $ganador = $this->sorteoService->sortear($expediente);
 
-            $this->actuadoService->registerActuado(
+            $actuado = $this->actuadoService->registerActuado(
                 expediente: $expediente,
                 catalogoActuado: $catalogoActuado,
                 emisor: $encargada,
@@ -135,6 +143,16 @@ class ExpedienteService
                 usuarioDestinoId: $ganador->id,
                 metadatos: ['tipo' => 'SORTEO_INICIAL', 'via' => $expediente->via],
                 ipOrigen: $ipOrigen,
+            );
+
+            // La ficha se genera dentro de la transacción del sorteo: si falla,
+            // se revierte también la asignación y el actuado.
+            $this->fichaSorteoService->generar(
+                expediente: $expediente,
+                ganador: $ganador,
+                encargada: $encargada,
+                descripcion: $descripcion,
+                actuado: $actuado,
             );
 
             return $ganador;
@@ -155,37 +173,52 @@ class ExpedienteService
         Usuario $encargada,
         ?string $ipOrigen = null,
     ): array {
-        return DB::transaction(function () use ($encargada, $ipOrigen) {
-            $estadoPendiente = CatalogoEstado::where('codigo', 'PENDIENTE_SORTEO')->firstOrFail();
+        $rutasFichas = [];
 
-            $pendientes = Expediente::where('estado_actual_id', $estadoPendiente->id)
-                ->orderBy('fecha_ingreso')
-                ->orderBy('id')
-                ->get();
+        try {
+            return DB::transaction(function () use ($encargada, $ipOrigen, &$rutasFichas) {
+                $estadoPendiente = CatalogoEstado::where('codigo', 'PENDIENTE_SORTEO')->firstOrFail();
 
-            if ($pendientes->isEmpty()) {
-                throw ValidationException::withMessages([
-                    'expediente' => 'No hay causas pendientes de sorteo.',
-                ]);
+                $pendientes = Expediente::where('estado_actual_id', $estadoPendiente->id)
+                    ->orderBy('fecha_ingreso')
+                    ->orderBy('id')
+                    ->get();
+
+                if ($pendientes->isEmpty()) {
+                    throw ValidationException::withMessages([
+                        'expediente' => 'No hay causas pendientes de sorteo.',
+                    ]);
+                }
+
+                $resultados = [];
+
+                foreach ($pendientes as $expediente) {
+                    $ganador = $this->ejecutarSorteo(
+                        expediente: $expediente,
+                        encargada: $encargada,
+                        descripcion: 'Sorteo probabilístico masivo',
+                        ipOrigen: $ipOrigen,
+                    );
+
+                    $expediente->refresh();
+                    $rutasFichas[] = $expediente->ficha_sorteo_path;
+
+                    $resultados[] = [
+                        'expediente' => $expediente,
+                        'ganador' => $ganador,
+                    ];
+                }
+
+                return $resultados;
+            }, 3);
+        } catch (Throwable $e) {
+            // El lote es todo-o-nada: si una causa falla, no dejar fichas
+            // físicas de causas que la transacción revirtió.
+            foreach ($rutasFichas as $ruta) {
+                $this->fichaSorteoService->eliminar($ruta);
             }
 
-            $resultados = [];
-
-            foreach ($pendientes as $expediente) {
-                $ganador = $this->ejecutarSorteo(
-                    expediente: $expediente,
-                    encargada: $encargada,
-                    descripcion: 'Sorteo probabilístico masivo',
-                    ipOrigen: $ipOrigen,
-                );
-
-                $resultados[] = [
-                    'expediente' => $expediente,
-                    'ganador' => $ganador,
-                ];
-            }
-
-            return $resultados;
-        }, 3);
+            throw $e;
+        }
     }
 }

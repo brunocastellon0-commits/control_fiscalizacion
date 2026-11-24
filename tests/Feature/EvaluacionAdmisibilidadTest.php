@@ -251,6 +251,50 @@ it('emite ACT_ADMISION, pasa a EN_PLANIFICACION y abre el plazo cuando todo cump
             ->whereNotNull('actuado_id')->count())->toBe(2);
 });
 
+it('conserva el checklist guardado y rechaza una nueva evaluación cuando el paso ya está completado', function () {
+    $semilla = evaluacionSemilla();
+
+    ParametroPlazo::create([
+        'reglamento_id' => $semilla['reglamento']->id,
+        'tipo_plazo' => 'PLANIFICACION',
+        'subtipo' => null,
+        'dias_habiles' => 2,
+        'base_legal' => 'AC_022_2018',
+        'activo' => true,
+    ]);
+
+    $expediente = evaluacionCrearExpediente($semilla['evaluacion']->id, $semilla['tecnico']->id, $semilla['reglamento']->id);
+    evaluacionAsignarBandeja($expediente, $semilla['tecnico'], $semilla['evaluacion']->id, $semilla['catalogoAdmision']->id);
+
+    Sanctum::actingAs($semilla['tecnico'], ['*']);
+
+    $this->postJson('/api/expedientes/'.$expediente->id.'/evaluacion', [
+        'requisitos' => [
+            ['requisito_id' => $semilla['critico']->id, 'cumple' => true],
+            ['requisito_id' => $semilla['noCritico']->id, 'cumple' => true],
+        ],
+    ])->assertStatus(201);
+
+    $this->getJson('/api/expedientes/'.$expediente->id.'/requisitos')
+        ->assertOk()
+        ->assertJsonPath('data.0.cumple', true)
+        ->assertJsonPath('data.1.cumple', true);
+
+    $evaluacionesAntes = EvaluacionAdmisibilidad::where('expediente_id', $expediente->id)->count();
+    $actuadosAntes = Actuado::where('expediente_id', $expediente->id)->count();
+
+    $this->postJson('/api/expedientes/'.$expediente->id.'/evaluacion', [
+        'requisitos' => [
+            ['requisito_id' => $semilla['critico']->id, 'cumple' => false],
+            ['requisito_id' => $semilla['noCritico']->id, 'cumple' => false],
+        ],
+    ])->assertStatus(422)
+        ->assertJsonValidationErrors('expediente');
+
+    expect(EvaluacionAdmisibilidad::where('expediente_id', $expediente->id)->count())->toBe($evaluacionesAntes)
+        ->and(Actuado::where('expediente_id', $expediente->id)->count())->toBe($actuadosAntes);
+});
+
 it('emite ACT_OBSERVACION hacia EN_SUBSANACION con 3 días hábiles reales (técnico / AC 022)', function () {
     $semilla = evaluacionSemilla();
 

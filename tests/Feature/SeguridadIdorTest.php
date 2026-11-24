@@ -215,7 +215,7 @@ it('bloquea el panel administrativo de la api a un operativo', function () {
     $this->getJson('/api/admin/feriados')->assertForbidden();
 });
 
-it('bloquea la apertura de expedientes a un rol que no es el tecnico', function () {
+it('bloquea la apertura de expedientes a un rol que no es la ventanilla', function () {
     ['encargada' => $encargada, 'reglamento' => $reglamento] = idorSemilla();
 
     Sanctum::actingAs($encargada, ['*']);

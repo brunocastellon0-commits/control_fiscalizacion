@@ -6,6 +6,7 @@ use App\Http\Requests\DerivarNurejHijoRequest;
 use App\Http\Requests\SortearExpedienteRequest;
 use App\Http\Requests\SortearTodosRequest;
 use App\Http\Requests\StoreExpedienteRequest;
+use App\Http\Resources\AperturaVentanillaResource;
 use App\Http\Resources\ExpedienteResource;
 use App\Models\CatalogoEstado;
 use App\Models\Expediente;
@@ -25,14 +26,14 @@ class ExpedienteController extends Controller
     ) {}
 
     /**
-     * Apertura de causa (rol TECNICO). Crea el expediente, el NUREJ, las
+     * Apertura de causa (rol VENTANILLA). Crea el expediente, el NUREJ, las
      * partes y el actuado ACT_REGISTRO_DIGITALIZACION (con su adjunto).
      */
     public function store(StoreExpedienteRequest $request): JsonResponse
     {
         $expediente = $this->expedienteService->aperturaCausa(
             datos: $request->validated(),
-            tecnico: $request->user(),
+            ventanilla: $request->user(),
             ipOrigen: $request->ip(),
             adjunto: $request->file('adjunto'),
         );
@@ -55,10 +56,15 @@ class ExpedienteController extends Controller
     {
         $this->authorize('bandejaSorteo', Expediente::class);
 
+        $request->validate([
+            'expediente' => ['nullable', 'integer', 'min:1'],
+        ]);
+
         $estadoPendiente = CatalogoEstado::where('codigo', 'PENDIENTE_SORTEO')->firstOrFail();
 
         return ExpedienteResource::collection(
             Expediente::where('estado_actual_id', $estadoPendiente->id)
+                ->when($request->filled('expediente'), fn ($query) => $query->whereKey($request->integer('expediente')))
                 ->with($this->relacionesDetalle())
                 ->orderBy('fecha_ingreso', 'desc')
                 ->paginate(15),
@@ -80,6 +86,33 @@ class ExpedienteController extends Controller
                 ->with($this->relacionesDetalle())
                 ->orderBy('fecha_ingreso', 'desc')
                 ->paginate(15),
+        );
+    }
+
+    /**
+     * Historial de solo lectura de las causas aperturadas por la Ventanilla.
+     */
+    public function historialAperturas(Request $request): AnonymousResourceCollection
+    {
+        $this->authorize('historialAperturas', Expediente::class);
+
+        return AperturaVentanillaResource::collection(
+            Expediente::where('creado_por', $request->user()->id)
+                ->with($this->relacionesHistorialVentanilla())
+                ->orderBy('fecha_ingreso', 'desc')
+                ->paginate(15),
+        );
+    }
+
+    /**
+     * Detalle de solo lectura de una causa aperturada por la Ventanilla.
+     */
+    public function detalleApertura(Expediente $expediente): AperturaVentanillaResource
+    {
+        $this->authorize('verDetalleApertura', $expediente);
+
+        return new AperturaVentanillaResource(
+            $expediente->load($this->relacionesHistorialVentanilla(detalle: true)),
         );
     }
 
@@ -178,6 +211,29 @@ class ExpedienteController extends Controller
             'creador',
             'partesVigentes',
         ])))->response()->setStatusCode(201);
+    }
+
+    /**
+     * Relaciones a cargar con with() para evitar N+1 en el recurso de Ventanilla.
+     *
+     * @return array<int, string>
+     */
+    protected function relacionesHistorialVentanilla(bool $detalle = false): array
+    {
+        $relaciones = [
+            'reglamento',
+            'estadoActual',
+            'asignacionActiva.usuario',
+            'asignacionActiva.rol',
+        ];
+
+        if (! $detalle) {
+            return $relaciones;
+        }
+
+        return array_merge($relaciones, [
+            'partesVigentes',
+        ]);
     }
 
     /**

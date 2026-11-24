@@ -12,6 +12,8 @@ class Rol extends Model
 
     public const CODIGO_ENCARGADA = 'ENCARGADA';
 
+    public const CODIGO_VENTANILLA = 'VENTANILLA';
+
     public const CODIGO_TECNICO = 'TECNICO';
 
     public const CODIGO_AUD_JURIDICO = 'AUD_JURIDICO';
