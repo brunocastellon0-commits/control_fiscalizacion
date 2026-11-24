@@ -18,14 +18,24 @@
                         class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#B53F12] text-white text-sm font-semibold hover:opacity-90">
                         <i class="fa-solid fa-shuffle"></i> Sortear
                     </button>
-                    <button type="button" x-show="expediente?.boleta_apertura" @click="descargarDocumento(expediente.boleta_apertura.url)"
+                    <button type="button" x-show="expediente?.boleta_apertura" @click="imprimirDocumento(expediente.boleta_apertura, 'Boleta de apertura')"
                         class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gris-claro bg-white text-sm font-semibold text-grafito hover:bg-gris-claro/40">
-                        <i class="fa-solid fa-file-arrow-down"></i> Boleta
+                        <i class="fa-solid fa-print"></i> Boleta
                     </button>
-                    <button type="button" x-show="expediente?.ficha_sorteo" @click="descargarDocumento(expediente.ficha_sorteo.url)"
+                    <a x-show="expediente?.boleta_apertura" :href="expediente.boleta_apertura.url"
+                        class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gris-claro bg-white text-sm font-semibold text-grafito hover:bg-gris-claro/40"
+                        title="Descargar boleta de apertura">
+                        <i class="fa-solid fa-file-arrow-down"></i> Descargar
+                    </a>
+                    <button type="button" x-show="expediente?.ficha_sorteo" @click="imprimirDocumento(expediente.ficha_sorteo, 'Ficha de sorteo')"
                         class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gris-claro bg-white text-sm font-semibold text-grafito hover:bg-gris-claro/40">
-                        <i class="fa-solid fa-file-arrow-down"></i> Ficha
+                        <i class="fa-solid fa-print"></i> Ficha
                     </button>
+                    <a x-show="expediente?.ficha_sorteo" :href="expediente.ficha_sorteo.url"
+                        class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gris-claro bg-white text-sm font-semibold text-grafito hover:bg-gris-claro/40"
+                        title="Descargar ficha de sorteo">
+                        <i class="fa-solid fa-file-arrow-down"></i> Descargar
+                    </a>
                     <button type="button" x-show="expediente && !expediente.ficha_sorteo && !expediente.puede_sortear" @click="generarFicha()"
                         class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gris-claro bg-white text-sm font-semibold text-[#B53F12] hover:bg-gris-claro/40">
                         <i class="fa-solid fa-rotate"></i> Generar ficha
@@ -220,9 +230,12 @@
                     }).format(fecha);
                 },
 
-                descargarDocumento(url) {
-                    if (url) {
-                        window.open(url, '_blank');
+                imprimirDocumento(documento, titulo) {
+                    if (documento?.url) {
+                        window.imprimirPdf({
+                            url: documento.url,
+                            titulo,
+                        });
                     }
                 },
 
@@ -239,6 +252,13 @@
                         if (ok) {
                             this.expediente.ficha_sorteo = data?.data || null;
                             window.apiToast('exito', 'Ficha de sorteo generada correctamente.');
+
+                            if (this.expediente.ficha_sorteo) {
+                                window.imprimirPdf({
+                                    url: this.expediente.ficha_sorteo.url,
+                                    titulo: 'Ficha de sorteo',
+                                });
+                            }
                         } else {
                             window.apiToast('error', data?.message || 'No se pudo generar la ficha de sorteo.');
                         }

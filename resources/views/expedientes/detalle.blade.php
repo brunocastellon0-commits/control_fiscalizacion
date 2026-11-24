@@ -729,9 +729,15 @@
                             body: { justificacion: this.formAmpliacion.justificacion },
                         });
                         if (ok || status === 201) {
-                            window.apiToast('exito', data?.message || 'Solicitud de ampliación enviada.');
+                            const mensaje = data?.message || 'Solicitud de ampliación enviada. El expediente quedó en la bandeja de la Encargada hasta su aprobación.';
                             this.formAmpliacion = { justificacion: '' };
-                            await this.recargarTrasAccion();
+                            try {
+                                sessionStorage.setItem('avisoBandeja', mensaje);
+                            } catch (e) {
+                                window.apiToast('exito', mensaje);
+                            }
+                            window.location.href = '/expedientes';
+                            return;
                         } else {
                             window.apiToast('error', data?.message || 'No se pudo solicitar la ampliación.', data?.errors);
                         }

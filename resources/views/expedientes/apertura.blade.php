@@ -245,17 +245,6 @@
 
                     this.enviando = true;
 
-                    // Se abre antes del envío para no perder el gesto del usuario:
-                    // los navegadores bloquean ventanas emergentes abiertas después
-                    // de una respuesta asíncrona.
-                    const boletaWindow = window.open('', '_blank');
-
-                    if (boletaWindow) {
-                        boletaWindow.document.open();
-                        boletaWindow.document.write('Generando la boleta de recepción…');
-                        boletaWindow.document.close();
-                    }
-
                     const formData = new FormData();
                     formData.append('via', this.form.via);
                     formData.append('naturaleza', this.form.naturaleza);
@@ -276,29 +265,29 @@
                     }).then(({ ok, status, data }) => {
                         if (ok || status === 201) {
                             const boletaUrl = data?.data?.boleta_apertura?.url || data?.boleta_apertura?.url || null;
-
-                            if (boletaUrl && boletaWindow) {
-                                boletaWindow.location.href = boletaUrl;
-                            } else if (boletaWindow) {
-                                boletaWindow.close();
-                            }
+                            const volverABandeja = () => {
+                                window.location.href = '/ventanilla/aperturas';
+                            };
 
                             window.apiToast('exito', 'Expediente registrado correctamente.');
-                            setTimeout(() => {
-                                window.location.href = '/ventanilla/aperturas';
-                            }, 900);
+
+                            if (boletaUrl) {
+                                window.imprimirPdf({
+                                    url: boletaUrl,
+                                    titulo: 'Boleta de recepción',
+                                    alCerrar: volverABandeja,
+                                });
+                            } else {
+                                setTimeout(volverABandeja, 900);
+                            }
                         } else if (status === 403) {
-                            if (boletaWindow) boletaWindow.close();
                             window.apiToast('error', data.message || 'No tiene permisos para registrar expedientes.');
                         } else if (status === 422) {
-                            if (boletaWindow) boletaWindow.close();
                             window.apiToast('error', (data.message || 'Revise los campos marcados.'), data.errors);
                         } else {
-                            if (boletaWindow) boletaWindow.close();
                             window.apiToast('error', data.message || 'No se pudo registrar el expediente.');
                         }
                     }).catch((e) => {
-                        if (boletaWindow) boletaWindow.close();
                         console.error(e);
                         window.apiToast('error', e.message || 'Error inesperado al registrar.');
                     }).finally(() => {

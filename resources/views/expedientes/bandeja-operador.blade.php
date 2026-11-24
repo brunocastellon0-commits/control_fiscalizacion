@@ -164,6 +164,18 @@
     </div>
 
     <script>
+        (function () {
+            try {
+                const aviso = sessionStorage.getItem('avisoBandeja');
+                if (aviso) {
+                    sessionStorage.removeItem('avisoBandeja');
+                    window.apiToast('exito', aviso);
+                }
+            } catch (e) {
+                // sessionStorage no disponible: se omite el aviso.
+            }
+        })();
+
         function bandejaOperador() {
             return {
                 expedientes: [],

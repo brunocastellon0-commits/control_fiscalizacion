@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Actuado;
 use App\Models\Expediente;
 use App\Models\Usuario;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -122,6 +123,54 @@ class FichaSorteoService
             $expediente->ficha_sorteo_path,
             $this->documentoPdf->nombreFichaSorteo($expediente),
         );
+    }
+
+    /**
+     * Vista HTML de la ficha para imprimir desde el navegador.
+     *
+     * Reconstruye los mismos datos usados al generar el PDF y reutiliza la
+     * plantilla Blade institucional, sin reemplazar la descarga attachment.
+     */
+    public function vistaImpresion(Expediente $expediente): View
+    {
+        $expediente->loadMissing([
+            'reglamento',
+            'estadoActual',
+            'creador',
+            'partesVigentes',
+        ]);
+
+        $actuado = $expediente->actuados()
+            ->whereHas('tipoActuado', fn ($query) => $query->where('codigo', 'ACT_SORTEO_INICIAL'))
+            ->latest('id')
+            ->first();
+
+        $asignacion = $expediente->asignaciones()
+            ->with('usuario.rol')
+            ->latest('id')
+            ->first();
+
+        abort_unless(
+            $actuado !== null && $asignacion?->usuario !== null,
+            404,
+            'La ficha de sorteo todavía no está disponible.',
+        );
+
+        $ganador = $asignacion->usuario;
+        $ganador->loadMissing('rol');
+
+        $descripcion = $actuado->contenido['descripcion'] ?? null;
+
+        return view('expedientes.ficha-sorteo-pdf', [
+            'expediente' => $expediente,
+            'ganador' => $ganador,
+            'encargada' => $actuado->usuario ?? $ganador,
+            'descripcion' => is_string($descripcion) ? $descripcion : null,
+            'actuado' => $actuado,
+            'sello' => '',
+            'logo' => null,
+            'generadoEn' => now(),
+        ]);
     }
 
     public function eliminar(?string $ruta): void

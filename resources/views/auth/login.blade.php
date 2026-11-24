@@ -1,10 +1,10 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es" class="h-full">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Acceso al Sistema | Control y Fiscalización</title>
+    <title>Acceso al Sistema | Control y FiscalizaciÃ³n</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -192,7 +192,7 @@
                     class="w-full max-w-[350px] h-auto object-contain">
             </div>
 
-            <!-- Título -->
+            <!-- TÃ­tulo -->
             <!-- <h1 class="text-2xl font-bold tracking-tight text-[#202625] uppercase leading-tight">
                 Consejo de la<br>
                 <span class="text-[#0F4C3A]">Magistratura</span>
@@ -200,7 +200,7 @@
             <div class="flex items-center justify-center gap-2 mt-2">
                 <div class="h-px w-8 bg-gradient-to-r from-transparent to-[#1E7A52]"></div>
                 <p class="text-xs font-medium text-[#1E7A52] tracking-wider uppercase">
-                    Sistema de Control y Fiscalización
+                    Sistema de Control y FiscalizaciÃ³n
                 </p>
                 <div class="h-px w-8 bg-gradient-to-l from-transparent to-[#1E7A52]"></div>
             </div>
@@ -215,7 +215,7 @@
             <span x-text="errorMessage"></span>
         </div>
 
-        <!-- Alerta de Éxito -->
+        <!-- Alerta de Ã‰xito -->
         <div x-show="successMessage" x-transition
             class="mb-6 p-3.5 rounded-lg bg-[#8CC63F]/10 border border-[#8CC63F]/20 text-[#8CC63F] text-xs flex items-center gap-2.5"
             style="display: none;">
@@ -240,18 +240,18 @@
                 </div>
             </div>
 
-            <!-- Contraseña -->
+            <!-- ContraseÃ±a -->
             <div>
                 <label class="block text-xs font-semibold text-[#66706B] uppercase tracking-wider mb-2">
                     <i class="fa-regular fa-lock mr-1.5 text-[#1E7A52]"></i>
-                    Contraseña
+                    ContraseÃ±a
                 </label>
                 <div class="relative">
                     <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#66706B]">
                         <i class="fa-regular fa-lock text-xs"></i>
                     </span>
                     <input :type="showPassword ? 'text' : 'password'" x-model="form.password" required
-                        placeholder="••••••••••••"
+                        placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                         class="w-full bg-[#F4F1E6] border border-[#E6EAE7] rounded-lg pl-10 pr-10 py-2.5 text-xs text-[#202625] placeholder-[#66706B] focus:outline-none focus:border-[#1E7A52] focus:ring-2 focus:ring-[#1E7A52]/30 transition duration-150">
                     <button type="button" @click="showPassword = !showPassword"
                         class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-[#66706B] hover:text-[#202625] transition">
@@ -260,23 +260,23 @@
                 </div>
             </div>
 
-            <!-- Botón de Envío -->
+            <!-- BotÃ³n de EnvÃ­o -->
             <button type="submit" :disabled="loading"
                 class="w-full mt-2 bg-[#0F4C3A] hover:bg-[#1E7A52] disabled:opacity-50 text-white font-bold py-3 rounded-lg text-xs uppercase tracking-wider transition-all duration-300 shadow-lg shadow-[#0F4C3A]/30 flex items-center justify-center gap-2 group">
                 <i x-show="loading" class="fa-solid fa-circle-notch fa-spin text-sm" style="display: none;"></i>
-                <span x-text="loading ? 'Validando...' : 'Iniciar Sesión'"></span>
+                <span x-text="loading ? 'Validando...' : 'Iniciar SesiÃ³n'"></span>
                 <i x-show="!loading"
                     class="fa-solid fa-arrow-right text-xs group-hover:translate-x-1 transition-transform duration-300"></i>
             </button>
 
             <div class="text-center mt-4">
                 <p class="text-[10px] text-[#66706B] tracking-wider">
-                    Si olvidó su contraseña, contacte al administrador del sistema.
+                    Si olvidÃ³ su contraseÃ±a, contacte al administrador del sistema.
                 </p>
             </div>
         </form>
 
-        <!-- Pie de página -->
+        <!-- Pie de pÃ¡gina -->
         <div class="mt-8 pt-4 border-t border-[#E6EAE7] text-center">
             <p class="text-[11px] text-[#66706B] font-light tracking-wider">
                 Consejo de la Magistratura &copy; 2026
@@ -309,7 +309,7 @@
                         });
 
                         if (!csrfHandle.ok) {
-                            throw new Error('No se pudo iniciar una sesión segura. Intente nuevamente.');
+                            throw new Error('No se pudo iniciar una sesiÃ³n segura. Intente nuevamente.');
                         }
 
                         const xsrfToken = document.cookie
@@ -347,12 +347,12 @@
                                 const mensajes = Object.values(data.errors).flat().filter(Boolean).join(' ');
                                 throw new Error(mensajes || data.message || 'Revise los datos ingresados.');
                             }
-                            throw new Error(data.message || 'No se pudo iniciar sesión. Verifique sus datos.');
+                            throw new Error(data.message || 'No se pudo iniciar sesiÃ³n. Verifique sus datos.');
                         }
 
-                        // Autenticación stateful: la sesión la maneja la cookie HttpOnly.
+                        // AutenticaciÃ³n stateful: la sesiÃ³n la maneja la cookie HttpOnly.
                         // No se almacena el token en localStorage (mitiga riesgo XSS).
-                        this.successMessage = `¡Bienvenido(a), ${data.usuario.nombre}! (Rol: ${data.usuario.rol})`;
+                        this.successMessage = `Â¡Bienvenido(a), ${data.usuario.nombre}! (Rol: ${data.usuario.rol})`;
 
                         //* CODIGO ORIGINAL
                         // const destino = data.usuario.rol === 'ENCARGADA' ? '/bandeja/sorteo' : '/expedientes'; 

@@ -14,10 +14,15 @@
                     <p class="text-sm text-gris mt-1">Información general de la causa registrada desde Ventanilla.</p>
                 </div>
                 <div class="flex flex-wrap items-center gap-2 self-start">
-                    <button type="button" x-show="expediente?.boleta_apertura" @click="descargarBoleta()"
+                    <button type="button" x-show="expediente?.boleta_apertura" @click="imprimirBoleta()"
                         class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-verde-profundo text-white text-sm font-semibold hover:opacity-90">
-                        <i class="fa-solid fa-file-arrow-down"></i> Descargar boleta
+                        <i class="fa-solid fa-print"></i> Imprimir boleta
                     </button>
+                    <a x-show="expediente?.boleta_apertura" :href="expediente.boleta_apertura.url"
+                        class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gris-claro bg-white text-sm font-semibold text-grafito hover:bg-gris-claro/40"
+                        title="Descargar boleta de apertura">
+                        <i class="fa-solid fa-file-arrow-down"></i> Descargar
+                    </a>
                     <button type="button" @click="volver()"
                         class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gris-claro bg-white text-sm font-semibold text-grafito hover:bg-gris-claro/40">
                         <i class="fa-solid fa-arrow-left"></i> Volver a mis aperturas
@@ -156,11 +161,14 @@
                     }).format(fecha);
                 },
 
-                descargarBoleta() {
-                    const url = this.expediente?.boleta_apertura?.url;
+                imprimirBoleta() {
+                    const boleta = this.expediente?.boleta_apertura;
 
-                    if (url) {
-                        window.open(url, '_blank');
+                    if (boleta?.url) {
+                        window.imprimirPdf({
+                            url: boleta.url,
+                            titulo: 'Boleta de recepción',
+                        });
                     }
                 },
 

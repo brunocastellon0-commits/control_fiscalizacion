@@ -176,6 +176,13 @@ it('el Técnico de AC022 solicita la ampliación: PENDIENTE_APROBACION_AMPLIACIO
         ->and($actuadoSolicitud->contenido['tipo'])->toBe('AMPLIACION')
         ->and($actuadoSolicitud->contenido['usuario_destino_id'])->toBe($semilla['encargada']->id);
 
+    // La bandeja pasó a la Encargada: el Técnico ya no puede recargar el detalle.
+    Sanctum::actingAs($semilla['tecnico'], ['*']);
+    $this->getJson("/api/expedientes/{$expediente->id}")->assertForbidden();
+
+    Sanctum::actingAs($semilla['encargada'], ['*']);
+    $this->getJson("/api/expedientes/{$expediente->id}")->assertOk();
+
     Carbon::setTestNow();
 });
 

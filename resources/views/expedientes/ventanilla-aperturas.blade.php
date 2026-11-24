@@ -108,11 +108,16 @@
                                 <td class="px-4 py-3 text-gris" x-text="nombreResponsable(exp.responsable)"></td>
                                 <td class="px-4 py-3 text-center">
                                     <button type="button" x-show="exp.boleta_apertura"
-                                        @click="descargarDocumento(exp.boleta_apertura.url)"
+                                        @click="imprimirDocumento(exp.boleta_apertura, 'Boleta de apertura')"
                                         class="inline-flex items-center gap-1 text-xs font-semibold text-verde-profundo hover:underline"
-                                        title="Descargar boleta de apertura">
-                                        <i class="fa-solid fa-file-arrow-down"></i> Boleta
+                                        title="Imprimir boleta de apertura">
+                                        <i class="fa-solid fa-print"></i> Boleta
                                     </button>
+                                    <a x-show="exp.boleta_apertura" :href="exp.boleta_apertura.url"
+                                        class="inline-flex items-center gap-1 text-xs font-semibold text-verde-profundo hover:underline ml-2"
+                                        title="Descargar boleta de apertura">
+                                        <i class="fa-solid fa-file-arrow-down"></i> Descargar
+                                    </a>
                                     <span x-show="!exp.boleta_apertura" class="text-gris">—</span>
                                 </td>
                                 <td class="px-4 py-3 text-right">
@@ -235,9 +240,12 @@
                     }).format(fecha);
                 },
 
-                descargarDocumento(url) {
-                    if (url) {
-                        window.open(url, '_blank');
+                imprimirDocumento(documento, titulo) {
+                    if (documento?.url) {
+                        window.imprimirPdf({
+                            url: documento.url,
+                            titulo,
+                        });
                     }
                 },
 

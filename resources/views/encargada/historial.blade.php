@@ -115,20 +115,30 @@
                                 <td class="px-4 py-3 text-gris" x-text="nombreResponsable(exp.responsable)"></td>
                                 <td class="px-4 py-3 text-center">
                                     <button type="button" x-show="exp.boleta_apertura"
-                                        @click="descargarDocumento(exp.boleta_apertura.url)"
+                                        @click="imprimirDocumento(exp.boleta_apertura, 'Boleta de apertura')"
                                         class="inline-flex items-center gap-1 text-xs font-semibold text-verde-profundo hover:underline"
-                                        title="Descargar boleta de apertura">
-                                        <i class="fa-solid fa-file-arrow-down"></i> Boleta
+                                        title="Imprimir boleta de apertura">
+                                        <i class="fa-solid fa-print"></i> Boleta
                                     </button>
+                                    <a x-show="exp.boleta_apertura" :href="exp.boleta_apertura.url"
+                                        class="inline-flex items-center gap-1 text-xs font-semibold text-verde-profundo hover:underline ml-2"
+                                        title="Descargar boleta de apertura">
+                                        <i class="fa-solid fa-file-arrow-down"></i> Descargar
+                                    </a>
                                     <span x-show="!exp.boleta_apertura" class="text-gris">—</span>
                                 </td>
                                 <td class="px-4 py-3 text-center">
                                     <button type="button" x-show="exp.ficha_sorteo"
-                                        @click="descargarDocumento(exp.ficha_sorteo.url)"
+                                        @click="imprimirDocumento(exp.ficha_sorteo, 'Ficha de sorteo')"
                                         class="inline-flex items-center gap-1 text-xs font-semibold text-verde-profundo hover:underline"
-                                        title="Descargar ficha de sorteo">
-                                        <i class="fa-solid fa-file-arrow-down"></i> Ficha
+                                        title="Imprimir ficha de sorteo">
+                                        <i class="fa-solid fa-print"></i> Ficha
                                     </button>
+                                    <a x-show="exp.ficha_sorteo" :href="exp.ficha_sorteo.url"
+                                        class="inline-flex items-center gap-1 text-xs font-semibold text-verde-profundo hover:underline ml-2"
+                                        title="Descargar ficha de sorteo">
+                                        <i class="fa-solid fa-file-arrow-down"></i> Descargar
+                                    </a>
                                     <button type="button" x-show="!exp.ficha_sorteo && !exp.puede_sortear"
                                         @click="generarFicha(exp)"
                                         class="inline-flex items-center gap-1 text-xs font-semibold text-[#B53F12] hover:underline"
@@ -257,9 +267,12 @@
                     }).format(fecha);
                 },
 
-                descargarDocumento(url) {
-                    if (url) {
-                        window.open(url, '_blank');
+                imprimirDocumento(documento, titulo) {
+                    if (documento?.url) {
+                        window.imprimirPdf({
+                            url: documento.url,
+                            titulo,
+                        });
                     }
                 },
 
@@ -272,6 +285,13 @@
                         if (ok) {
                             exp.ficha_sorteo = data?.data || null;
                             window.apiToast('exito', 'Ficha de sorteo generada correctamente.');
+
+                            if (exp.ficha_sorteo) {
+                                window.imprimirPdf({
+                                    url: exp.ficha_sorteo.url,
+                                    titulo: 'Ficha de sorteo',
+                                });
+                            }
                         } else {
                             window.apiToast('error', data?.message || 'No se pudo generar la ficha de sorteo.');
                         }
