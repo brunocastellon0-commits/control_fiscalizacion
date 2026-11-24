@@ -31,7 +31,7 @@
                         </div>
 
                         <div>
-                            <label class="block text-xs font-semibold text-grafito uppercase mb-1.5">Naturaleza <span class="text-[#F15A24]">*</span></label>
+                            <label class="block text-xs font-semibold text-grafito uppercase mb-1.5">Area <span class="text-[#F15A24]">*</span></label>
                             <select x-model="form.naturaleza" required class="w-full border border-gris-claro rounded-lg text-sm text-grafito px-3 py-2.5 bg-white focus:border-verde-institucional focus:ring-verde-institucional">
                                 <option value="" disabled>-- Seleccione naturaleza --</option>
                                 <option value="JURISDICCIONAL">Jurisdiccional</option>
