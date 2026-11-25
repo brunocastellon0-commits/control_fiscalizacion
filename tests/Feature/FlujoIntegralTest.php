@@ -80,7 +80,7 @@ function fiInsertarFeriadoDePrueba(): void
 function fiPayloadApertura(int $reglamentoId): array
 {
     return [
-        'via' => 'FINANCIERO',
+        'via' => 'INGRESO_VERBAL',
         'naturaleza' => 'JURISDICCIONAL',
         'reglamento_id' => $reglamentoId,
         'resumen_hechos' => 'Desvío de fondos denunciado en la unidad de fiscalización.',
@@ -187,7 +187,7 @@ function fiCrearExpedienteAsignado(array $s, Usuario $operador): Expediente
 {
     $expediente = Expediente::create([
         'nurej_code' => 'EXP-'.fake()->unique()->numberBetween(100000, 999999),
-        'via' => 'FINANCIERO',
+        'via' => 'INGRESO_VERBAL',
         'reglamento_id' => $s['ac055']->id,
         'estado_actual_id' => CatalogoEstado::where('codigo', 'EN_EVALUACION')->value('id'),
         'resumen_hechos' => 'Expediente ajeno usado para verificar el compartimento entre causas.',
@@ -291,7 +291,7 @@ it('recorre el ciclo completo AC055: sorteo, admisión, MPA, visto bueno, descar
     $expediente = Expediente::firstOrFail();
 
     expect(fiEstado($expediente))->toBe('PENDIENTE_SORTEO')
-        ->and($expediente->via)->toBe('FINANCIERO')
+        ->and($expediente->via)->toBe('INGRESO_VERBAL')
         ->and(Parte::where('expediente_id', $expediente->id)->count())->toBe(2)
         ->and(fiBandejaActiva($expediente->id))->toBeNull()
         ->and(Actuado::where('expediente_id', $expediente->id)->count())->toBe(1);

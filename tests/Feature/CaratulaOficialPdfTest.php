@@ -30,7 +30,7 @@ function carExpediente(array $atributos = []): Expediente
 
     return Expediente::create(array_merge([
         'nurej_code' => '2026-'.fake()->unique()->numerify('#####'),
-        'via' => 'TECNICO',
+        'via' => 'INGRESO_VERBAL',
         'reglamento_id' => $reglamento->id,
         'estado_actual_id' => $estado->id,
         'resumen_hechos' => 'Síntesis de los hechos para la carátula oficial.',
@@ -53,14 +53,14 @@ it('genera la carátula oficial A4 de un expediente', function () {
         ->and($respuesta->getContent())->toStartWith('%PDF');
 });
 
-it('incluye NUREJ padre, derivados, fecha, vía, partes y sello de custodia', function () {
+it('incluye NUREJ padre, derivados, fecha, origen de ingreso, partes y sello de custodia', function () {
     $encargada = carUsuario(Rol::CODIGO_ENCARGADA);
     $padre = carExpediente(['nurej_code' => '2026-90001']);
 
     $expediente = carExpediente([
         'nurej_code' => '2026-90002',
         'nurej_padre_id' => $padre->id,
-        'via' => 'JURIDICO',
+        'via' => 'INGRESO_VERBAL',
         'fecha_ingreso' => '2026-01-15 09:30:00',
     ]);
 
@@ -91,7 +91,7 @@ it('incluye NUREJ padre, derivados, fecha, vía, partes y sello de custodia', fu
         ->toContain('2026-90001')
         ->toContain('2026-90003')
         ->toContain('15/01/2026')
-        ->toContain('JURIDICO')
+        ->toContain('Ingreso verbal')
         ->toContain('María Fernanda Quispe')
         ->toContain('ABCD1234EFGH5678')
         ->toContain('SELLO DE CUSTODIA')

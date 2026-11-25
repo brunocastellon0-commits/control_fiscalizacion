@@ -14,10 +14,15 @@
                     <p class="text-sm text-gris mt-1">Información general de la causa registrada desde Ventanilla.</p>
                 </div>
                 <div class="flex flex-wrap items-center gap-2 self-start">
-                    <button type="button" x-show="expediente?.boleta_apertura" @click="descargarBoleta()"
+                    <button type="button" x-show="expediente?.boleta_apertura" @click="imprimirBoleta()"
                         class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-verde-profundo text-white text-sm font-semibold hover:opacity-90">
-                        <i class="fa-solid fa-file-arrow-down"></i> Descargar boleta
+                        <i class="fa-solid fa-print"></i> Imprimir boleta
                     </button>
+                    <a x-show="expediente?.boleta_apertura" :href="expediente.boleta_apertura.url"
+                        class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gris-claro bg-white text-sm font-semibold text-grafito hover:bg-gris-claro/40"
+                        title="Descargar boleta de apertura">
+                        <i class="fa-solid fa-file-arrow-down"></i> Descargar
+                    </a>
                     <button type="button" @click="volver()"
                         class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gris-claro bg-white text-sm font-semibold text-grafito hover:bg-gris-claro/40">
                         <i class="fa-solid fa-arrow-left"></i> Volver a mis aperturas
@@ -58,9 +63,15 @@
                             <p class="text-grafito" x-text="formatoFecha(expediente.fecha_ingreso)"></p>
                         </div>
                         <div>
-                            <p class="text-xs text-gris uppercase tracking-wide">Vía</p>
-                            <p class="text-grafito" x-text="expediente.via || '—'"></p>
+                            <p class="text-xs text-gris uppercase tracking-wide">Origen de ingreso</p>
+                            <p class="text-grafito" x-text="expediente.via === 'INGRESO_DISTRITAL' ? 'Ingreso desde distrital' : (expediente.via === 'INGRESO_VERBAL' ? 'Ingreso verbal' : (expediente.via || '—'))"></p>
                         </div>
+                        <template x-if="expediente.numero_hoja_ruta">
+                            <div>
+                                <p class="text-xs text-gris uppercase tracking-wide">Número de hoja de ruta</p>
+                                <p class="text-grafito" x-text="expediente.numero_hoja_ruta"></p>
+                            </div>
+                        </template>
                         <div>
                             <p class="text-xs text-gris uppercase tracking-wide">Naturaleza</p>
                             <p class="text-grafito" x-text="etiquetaNaturaleza(expediente.naturaleza)"></p>
@@ -156,11 +167,14 @@
                     }).format(fecha);
                 },
 
-                descargarBoleta() {
-                    const url = this.expediente?.boleta_apertura?.url;
+                imprimirBoleta() {
+                    const boleta = this.expediente?.boleta_apertura;
 
-                    if (url) {
-                        window.open(url, '_blank');
+                    if (boleta?.url) {
+                        window.imprimirPdf({
+                            url: boleta.url,
+                            titulo: 'Boleta de recepción',
+                        });
                     }
                 },
 

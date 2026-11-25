@@ -45,7 +45,7 @@ function idorExpedienteConEstado(string $codigoEstado, int $creadorId, int $regl
 
     return Expediente::create([
         'nurej_code' => 'EXP-IDOR-'.fake()->unique()->numberBetween(10000, 99999),
-        'via' => 'TECNICO',
+        'via' => 'INGRESO_VERBAL',
         'reglamento_id' => $reglamentoId,
         'estado_actual_id' => $estado->id,
         'fecha_ingreso' => now(),
@@ -221,7 +221,7 @@ it('bloquea la apertura de expedientes a un rol que no es la ventanilla', functi
     Sanctum::actingAs($encargada, ['*']);
 
     $this->postJson('/api/expedientes', [
-        'via' => 'TECNICO',
+        'via' => 'INGRESO_VERBAL',
         'reglamento_id' => $reglamento->id,
         'fecha_ingreso' => now()->toDateString(),
     ])->assertForbidden();

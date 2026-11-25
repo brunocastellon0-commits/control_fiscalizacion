@@ -61,7 +61,7 @@ function mefCrearExpediente(int $estadoId, int $reglamentoId, int $creadorId): E
 {
     return Expediente::create([
         'nurej_code' => 'EXP-MEF-'.fake()->unique()->numberBetween(10000, 99999),
-        'via' => 'TECNICO',
+        'via' => 'INGRESO_VERBAL',
         'reglamento_id' => $reglamentoId,
         'estado_actual_id' => $estadoId,
         'fecha_ingreso' => now(),
@@ -272,7 +272,7 @@ function mefSemillaConcurrente(): array
         ]);
         $expediente = App\Models\Expediente::create([
             'nurej_code' => '2026-'.rand(1000000, 9999999),
-            'via' => 'TECNICO',
+            'via' => 'INGRESO_VERBAL',
             'reglamento_id' => $reglamento->id,
             'estado_actual_id' => $estadoOrigen->id,
             'fecha_ingreso' => now(),

@@ -29,7 +29,7 @@ function paso6Actuado(array $contenido = ['descripcion' => 'Se notifica descargo
 
     $expediente = Expediente::create([
         'nurej_code' => 'ACT-'.fake()->unique()->numberBetween(10000, 99999),
-        'via' => 'TECNICO',
+        'via' => 'INGRESO_VERBAL',
         'reglamento_id' => $reglamento->id,
         'estado_actual_id' => $estadoOrigen->id,
         'fecha_ingreso' => now(),

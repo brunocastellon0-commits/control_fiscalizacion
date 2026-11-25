@@ -18,6 +18,28 @@ class Expediente extends Model
 
     public const NATURALEZA_ADMINISTRATIVA = 'ADMINISTRATIVA';
 
+    /**
+     * Origen del ingreso del trámite. La especialidad se deriva del
+     * reglamento, no de este campo.
+     */
+    public const VIA_INGRESO_VERBAL = 'INGRESO_VERBAL';
+
+    public const VIA_INGRESO_DISTRITAL = 'INGRESO_DISTRITAL';
+
+    public const VIAS_INGRESO = [
+        self::VIA_INGRESO_VERBAL,
+        self::VIA_INGRESO_DISTRITAL,
+    ];
+
+    public static function etiquetaVia(?string $via): string
+    {
+        return match ($via) {
+            self::VIA_INGRESO_VERBAL => 'Ingreso verbal',
+            self::VIA_INGRESO_DISTRITAL => 'Ingreso desde distrital',
+            default => 'Sin origen registrado',
+        };
+    }
+
     protected $table = 'expedientes';
 
     public $timestamps = false;
@@ -26,6 +48,7 @@ class Expediente extends Model
         'nurej_code',
         'nurej_padre_id',
         'via',
+        'numero_hoja_ruta',
         'naturaleza',
         'reglamento_id',
         'estado_actual_id',

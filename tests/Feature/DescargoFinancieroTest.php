@@ -106,7 +106,7 @@ function descargoCrearExpediente(int $estadoId, int $reglamentoId, int $creadoPo
 {
     return Expediente::create([
         'nurej_code' => 'EXP-'.fake()->unique()->numberBetween(100000, 999999),
-        'via' => 'TECNICO',
+        'via' => 'INGRESO_VERBAL',
         'reglamento_id' => $reglamentoId,
         'estado_actual_id' => $estadoId,
         'resumen_hechos' => 'Auditoría financiera en plena ejecución con hallazgos detectados.',

@@ -77,7 +77,7 @@ function cierrePlazoCrearExpediente(int $estadoId, int $reglamentoId, int $cread
 {
     return Expediente::create([
         'nurej_code' => 'EXP-CIERRE-'.fake()->unique()->numberBetween(10000, 99999),
-        'via' => 'TECNICO',
+        'via' => 'INGRESO_VERBAL',
         'naturaleza' => Expediente::NATURALEZA_JURISDICCIONAL,
         'reglamento_id' => $reglamentoId,
         'estado_actual_id' => $estadoId,

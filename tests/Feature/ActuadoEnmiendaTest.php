@@ -63,7 +63,7 @@ function enmiendaSemilla(TestCase $test): array
 
     $expediente = Expediente::create([
         'nurej_code' => 'EXP-ENM-'.fake()->unique()->numberBetween(100000, 999999),
-        'via' => 'TECNICO',
+        'via' => 'INGRESO_VERBAL',
         'reglamento_id' => $ac022->id,
         'estado_actual_id' => $estado->id,
         'resumen_hechos' => 'Hechos originales de la causa.',

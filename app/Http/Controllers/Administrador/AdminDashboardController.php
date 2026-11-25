@@ -74,14 +74,28 @@ class AdminDashboardController extends Controller
             ])
             ->values();
 
-        $expedientesPorVia = Expediente::query()
+        $expedientesPorReglamento = Expediente::query()
+            ->selectRaw('reglamento_id, COUNT(*) as total')
+            ->groupBy('reglamento_id')
+            ->orderByDesc('total')
+            ->with('reglamento:id,codigo,nombre')
+            ->get()
+            ->map(fn ($fila) => [
+                'codigo' => $fila->reglamento?->codigo ?? 'SIN_REGLAMENTO',
+                'nombre' => $fila->reglamento?->nombre ?? 'Sin reglamento',
+                'total' => (int) $fila->total,
+            ])
+            ->values();
+
+        $expedientesPorOrigenIngreso = Expediente::query()
             ->selectRaw('via, COUNT(*) as total')
             ->groupBy('via')
             ->orderByDesc('total')
             ->get()
             ->map(fn ($fila) => [
-                'via' => $fila->via ?? 'SIN_VIA',
-                'total' => $fila->total,
+                'via' => $fila->via,
+                'origen' => Expediente::etiquetaVia($fila->via),
+                'total' => (int) $fila->total,
             ])
             ->values();
 
@@ -203,7 +217,8 @@ class AdminDashboardController extends Controller
                 'total' => $expedientesTotal,
                 'sin_asignar' => $expedientesSinAsignar,
                 'por_estado' => $expedientesPorEstado,
-                'por_via' => $expedientesPorVia,
+                'por_reglamento' => $expedientesPorReglamento,
+                'por_origen_ingreso' => $expedientesPorOrigenIngreso,
                 'ultimos' => $ultimosExpedientes,
             ],
             'asignaciones' => [

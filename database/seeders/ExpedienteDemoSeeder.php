@@ -129,7 +129,7 @@ class ExpedienteDemoSeeder extends Seeder
             $adjunto = $this->crearPdfDummy();
             $expediente = $expedienteService->aperturaCausa(
                 datos: [
-                    'via' => 'TECNICO',
+                    'via' => Expediente::VIA_INGRESO_VERBAL,
                     'reglamento_id' => $reglamento->id,
                     'resumen_hechos' => static::TAG_DEMO.' '.$caso['resumen'],
                     'partes' => $caso['partes'],
@@ -152,7 +152,7 @@ class ExpedienteDemoSeeder extends Seeder
         $adjunto = $this->crearPdfDummy();
         $expediente = $expedienteService->aperturaCausa(
             datos: [
-                'via' => 'TECNICO',
+                'via' => Expediente::VIA_INGRESO_VERBAL,
                 'reglamento_id' => $reglamento->id,
                 'resumen_hechos' => static::TAG_DEMO.' Expediente en evaluacion: expediente con plazos abiertos para revisar documentacion.',
                 'partes' => [
@@ -188,7 +188,7 @@ class ExpedienteDemoSeeder extends Seeder
         $adjunto = $this->crearPdfDummy();
         $expediente = $expedienteService->aperturaCausa(
             datos: [
-                'via' => 'TECNICO',
+                'via' => Expediente::VIA_INGRESO_VERBAL,
                 'reglamento_id' => $reglamento->id,
                 'resumen_hechos' => static::TAG_DEMO.' Expediente con cadena de custodia completa: registro, sorteo y observacion.',
                 'partes' => [
@@ -236,7 +236,7 @@ class ExpedienteDemoSeeder extends Seeder
         $adjunto = $this->crearPdfDummy();
         $expediente = $expedienteService->aperturaCausa(
             datos: [
-                'via' => 'TECNICO',
+                'via' => Expediente::VIA_INGRESO_VERBAL,
                 'reglamento_id' => $reglamento->id,
                 'resumen_hechos' => static::TAG_PLAZOS.' Expediente de demostracion para validar la tarjeta de plazos y el semaforo.',
                 'partes' => [

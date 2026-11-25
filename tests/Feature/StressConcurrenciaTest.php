@@ -137,7 +137,7 @@ function stressCodigoApertura(): string
         for ($i = 0; $i < $n; $i++) {
             $exp = app(App\Services\ExpedienteService::class)->aperturaCausa(
                 datos: [
-                    'via' => 'TECNICO',
+                    'via' => 'INGRESO_VERBAL',
                     'naturaleza' => 'JURISDICCIONAL',
                     'reglamento_id' => $reglamento->id,
                     'resumen_hechos' => '[STRESS-MASA] corrida '.getenv('STR_PROC').' causa '.$i,
@@ -220,7 +220,7 @@ it('T2: cadena de custodia íntegra con N subprocesos x M inserts concurrentes',
         ]);
         $expediente = App\Models\Expediente::create([
             "nurej_code" => "2026-STR-'.$suf.'",
-            "via" => "TECNICO",
+            "via" => "INGRESO_VERBAL",
             "reglamento_id" => $reglamento->id,
             "estado_actual_id" => $estado->id,
             "fecha_ingreso" => now(),
@@ -314,7 +314,7 @@ it('T3: sorteo concurrente del mismo expediente produce a lo sumo 1 ACT_SORTEO_I
 
         $expediente = App\Models\Expediente::create([
             'nurej_code' => '2026-CONC-'.getenv('STR_SUF'),
-            'via' => 'TECNICO',
+            'via' => 'INGRESO_VERBAL',
             'reglamento_id' => $base['reglamento'],
             'estado_actual_id' => $base['est_pendiente'],
             'resumen_hechos' => '[STRESS-T3] sorteo concurrente',
@@ -481,7 +481,7 @@ it('T5: sortearTodas vs aperturas concurrentes sin deadlocks ni NUREJ duplicados
         for ($i = 0; $i < 5; $i++) {
             $exp = App\Models\Expediente::create([
                 'nurej_code' => '2026-T5-'.rand(100000, 999999),
-                'via' => 'TECNICO',
+                'via' => 'INGRESO_VERBAL',
                 'reglamento_id' => $base['reglamento'],
                 'estado_actual_id' => $base['est_pendiente'],
                 'resumen_hechos' => '[STRESS-T5] base '.$i,

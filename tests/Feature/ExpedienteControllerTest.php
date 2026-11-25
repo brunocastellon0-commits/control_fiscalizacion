@@ -27,7 +27,7 @@ function paso7SemillaController(): array
     $rolOperador = Rol::factory()->create(['codigo' => Rol::CODIGO_AUD_JURIDICO]);
     $operador = Usuario::factory()->create(['rol_id' => $rolOperador->id]);
 
-    $reglamento = Reglamento::factory()->create();
+    $reglamento = Reglamento::factory()->create(['codigo' => Reglamento::CODIGO_AC_022]);
 
     $pendiente = CatalogoEstado::factory()->create(['codigo' => 'PENDIENTE_SORTEO']);
     $evaluacion = CatalogoEstado::factory()->create(['codigo' => 'EN_EVALUACION']);
@@ -68,7 +68,7 @@ function paso7SemillaController(): array
 function paso7PayloadApertura(int $reglamentoId): array
 {
     return [
-        'via' => 'TECNICO',
+        'via' => 'INGRESO_VERBAL',
         'naturaleza' => 'JURISDICCIONAL',
         'reglamento_id' => $reglamentoId,
         'resumen_hechos' => 'Hechos denunciados ante la autoridad municipal.',
@@ -83,8 +83,9 @@ function paso7CrearExpedienteConEstado(int $estadoId, int $creadorId): Expedient
 {
     return Expediente::create([
         'nurej_code' => 'EXP-'.fake()->unique()->numberBetween(10000, 99999),
-        'via' => 'TECNICO',
-        'reglamento_id' => Reglamento::factory()->create()->id,
+        'via' => 'INGRESO_VERBAL',
+        'reglamento_id' => Reglamento::where('codigo', Reglamento::CODIGO_AC_022)->value('id')
+            ?? Reglamento::factory()->create(['codigo' => Reglamento::CODIGO_AC_022])->id,
         'estado_actual_id' => $estadoId,
         'fecha_ingreso' => now(),
         'creado_por' => $creadorId,

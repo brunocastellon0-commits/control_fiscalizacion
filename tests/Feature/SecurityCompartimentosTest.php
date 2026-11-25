@@ -51,7 +51,7 @@ function paso9CrearExpedienteConEstado(int $estadoId, int $creadorId): Expedient
 {
     return Expediente::create([
         'nurej_code' => 'EXP-'.fake()->unique()->numberBetween(10000, 99999),
-        'via' => 'TECNICO',
+        'via' => 'INGRESO_VERBAL',
         'reglamento_id' => Reglamento::factory()->create()->id,
         'estado_actual_id' => $estadoId,
         'fecha_ingreso' => now(),

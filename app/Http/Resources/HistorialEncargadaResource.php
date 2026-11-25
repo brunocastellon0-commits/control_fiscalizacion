@@ -27,6 +27,7 @@ class HistorialEncargadaResource extends JsonResource
             'id' => $expediente->id,
             'nurej_code' => $expediente->nurej_code,
             'via' => $expediente->via,
+            'numero_hoja_ruta' => $expediente->numero_hoja_ruta,
             'naturaleza' => $expediente->naturaleza,
             'fecha_ingreso' => $expediente->fecha_ingreso?->format('Y-m-d H:i:s'),
             'resumen_hechos' => $expediente->resumen_hechos,

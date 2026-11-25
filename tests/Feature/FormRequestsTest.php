@@ -36,7 +36,7 @@ function paso4SemillaRolesUsuarios(): array
 function paso4PayloadExpedienteValido(int $reglamentoId): array
 {
     return [
-        'via' => 'TECNICO',
+        'via' => 'INGRESO_VERBAL',
         'naturaleza' => 'JURISDICCIONAL',
         'reglamento_id' => $reglamentoId,
         'resumen_hechos' => 'Hechos denunciados sobre irregularidades administrativas verificables.',
@@ -54,7 +54,7 @@ function paso4SemillaExpedienteYActuado(Usuario $creadoPor, Rol $rolActuado): ar
 
     $expediente = Expediente::create([
         'nurej_code' => 'NUREJ-'.Str::upper(Str::random(8)),
-        'via' => 'TECNICO',
+        'via' => 'INGRESO_VERBAL',
         'reglamento_id' => $reglamento->id,
         'estado_actual_id' => $estado->id,
         'resumen_hechos' => 'Hechos denunciados sobre irregularidades administrativas verificables.',
@@ -99,7 +99,7 @@ describe('StoreExpedienteRequest (apertura de causa, rol VENTANILLA)', function 
     beforeEach(function () {
         Route::post('/_test/expedientes', fn (StoreExpedienteRequest $request) => response()->json(['ok' => true]));
         $this->semilla = paso4SemillaRolesUsuarios();
-        $this->reglamento = Reglamento::factory()->create();
+        $this->reglamento = Reglamento::factory()->create(['codigo' => Reglamento::CODIGO_AC_022]);
     });
 
     test('la ventanilla puede abrir una causa con payload valido', function () {
@@ -116,6 +116,37 @@ describe('StoreExpedienteRequest (apertura de causa, rol VENTANILLA)', function 
         $this->actingAs($this->semilla['encargada'])
             ->postJson('/_test/expedientes', paso4PayloadExpedienteValido($this->reglamento->id))
             ->assertForbidden();
+    });
+
+    test('el ingreso desde distrital exige numero de hoja de ruta', function () {
+        $payload = paso4PayloadExpedienteValido($this->reglamento->id);
+        $payload['via'] = Expediente::VIA_INGRESO_DISTRITAL;
+
+        $this->actingAs($this->semilla['ventanilla'])
+            ->postJson('/_test/expedientes', $payload)
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('numero_hoja_ruta');
+    });
+
+    test('el ingreso desde distrital con hoja de ruta es valido', function () {
+        $payload = paso4PayloadExpedienteValido($this->reglamento->id);
+        $payload['via'] = Expediente::VIA_INGRESO_DISTRITAL;
+        $payload['numero_hoja_ruta'] = 'HR-2026-0007';
+        $payload['adjunto'] = UploadedFile::fake()->create('denuncia.pdf', 100, 'application/pdf');
+
+        $this->actingAs($this->semilla['ventanilla'])
+            ->post('/_test/expedientes', $payload)
+            ->assertOk()
+            ->assertJson(['ok' => true]);
+    });
+
+    test('solo se aceptan los reglamentos permitidos del acuerdo', function () {
+        $reglamento = Reglamento::factory()->create(['codigo' => 'AC_999_2099']);
+
+        $this->actingAs($this->semilla['ventanilla'])
+            ->postJson('/_test/expedientes', paso4PayloadExpedienteValido($reglamento->id))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('reglamento_id');
     });
 
     test('un payload invalido recibe 422', function () {

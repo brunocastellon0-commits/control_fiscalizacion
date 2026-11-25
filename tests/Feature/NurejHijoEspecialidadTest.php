@@ -88,18 +88,17 @@ function nurejEspSemilla(): array
     );
 }
 
-function nurejEspCrearPadre(array $semilla, string $via = 'TECNICO'): Expediente
-{
-    $reglamento = match ($via) {
-        'JURIDICO' => $semilla['ac054'],
-        'FINANCIERO' => $semilla['ac055'],
-        default => $semilla['ac022'],
-    };
-
+function nurejEspCrearPadre(
+    array $semilla,
+    ?Reglamento $reglamento = null,
+    string $via = Expediente::VIA_INGRESO_VERBAL,
+    ?string $numeroHojaRuta = null,
+): Expediente {
     $padre = Expediente::create([
         'nurej_code' => '2026-00001',
         'via' => $via,
-        'reglamento_id' => $reglamento->id,
+        'numero_hoja_ruta' => $numeroHojaRuta,
+        'reglamento_id' => ($reglamento ?? $semilla['ac022'])->id,
         'estado_actual_id' => $semilla['ejecucion']->id,
         'resumen_hechos' => 'Hechos de la causa padre con detalle suficiente para su derivación.',
         'fecha_ingreso' => now(),
@@ -144,14 +143,14 @@ it('M1: deriva a JURIDICO con reglamento AC_054_2018 y traza via_destino/reglame
         'via_destino' => 'JURIDICO',
     ])->assertCreated()
         ->assertJsonPath('data.nurej_code', '2026-00001-1')
-        ->assertJsonPath('data.via', 'JURIDICO')
+        ->assertJsonPath('data.via', 'INGRESO_VERBAL')
         ->assertJsonPath('data.reglamento.id', $semilla['ac054']->id)
         ->assertJsonPath('data.estado_actual.codigo', 'PENDIENTE_SORTEO');
 
     $hijo = Expediente::where('nurej_code', '2026-00001-1')->firstOrFail();
 
     expect($hijo->nurej_padre_id)->toBe($padre->id)
-        ->and($hijo->via)->toBe('JURIDICO')
+        ->and($hijo->via)->toBe('INGRESO_VERBAL')
         ->and($hijo->reglamento_id)->toBe($semilla['ac054']->id)
         ->and($hijo->actuados()->count())->toBe(0)
         ->and($hijo->plazos()->count())->toBe(0)
@@ -160,7 +159,7 @@ it('M1: deriva a JURIDICO con reglamento AC_054_2018 y traza via_destino/reglame
 
     $padre->refresh();
     expect($padre->estado_actual_id)->toBe($semilla['ejecucion']->id)
-        ->and($padre->via)->toBe('TECNICO')
+        ->and($padre->via)->toBe('INGRESO_VERBAL')
         ->and($padre->reglamento_id)->toBe($semilla['ac022']->id);
 
     $actuadoDerivacion = $padre->actuados()
@@ -171,6 +170,30 @@ it('M1: deriva a JURIDICO con reglamento AC_054_2018 y traza via_destino/reglame
     expect($actuadoDerivacion->contenido['expediente_hijo_id'])->toBe($hijo->id)
         ->and($actuadoDerivacion->contenido['via_destino'])->toBe('JURIDICO')
         ->and($actuadoDerivacion->contenido['reglamento_destino_id'])->toBe($semilla['ac054']->id);
+});
+
+it('el NUREJ Hijo hereda el origen distrital y la hoja de ruta del padre', function () {
+    $semilla = nurejEspSemilla();
+    $padre = nurejEspCrearPadre(
+        $semilla,
+        $semilla['ac022'],
+        Expediente::VIA_INGRESO_DISTRITAL,
+        'HR-2026-0044',
+    );
+    nurejEspRegistrarInforme($padre, $semilla['actInformeConRec'], $semilla['tecnico']);
+
+    Sanctum::actingAs($semilla['encargada'], ['*']);
+
+    $this->postJson("/api/expedientes/{$padre->id}/nurej-hijo", [
+        'motivo' => 'Informe técnico que recomienda auditoría jurídica sobre la causa radicada en distrito.',
+        'via_destino' => 'JURIDICO',
+    ])->assertCreated()
+        ->assertJsonPath('data.via', Expediente::VIA_INGRESO_DISTRITAL)
+        ->assertJsonPath('data.numero_hoja_ruta', 'HR-2026-0044');
+
+    $hijo = Expediente::where('nurej_code', '2026-00001-1')->firstOrFail();
+    expect($hijo->via)->toBe(Expediente::VIA_INGRESO_DISTRITAL)
+        ->and($hijo->numero_hoja_ruta)->toBe('HR-2026-0044');
 });
 
 it('M2: deriva a FINANCIERO con reglamento AC_055_2018 (mapeo server-side)', function () {
@@ -184,12 +207,12 @@ it('M2: deriva a FINANCIERO con reglamento AC_055_2018 (mapeo server-side)', fun
         'motivo' => 'Informe final técnico que recomienda la intervención de la auditoría financiera.',
         'via_destino' => 'FINANCIERO',
     ])->assertCreated()
-        ->assertJsonPath('data.via', 'FINANCIERO')
+        ->assertJsonPath('data.via', 'INGRESO_VERBAL')
         ->assertJsonPath('data.reglamento.id', $semilla['ac055']->id);
 
     $hijo = Expediente::where('nurej_padre_id', $padre->id)->firstOrFail();
 
-    expect($hijo->via)->toBe('FINANCIERO')
+    expect($hijo->via)->toBe('INGRESO_VERBAL')
         ->and($hijo->reglamento_id)->toBe($semilla['ac055']->id);
 });
 
@@ -204,7 +227,7 @@ it('M3: el informe técnico SIN responsabilidad con recomendación también habi
         'motivo' => 'Informe sin responsabilidad que detecta irregularidades de fondo y recomienda auditoría.',
         'via_destino' => 'JURIDICO',
     ])->assertCreated()
-        ->assertJsonPath('data.via', 'JURIDICO')
+        ->assertJsonPath('data.via', 'INGRESO_VERBAL')
         ->assertJsonPath('data.reglamento.id', $semilla['ac054']->id);
 });
 
@@ -240,9 +263,9 @@ it('M8 (D-P1): responde 422 si el padre no tiene un informe técnico habilitante
         ->and($padre->actuados()->count())->toBe(0);
 });
 
-it('M6: un padre en vía JURIDICO no habilita ninguna derivación aunque tenga su informe de especialidad', function () {
+it('M6: un padre bajo AC-054 no habilita ninguna derivación aunque tenga su informe de especialidad', function () {
     $semilla = nurejEspSemilla();
-    $padre = nurejEspCrearPadre($semilla, via: 'JURIDICO');
+    $padre = nurejEspCrearPadre($semilla, $semilla['ac054']);
     nurejEspRegistrarInforme($padre, $semilla['actInformeJuridico'], $semilla['audJuridico']);
 
     Sanctum::actingAs($semilla['encargada'], ['*']);

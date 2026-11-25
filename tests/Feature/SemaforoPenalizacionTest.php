@@ -62,7 +62,7 @@ function semaforoPenalizacionCrearExpediente(int $estadoId, int $creadorId, int 
 {
     return Expediente::create([
         'nurej_code' => 'EXP-'.fake()->unique()->numberBetween(100000, 999999),
-        'via' => 'JURIDICO',
+        'via' => 'INGRESO_VERBAL',
         'reglamento_id' => $reglamentoId,
         'estado_actual_id' => $estadoId,
         'fecha_ingreso' => now(),

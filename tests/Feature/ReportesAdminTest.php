@@ -22,7 +22,9 @@ function raSemilla(): array
     $adminInactivo = Usuario::factory()->create(['rol_id' => $rolAdmin->id, 'activo' => false]);
     $tecnico = Usuario::factory()->create(['rol_id' => $rolTecnico->id, 'activo' => true]);
 
-    $ac022 = Reglamento::factory()->create(['codigo' => 'AC_022_2018']);
+    $ac022 = Reglamento::factory()->create(['codigo' => Reglamento::CODIGO_AC_022]);
+    $ac054 = Reglamento::factory()->create(['codigo' => Reglamento::CODIGO_AC_054]);
+    $ac055 = Reglamento::factory()->create(['codigo' => Reglamento::CODIGO_AC_055]);
 
     $pendienteSorteo = CatalogoEstado::factory()->create(['codigo' => 'PENDIENTE_SORTEO']);
     $evaluacion = CatalogoEstado::factory()->create(['codigo' => 'EN_EVALUACION']);
@@ -42,16 +44,23 @@ function raSemilla(): array
     return compact(
         'rolAdmin', 'rolTecnico', 'rolEncargada',
         'admin', 'adminInactivo', 'tecnico',
-        'ac022', 'pendienteSorteo', 'evaluacion', 'catalogoOrigen',
+        'ac022', 'ac054', 'ac055', 'pendienteSorteo', 'evaluacion', 'catalogoOrigen',
     );
 }
 
-function raExpediente(array $s, string $nurej, string $via, int $estadoId): Expediente
-{
+function raExpediente(
+    array $s,
+    string $nurej,
+    string $via,
+    int $estadoId,
+    ?Reglamento $reglamento = null,
+    ?string $numeroHojaRuta = null,
+): Expediente {
     return Expediente::create([
         'nurej_code' => $nurej,
         'via' => $via,
-        'reglamento_id' => $s['ac022']->id,
+        'numero_hoja_ruta' => $numeroHojaRuta,
+        'reglamento_id' => ($reglamento ?? $s['ac022'])->id,
         'estado_actual_id' => $estadoId,
         'resumen_hechos' => 'Hechos del expediente para el reporte de monitoreo (test).',
         'fecha_ingreso' => now(),
@@ -83,11 +92,18 @@ function raPoblar(): array
 {
     $s = raSemilla();
 
-    // Pendiente de sorteo, sin asignar, vía TECNICO.
-    raExpediente($s, '2026-00001', 'TECNICO', $s['pendienteSorteo']->id);
+    // Pendiente de sorteo, sin asignar, ingreso verbal y reglamento AC-022.
+    raExpediente($s, '2026-00001', Expediente::VIA_INGRESO_VERBAL, $s['pendienteSorteo']->id);
 
     // En evaluación, asignado al Técnico, con plazo vencido (fuera de plazo).
-    $conPlazo = raExpediente($s, '2026-00002', 'JURIDICO', $s['evaluacion']->id);
+    $conPlazo = raExpediente(
+        $s,
+        '2026-00002',
+        Expediente::VIA_INGRESO_DISTRITAL,
+        $s['evaluacion']->id,
+        $s['ac054'],
+        'HR-2026-0002',
+    );
     raAsignar($s, $conPlazo, $s['tecnico']);
     Plazo::create([
         'expediente_id' => $conPlazo->id,
@@ -99,8 +115,14 @@ function raPoblar(): array
         'actuado_disparador_id' => $conPlazo->actuados()->latest('id')->value('id'),
     ]);
 
-    // En evaluación, sin asignar, vía FINANCIERO.
-    raExpediente($s, '2026-00003', 'FINANCIERO', $s['evaluacion']->id);
+    // En evaluación, sin asignar, ingreso verbal y reglamento AC-055.
+    raExpediente(
+        $s,
+        '2026-00003',
+        Expediente::VIA_INGRESO_VERBAL,
+        $s['evaluacion']->id,
+        $s['ac055'],
+    );
 
     Feriado::create([
         'fecha' => now()->addDays(15)->toDateString(),
@@ -148,10 +170,15 @@ it('el dashboard del ADMIN refleja totales verificables: usuarios, expedientes, 
     expect($porEstado->firstWhere('codigo', 'PENDIENTE_SORTEO')['total'])->toBe(1)
         ->and($porEstado->firstWhere('codigo', 'EN_EVALUACION')['total'])->toBe(2);
 
-    $porVia = collect($respuesta->json('expedientes.por_via'));
-    expect($porVia->firstWhere('via', 'TECNICO')['total'])->toBe(1)
-        ->and($porVia->firstWhere('via', 'JURIDICO')['total'])->toBe(1)
-        ->and($porVia->firstWhere('via', 'FINANCIERO')['total'])->toBe(1);
+    $porReglamento = collect($respuesta->json('expedientes.por_reglamento'));
+    expect($porReglamento->firstWhere('codigo', Reglamento::CODIGO_AC_022)['total'])->toBe(1)
+        ->and($porReglamento->firstWhere('codigo', Reglamento::CODIGO_AC_054)['total'])->toBe(1)
+        ->and($porReglamento->firstWhere('codigo', Reglamento::CODIGO_AC_055)['total'])->toBe(1);
+
+    $porOrigen = collect($respuesta->json('expedientes.por_origen_ingreso'));
+    expect($porOrigen->firstWhere('via', Expediente::VIA_INGRESO_VERBAL)['total'])->toBe(2)
+        ->and($porOrigen->firstWhere('via', Expediente::VIA_INGRESO_DISTRITAL)['total'])->toBe(1)
+        ->and($porOrigen->firstWhere('via', Expediente::VIA_INGRESO_DISTRITAL)['origen'])->toBe('Ingreso desde distrital');
 
     expect($respuesta->json('semaforo.total_fuera_de_plazo'))->toBe(1)
         ->and($respuesta->json('expedientes_fuera_de_plazo.0.nurej_code'))->toBe('2026-00002')

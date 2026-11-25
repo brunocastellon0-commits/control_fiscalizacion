@@ -26,7 +26,7 @@ function paso6ExpedienteCompleto(bool $conPlazoVigente = true): Expediente
 
     $expediente = Expediente::create([
         'nurej_code' => 'EXP-'.fake()->unique()->numberBetween(10000, 99999),
-        'via' => 'JURIDICO',
+        'via' => 'INGRESO_VERBAL',
         'reglamento_id' => $reglamento->id,
         'estado_actual_id' => $estado->id,
         'resumen_hechos' => 'Hechos denunciados sobre irregularidades administrativas verificables.',
@@ -104,7 +104,7 @@ it('transforma el expediente con sus datos, asignacion y semaforo', function () 
         expect($salida)
             ->toHaveKey('id', $expediente->id)
             ->toHaveKey('nurej_code', $expediente->nurej_code)
-            ->toHaveKey('via', 'JURIDICO')
+            ->toHaveKey('via', 'INGRESO_VERBAL')
             ->toHaveKey('resumen_hechos', $expediente->resumen_hechos)
             ->and($salida['reglamento']['id'])->toBe($expediente->reglamento->id)
             ->and($salida['reglamento']['codigo'])->toBe($expediente->reglamento->codigo)

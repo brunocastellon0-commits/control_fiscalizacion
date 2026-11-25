@@ -86,7 +86,7 @@
                         <tr>
                             <th class="px-4 py-3">NURED</th>
                             <th class="px-4 py-3">Fecha de apertura</th>
-                            <th class="px-4 py-3">Vía</th>
+                            <th class="px-4 py-3">Origen de ingreso</th>
                             <th class="px-4 py-3">Reglamento</th>
                             <th class="px-4 py-3">Estado actual</th>
                             <th class="px-4 py-3">Responsable</th>
@@ -99,7 +99,7 @@
                             <tr class="hover:bg-gris-claro/30 transition">
                                 <td class="px-4 py-3 font-mono font-semibold text-grafito" x-text="exp.nurej_code"></td>
                                 <td class="px-4 py-3 text-gris" x-text="formatoFecha(exp.fecha_ingreso)"></td>
-                                <td class="px-4 py-3 text-gris" x-text="exp.via || '—'"></td>
+                                <td class="px-4 py-3 text-gris" x-text="exp.via === 'INGRESO_DISTRITAL' ? 'Ingreso desde distrital' : (exp.via === 'INGRESO_VERBAL' ? 'Ingreso verbal' : (exp.via || '—'))"></td>
                                 <td class="px-4 py-3 text-gris" x-text="exp.reglamento?.nombre || exp.reglamento?.codigo || '—'"></td>
                                 <td class="px-4 py-3">
                                     <span class="px-2 py-0.5 rounded bg-gris-claro text-grafito text-xs font-medium"
@@ -108,11 +108,16 @@
                                 <td class="px-4 py-3 text-gris" x-text="nombreResponsable(exp.responsable)"></td>
                                 <td class="px-4 py-3 text-center">
                                     <button type="button" x-show="exp.boleta_apertura"
-                                        @click="descargarDocumento(exp.boleta_apertura.url)"
+                                        @click="imprimirDocumento(exp.boleta_apertura, 'Boleta de apertura')"
                                         class="inline-flex items-center gap-1 text-xs font-semibold text-verde-profundo hover:underline"
-                                        title="Descargar boleta de apertura">
-                                        <i class="fa-solid fa-file-arrow-down"></i> Boleta
+                                        title="Imprimir boleta de apertura">
+                                        <i class="fa-solid fa-print"></i> Boleta
                                     </button>
+                                    <a x-show="exp.boleta_apertura" :href="exp.boleta_apertura.url"
+                                        class="inline-flex items-center gap-1 text-xs font-semibold text-verde-profundo hover:underline ml-2"
+                                        title="Descargar boleta de apertura">
+                                        <i class="fa-solid fa-file-arrow-down"></i> Descargar
+                                    </a>
                                     <span x-show="!exp.boleta_apertura" class="text-gris">—</span>
                                 </td>
                                 <td class="px-4 py-3 text-right">
@@ -235,9 +240,12 @@
                     }).format(fecha);
                 },
 
-                descargarDocumento(url) {
-                    if (url) {
-                        window.open(url, '_blank');
+                imprimirDocumento(documento, titulo) {
+                    if (documento?.url) {
+                        window.imprimirPdf({
+                            url: documento.url,
+                            titulo,
+                        });
                     }
                 },
 

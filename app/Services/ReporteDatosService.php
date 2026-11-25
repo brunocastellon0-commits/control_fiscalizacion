@@ -39,7 +39,7 @@ class ReporteDatosService
                     ['clave' => 'usuario', 'titulo' => 'Usuario'],
                     ['clave' => 'rol', 'titulo' => 'Perfil'],
                     ['clave' => 'causas_activas', 'titulo' => 'Causas activas'],
-                    ['clave' => 'vias', 'titulo' => 'Vías'],
+                    ['clave' => 'reglamentos', 'titulo' => 'Reglamentos'],
                     ['clave' => 'ultima_asignacion', 'titulo' => 'Última asignación'],
                 ],
             ],
@@ -50,7 +50,8 @@ class ReporteDatosService
                 'columnas' => [
                     ['clave' => 'nurej', 'titulo' => 'NURED'],
                     ['clave' => 'fecha_ingreso', 'titulo' => 'Fecha de ingreso'],
-                    ['clave' => 'via', 'titulo' => 'Vía'],
+                    ['clave' => 'origen_ingreso', 'titulo' => 'Origen de ingreso'],
+                    ['clave' => 'numero_hoja_ruta', 'titulo' => 'Hoja de ruta'],
                     ['clave' => 'reglamento', 'titulo' => 'Reglamento'],
                     ['clave' => 'estado', 'titulo' => 'Estado'],
                     ['clave' => 'creado_por', 'titulo' => 'Registrado por'],
@@ -99,7 +100,7 @@ class ReporteDatosService
                 'descripcion' => 'Salidas institucionales: demanda disciplinaria, sumariante o archivo.',
                 'columnas' => [
                     ['clave' => 'nurej', 'titulo' => 'NURED'],
-                    ['clave' => 'via', 'titulo' => 'Vía'],
+                    ['clave' => 'origen_ingreso', 'titulo' => 'Origen de ingreso'],
                     ['clave' => 'salida', 'titulo' => 'Salida institucional'],
                     ['clave' => 'estado', 'titulo' => 'Estado'],
                     ['clave' => 'fecha_resolucion', 'titulo' => 'Fecha de resolución'],
@@ -108,10 +109,11 @@ class ReporteDatosService
             ],
             'R07' => [
                 'codigo' => 'R07',
-                'titulo' => 'Estadístico por vía',
-                'descripcion' => 'Indicadores de rendimiento y distribución de denuncias.',
+                'titulo' => 'Estadístico por reglamento',
+                'descripcion' => 'Indicadores de rendimiento por reglamento, con el origen de ingreso por separado.',
                 'columnas' => [
-                    ['clave' => 'via', 'titulo' => 'Vía'],
+                    ['clave' => 'reglamento', 'titulo' => 'Reglamento'],
+                    ['clave' => 'origen_ingreso', 'titulo' => 'Orígenes de ingreso'],
                     ['clave' => 'total', 'titulo' => 'Total'],
                     ['clave' => 'admitidos', 'titulo' => 'Admitidos'],
                     ['clave' => 'rechazados', 'titulo' => 'Rechazados'],
@@ -126,7 +128,7 @@ class ReporteDatosService
                 'columnas' => [
                     ['clave' => 'nurej', 'titulo' => 'NURED'],
                     ['clave' => 'fecha_ingreso', 'titulo' => 'Fecha de ingreso'],
-                    ['clave' => 'via', 'titulo' => 'Vía'],
+                    ['clave' => 'origen_ingreso', 'titulo' => 'Origen de ingreso'],
                     ['clave' => 'estado', 'titulo' => 'Estado'],
                     ['clave' => 'partes', 'titulo' => 'Partes vigentes'],
                     ['clave' => 'nurej_padre', 'titulo' => 'NURED padre'],
@@ -164,7 +166,7 @@ class ReporteDatosService
             'R04' => $this->reporteEstadoEvaluacion($filtros),
             'R05' => $this->reporteNotificacionesPendientes($filtros),
             'R06' => $this->reporteResolucionesFinales($filtros),
-            'R07' => $this->reporteEstadisticoPorVia($filtros),
+            'R07' => $this->reporteEstadisticoPorReglamento($filtros),
             'R08' => $this->reporteCaratulaOficial($filtros),
             'R09' => $this->reporteTrazabilidadPadreHijo($filtros),
         };
@@ -200,7 +202,7 @@ class ReporteDatosService
     private function reporteCargaLaboral(array $filtros): array
     {
         $asignaciones = Asignacion::query()
-            ->with(['usuario', 'rol', 'expediente.estadoActual'])
+            ->with(['usuario', 'rol', 'expediente.estadoActual', 'expediente.reglamento'])
             ->where('activa', true)
             ->when($this->fechaDesde($filtros), fn (Builder $q, string $fecha) => $q->whereDate('fecha_asignacion', '>=', $fecha))
             ->when($this->fechaHasta($filtros), fn (Builder $q, string $fecha) => $q->whereDate('fecha_asignacion', '<=', $fecha))
@@ -221,7 +223,7 @@ class ReporteDatosService
                     'usuario' => $this->nombreUsuario($primera->usuario),
                     'rol' => $primera->rol?->nombre ?? '',
                     'causas_activas' => $grupo->count(),
-                    'vias' => $grupo->pluck('expediente.via')->filter()->unique()->sort()->implode(', '),
+                    'reglamentos' => $grupo->pluck('expediente.reglamento.codigo')->filter()->unique()->sort()->implode(', '),
                     'ultima_asignacion' => $this->formatearFecha($grupo->max('fecha_asignacion'), true),
                 ];
             })
@@ -244,7 +246,8 @@ class ReporteDatosService
             ->map(fn (Expediente $expediente): array => [
                 'nurej' => $expediente->nurej_code,
                 'fecha_ingreso' => $this->formatearFecha($expediente->fecha_ingreso, true),
-                'via' => $expediente->via,
+                'origen_ingreso' => Expediente::etiquetaVia($expediente->via),
+                'numero_hoja_ruta' => $expediente->numero_hoja_ruta ?? '',
                 'reglamento' => $expediente->reglamento?->codigo ?? '',
                 'estado' => $expediente->estadoActual?->nombre ?? '',
                 'creado_por' => $this->nombreUsuario($expediente->creador),
@@ -387,7 +390,7 @@ class ReporteDatosService
             ->unique('expediente_id')
             ->map(fn (Actuado $actuado): array => [
                 'nurej' => $actuado->expediente?->nurej_code ?? '',
-                'via' => $actuado->expediente?->via ?? '',
+                'origen_ingreso' => Expediente::etiquetaVia($actuado->expediente?->via),
                 'salida' => $actuado->tipoActuado?->nombre ?? '',
                 'estado' => $actuado->expediente?->estadoActual?->nombre ?? '',
                 'fecha_resolucion' => $this->formatearFecha($actuado->fecha_hora, true),
@@ -401,22 +404,30 @@ class ReporteDatosService
      * @param  array<string, mixed>  $filtros
      * @return array<int, array<string, mixed>>
      */
-    private function reporteEstadisticoPorVia(array $filtros): array
+    private function reporteEstadisticoPorReglamento(array $filtros): array
     {
         $expedientes = $this->consultaExpedientes($filtros)
-            ->with('estadoActual')
-            ->get(['id', 'via', 'estado_actual_id']);
+            ->with(['estadoActual', 'reglamento'])
+            ->get(['id', 'via', 'reglamento_id', 'estado_actual_id']);
 
         $total = max($expedientes->count(), 1);
 
         return $expedientes
-            ->groupBy('via')
-            ->map(function ($grupo, string $via) use ($total): array {
+            ->groupBy(fn (Expediente $expediente): string => $expediente->reglamento?->codigo ?? 'SIN_REGLAMENTO')
+            ->map(function ($grupo, string $reglamento) use ($total): array {
                 $admitidos = $grupo->filter(fn (Expediente $e): bool => $e->estadoActual?->codigo === 'ADMITIDO')->count();
                 $rechazados = $grupo->filter(fn (Expediente $e): bool => $e->estadoActual?->codigo === 'RECHAZADO')->count();
+                $origenes = $grupo
+                    ->pluck('via')
+                    ->map(fn (?string $via): string => Expediente::etiquetaVia($via))
+                    ->filter(fn (string $etiqueta): bool => $etiqueta !== 'Sin origen registrado')
+                    ->unique()
+                    ->sort()
+                    ->implode(', ');
 
                 return [
-                    'via' => $via,
+                    'reglamento' => $reglamento,
+                    'origen_ingreso' => $origenes,
                     'total' => $grupo->count(),
                     'admitidos' => $admitidos,
                     'rechazados' => $rechazados,
@@ -445,7 +456,7 @@ class ReporteDatosService
                 'expediente_id' => $expediente->id,
                 'nurej' => $expediente->nurej_code,
                 'fecha_ingreso' => $this->formatearFecha($expediente->fecha_ingreso, true),
-                'via' => $expediente->via,
+                'origen_ingreso' => Expediente::etiquetaVia($expediente->via),
                 'estado' => $expediente->estadoActual?->nombre ?? '',
                 'partes' => $expediente->partes_vigentes_count ?? 0,
                 'nurej_padre' => $expediente->padre?->nurej_code ?? '',

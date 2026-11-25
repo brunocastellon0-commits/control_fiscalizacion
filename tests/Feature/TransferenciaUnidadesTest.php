@@ -96,7 +96,7 @@ function unidadCrearExpediente(int $estadoId, int $reglamentoId, int $creadoPor)
 {
     return Expediente::create([
         'nurej_code' => 'EXP-'.fake()->unique()->numberBetween(100000, 999999),
-        'via' => 'TECNICO',
+        'via' => 'INGRESO_VERBAL',
         'reglamento_id' => $reglamentoId,
         'estado_actual_id' => $estadoId,
         'resumen_hechos' => 'Causa destinada al flujo de unidades inter-unidad.',

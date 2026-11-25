@@ -41,7 +41,7 @@ function bandejaSupervisionCrearCronograma(array $semilla, string $nurej): array
 {
     $expediente = Expediente::create([
         'nurej_code' => $nurej,
-        'via' => 'TECNICO',
+        'via' => 'INGRESO_VERBAL',
         'naturaleza' => Expediente::NATURALEZA_JURISDICCIONAL,
         'reglamento_id' => $semilla['reglamento']->id,
         'estado_actual_id' => $semilla['ejecucion']->id,

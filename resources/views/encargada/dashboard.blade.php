@@ -185,12 +185,20 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div class="bg-white rounded-xl shadow p-5">
-                    <h2 class="font-semibold text-grafito mb-3">Expedientes por vía</h2>
+                    <h2 class="font-semibold text-grafito mb-3">Expedientes por reglamento</h2>
                     <div class="space-y-2.5">
-                        <template x-for="via in datos.expedientes.por_via" :key="via.via">
-                            <div><div class="flex justify-between text-xs mb-1"><span class="text-grafito font-medium" x-text="via.via"></span><span class="text-gris" x-text="via.total"></span></div><div class="h-2 w-full bg-gris-claro rounded-full overflow-hidden"><div class="h-full bg-verde-profundo rounded-full" :style="`width: ${pct(via.total, maxViaTotal)}%`"></div></div></div>
+                        <template x-for="reg in datos.expedientes.por_reglamento" :key="reg.codigo">
+                            <div><div class="flex justify-between text-xs mb-1"><span class="text-grafito font-medium" x-text="reg.codigo"></span><span class="text-gris" x-text="reg.total"></span></div><div class="h-2 w-full bg-gris-claro rounded-full overflow-hidden"><div class="h-full bg-verde-profundo rounded-full" :style="`width: ${pct(reg.total, maxReglamentoTotal)}%`"></div></div></div>
+                        </template>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow p-5">
+                    <h2 class="font-semibold text-grafito mb-3">Expedientes por origen de ingreso</h2>
+                    <div class="space-y-2.5">
+                        <template x-for="origen in datos.expedientes.por_origen_ingreso" :key="origen.via">
+                            <div><div class="flex justify-between text-xs mb-1"><span class="text-grafito font-medium" x-text="origen.origen"></span><span class="text-gris" x-text="origen.total"></span></div><div class="h-2 w-full bg-gris-claro rounded-full overflow-hidden"><div class="h-full bg-verde-profundo rounded-full" :style="`width: ${pct(origen.total, maxOrigenTotal)}%`"></div></div></div>
                         </template>
                     </div>
                 </div>
@@ -214,14 +222,15 @@ function encargadaDashboard() {
         datosListos: false,
         error: null,
         datos: {
-            expedientes: { total: 0, pendientes_sorteo: 0, sin_asignar: 0, por_estado: [], por_via: [], ultimos: [] },
+            expedientes: { total: 0, pendientes_sorteo: 0, sin_asignar: 0, por_estado: [], por_reglamento: [], por_origen_ingreso: [], ultimos: [] },
             asignaciones: { activas: 0, carga_operadores: [] },
             semaforo: { total_en_plazo: 0, total_precaucion: 0, total_urgente: 0, total_fuera_de_plazo: 0 },
             vencimientos: { fuera_de_plazo: [], proximos: [] },
             feriados_proximos: [],
         },
         get maxEstadoTotal() { return Math.max(1, ...this.datos.expedientes.por_estado.map(e => e.total)); },
-        get maxViaTotal() { return Math.max(1, ...this.datos.expedientes.por_via.map(v => v.total)); },
+        get maxReglamentoTotal() { return Math.max(1, ...this.datos.expedientes.por_reglamento.map(r => r.total)); },
+        get maxOrigenTotal() { return Math.max(1, ...this.datos.expedientes.por_origen_ingreso.map(o => o.total)); },
         get maxCargaTotal() { return Math.max(1, ...this.datos.asignaciones.carga_operadores.map(u => u.total)); },
         pct(valor, max = null) {
             const total = max ?? (this.datos.semaforo.total_en_plazo + this.datos.semaforo.total_precaucion + this.datos.semaforo.total_urgente + this.datos.semaforo.total_fuera_de_plazo);

@@ -26,7 +26,7 @@ function rptExpediente(array $atributos = []): Expediente
 
     return Expediente::create(array_merge([
         'nurej_code' => '2026-'.fake()->unique()->numerify('#####'),
-        'via' => 'TECNICO',
+        'via' => 'INGRESO_VERBAL',
         'reglamento_id' => $reglamento->id,
         'estado_actual_id' => $estado->id,
         'resumen_hechos' => 'Hechos de prueba para la pantalla de reportes.',
@@ -108,9 +108,12 @@ it('devuelve las filas del reporte con la misma forma que la pantalla', function
         ->assertJsonPath('meta.total', 1)
         ->assertJsonPath('data.0.nurej', '2026-00123');
 
-    expect($respuesta->json('columnas'))->toHaveCount(6)
+    expect($respuesta->json('columnas'))->toHaveCount(7)
+        ->and(array_column($respuesta->json('columnas'), 'clave'))->toContain('origen_ingreso')
+        ->and(array_column($respuesta->json('columnas'), 'clave'))->toContain('numero_hoja_ruta')
         ->and($respuesta->json('filtros_aplicados.estado'))->toBe('EN_EVALUACION')
-        ->and($respuesta->json('data.0.nurej'))->toBe($expediente->nurej_code);
+        ->and($respuesta->json('data.0.nurej'))->toBe($expediente->nurej_code)
+        ->and($respuesta->json('data.0.origen_ingreso'))->toBe('Ingreso verbal');
 });
 
 it('acepta los códigos con prefijo RF y rechaza reportes inexistentes', function () {

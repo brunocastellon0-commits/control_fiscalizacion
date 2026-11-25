@@ -10,6 +10,18 @@ class Reglamento extends Model
 {
     use HasFactory;
 
+    public const CODIGO_AC_022 = 'AC_022_2018';
+
+    public const CODIGO_AC_054 = 'AC_054_2018';
+
+    public const CODIGO_AC_055 = 'AC_055_2018';
+
+    public const CODIGOS = [
+        self::CODIGO_AC_022,
+        self::CODIGO_AC_054,
+        self::CODIGO_AC_055,
+    ];
+
     protected $table = 'reglamentos';
 
     public $timestamps = false;

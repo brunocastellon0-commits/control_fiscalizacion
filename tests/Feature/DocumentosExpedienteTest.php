@@ -26,7 +26,7 @@ function documentosPdfSemilla(): array
     $rolEncargada = Rol::factory()->create(['codigo' => Rol::CODIGO_ENCARGADA]);
     $encargada = Usuario::factory()->create(['rol_id' => $rolEncargada->id]);
 
-    $reglamento = Reglamento::factory()->create();
+    $reglamento = Reglamento::factory()->create(['codigo' => Reglamento::CODIGO_AC_022]);
 
     $pendiente = CatalogoEstado::factory()->create(['codigo' => 'PENDIENTE_SORTEO']);
     $evaluacion = CatalogoEstado::factory()->create(['codigo' => 'EN_EVALUACION']);
@@ -67,7 +67,7 @@ function documentosPdfSemilla(): array
 function documentosPdfPayload(int $reglamentoId): array
 {
     return [
-        'via' => 'TECNICO',
+        'via' => 'INGRESO_VERBAL',
         'naturaleza' => 'JURISDICCIONAL',
         'reglamento_id' => $reglamentoId,
         'resumen_hechos' => 'Hechos denunciados para la constancia de recepción.',
@@ -91,9 +91,10 @@ function documentosPdfCrearExpediente(int $estadoId, int $creadorId): Expediente
 {
     return Expediente::create([
         'nurej_code' => 'DOC-'.fake()->unique()->numberBetween(10000, 99999),
-        'via' => 'TECNICO',
+        'via' => 'INGRESO_VERBAL',
         'naturaleza' => 'JURISDICCIONAL',
-        'reglamento_id' => Reglamento::factory()->create()->id,
+        'reglamento_id' => Reglamento::where('codigo', Reglamento::CODIGO_AC_022)->value('id')
+            ?? Reglamento::factory()->create(['codigo' => Reglamento::CODIGO_AC_022])->id,
         'estado_actual_id' => $estadoId,
         'fecha_ingreso' => now(),
         'resumen_hechos' => 'Hechos de prueba para documentos institucionales.',
@@ -260,19 +261,64 @@ it('muestra la ficha de sorteo inline para imprimir cuando se solicita', functio
     ] = documentosPdfSemilla();
 
     $expediente = documentosPdfCrearExpediente($pendiente->id, $encargada->id);
-    $ruta = 'fichas-sorteo/'.$expediente->id.'/ficha.pdf';
-    Storage::disk('local')->put($ruta, '%PDF-1.4 ficha de prueba');
-    $expediente->forceFill(['ficha_sorteo_path' => $ruta])->save();
 
     Sanctum::actingAs($encargada, ['*']);
 
-    $this->get('/api/expedientes/'.$expediente->id.'/ficha-sorteo?impresion=1')
+    $this->postJson('/api/expedientes/'.$expediente->id.'/sortear', [
+        'descripcion' => 'Sorteo individual para impresión',
+    ])->assertStatus(201);
+
+    $actuado = Actuado::where('expediente_id', $expediente->id)->firstOrFail();
+    $expediente->refresh()->load('asignacionActiva.usuario.rol');
+
+    $respuesta = $this->get('/api/expedientes/'.$expediente->id.'/ficha-sorteo?impresion=1')
         ->assertOk()
-        ->assertHeader('content-type', 'application/pdf')
-        ->assertHeaderContains('content-disposition', 'inline');
+        ->assertHeaderContains('content-type', 'text/html')
+        ->assertHeaderMissing('content-disposition');
+
+    expect($respuesta->getContent())
+        ->toContain('FICHA DE ASIGNACIÓN POR SORTEO')
+        ->toContain($expediente->nurej_code)
+        ->toContain($expediente->asignacionActiva->usuario->nombres)
+        ->toContain($actuado->fecha_hora->format('d/m/Y'));
 
     $this->get('/api/expedientes/'.$expediente->id.'/ficha-sorteo')
         ->assertOk()
+        ->assertHeader('content-type', 'application/pdf')
+        ->assertHeaderContains('content-disposition', 'attachment');
+});
+
+it('muestra la boleta de apertura inline para imprimir cuando se solicita', function () {
+    Storage::fake('local');
+
+    [
+        'ventanilla' => $ventanilla,
+        'reglamento' => $reglamento,
+    ] = documentosPdfSemilla();
+
+    Sanctum::actingAs($ventanilla, ['*']);
+
+    $this->post('/api/expedientes', array_merge(
+        documentosPdfPayload($reglamento->id),
+        ['adjunto' => UploadedFile::fake()->create('denuncia.pdf', 100, 'application/pdf')],
+    ))->assertStatus(201);
+
+    $expediente = Expediente::latest('id')->firstOrFail();
+
+    $respuesta = $this->get('/api/expedientes/'.$expediente->id.'/boleta-apertura?impresion=1')
+        ->assertOk()
+        ->assertHeaderContains('content-type', 'text/html')
+        ->assertHeaderMissing('content-disposition');
+
+    expect($respuesta->getContent())
+        ->toContain('RECEPCIÓN DE CAUSA')
+        ->toContain($expediente->nurej_code)
+        ->toContain('María Fernanda Quispe')
+        ->toContain('Hechos denunciados para la constancia de recepción.');
+
+    $this->get('/api/expedientes/'.$expediente->id.'/boleta-apertura')
+        ->assertOk()
+        ->assertHeader('content-type', 'application/pdf')
         ->assertHeaderContains('content-disposition', 'attachment');
 });
 

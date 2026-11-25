@@ -15,9 +15,9 @@ class ExpedienteDemoSorteoSeeder extends Seeder
     public const TAG_DEMO_VIAS = '[DEMO-VIAS]';
 
     /**
-     * Expedientes PENDIENTE_SORTEO en vías JURIDICO y FINANCIERO para
-     * ejercitar el sorteo hacia aud_juridico y aud_financiero (el lote base
-     * solo cubrió la vía TECNICO). Idempotente por etiqueta propia.
+     * Expedientes PENDIENTE_SORTEO bajo AC-054 y AC-055 para ejercitar el
+     * sorteo hacia aud_juridico y aud_financiero (el lote base solo cubre
+     * AC-022). El origen de ingreso siempre es verbal. Idempotente por etiqueta.
      */
     public function run(): void
     {
@@ -28,22 +28,22 @@ class ExpedienteDemoSorteoSeeder extends Seeder
         }
 
         $ventanilla = Usuario::where('username', 'ventanilla')->first();
-        $reglamento = Reglamento::where('codigo', 'AC_022_2018')->first();
+        $reglamentoBase = Reglamento::where('codigo', Reglamento::CODIGO_AC_022)->first();
         $catalogoRegistro = CatalogoActuado::where('codigo', 'ACT_REGISTRO_DIGITALIZACION')->first();
 
-        if (! $ventanilla || ! $reglamento || ! $catalogoRegistro) {
-            $this->command->error('Faltan dependencias base (ventanilla, reglamento AC_022_2018 o ACT_REGISTRO_DIGITALIZACION). Ejecutar DatabaseSeeder.');
+        if (! $ventanilla || ! $reglamentoBase || ! $catalogoRegistro) {
+            $this->command->error('Faltan dependencias base (ventanilla, reglamento AC-022/2018 o ACT_REGISTRO_DIGITALIZACION). Ejecutar DatabaseSeeder.');
 
             return;
         }
 
         $casos = [
-            'JURIDICO' => [
+            Reglamento::CODIGO_AC_054 => [
                 'Revisión de legalidad en adjudicación directa de obras menores por la Alcaldía.',
                 'Contrato de consultoría técnica suscrito sin proceso de licitación.',
                 'Fiscalización de observaciones jurídicas en contratos de servicios municipales.',
             ],
-            'FINANCIERO' => [
+            Reglamento::CODIGO_AC_055 => [
                 'Registro de gastos sin respaldo documental en la gestión fiscal anterior.',
                 'Presunta sobrevaloración de bienes consignados en acta de entrega municipal.',
                 'Desviación de fondos del programa de fortalecimiento institucional.',
@@ -52,13 +52,14 @@ class ExpedienteDemoSorteoSeeder extends Seeder
 
         $expedienteService = app(ExpedienteService::class);
 
-        foreach ($casos as $via => $resumenes) {
-            $this->command->info("Creando 3 expedientes PENDIENTE_SORTEO (vía {$via})...");
+        foreach ($casos as $codigoReglamento => $resumenes) {
+            $reglamento = Reglamento::where('codigo', $codigoReglamento)->firstOrFail();
+            $this->command->info("Creando 3 expedientes PENDIENTE_SORTEO (reglamento {$codigoReglamento})...");
 
             foreach ($resumenes as $resumen) {
                 $expediente = $expedienteService->aperturaCausa(
                     datos: [
-                        'via' => $via,
+                        'via' => Expediente::VIA_INGRESO_VERBAL,
                         'reglamento_id' => $reglamento->id,
                         'resumen_hechos' => static::TAG_DEMO_VIAS.' '.$resumen,
                         'partes' => [
@@ -69,11 +70,11 @@ class ExpedienteDemoSorteoSeeder extends Seeder
                     ventanilla: $ventanilla,
                     adjunto: $this->crearPdfDummy(),
                 );
-                $this->command->line("  - NUREJ: {$expediente->nurej_code} | {$via} | PENDIENTE_SORTEO");
+                $this->command->line("  - NUREJ: {$expediente->nurej_code} | {$codigoReglamento} | PENDIENTE_SORTEO");
             }
         }
 
-        $this->command->info('Expedientes de sorteo por vía creados correctamente.');
+        $this->command->info('Expedientes de sorteo por reglamento creados correctamente.');
     }
 
     private function yaExiste(): bool

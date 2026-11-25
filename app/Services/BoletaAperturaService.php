@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Expediente;
 use App\Models\Usuario;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Throwable;
@@ -68,5 +69,39 @@ class BoletaAperturaService
             $expediente->boleta_apertura_path,
             $this->documentoPdf->nombreBoletaApertura($expediente),
         );
+    }
+
+    public function mostrar(Expediente $expediente): StreamedResponse
+    {
+        return $this->documentoPdf->mostrar(
+            $expediente->boleta_apertura_path,
+            $this->documentoPdf->nombreBoletaApertura($expediente),
+        );
+    }
+
+    /**
+     * Vista HTML de la boleta para imprimir desde el navegador.
+     *
+     * Reutiliza la misma plantilla Blade con la que se generó el PDF, de modo
+     * que el diálogo de impresión muestra exactamente el diseño institucional.
+     */
+    public function vistaImpresion(Expediente $expediente): View
+    {
+        $expediente->loadMissing([
+            'reglamento',
+            'estadoActual',
+            'creador',
+            'partesVigentes',
+        ]);
+
+        $generadoPor = trim(($expediente->creador?->nombres ?? '').' '.($expediente->creador?->apellidos ?? ''));
+
+        return view('expedientes.boleta-apertura-pdf', [
+            'expediente' => $expediente,
+            'sello' => '',
+            'logo' => null,
+            'generadoPor' => $generadoPor ?: 'Funcionario del sistema',
+            'generadoEn' => now(),
+        ]);
     }
 }

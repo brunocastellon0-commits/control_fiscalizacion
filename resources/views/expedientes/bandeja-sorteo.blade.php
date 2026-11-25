@@ -122,8 +122,8 @@
                     <p>
                         <i class="fa-solid fa-shuffle mr-2 text-verde-institucional"></i>
                         Sorteo probabilístico a ciegas: el sistema asigna este expediente
-                        al funcionario de menor carga del rol según la vía
-                        (<span x-text="seleccionado?.via"></span>), sin selección manual.
+                        al funcionario de menor carga del rol según el reglamento
+                        (<span x-text="seleccionado?.reglamento?.codigo || '—'"></span>), sin selección manual.
                     </p>
                 </div>
 
@@ -229,14 +229,6 @@
                     this.errorSorteo = null;
                     this.sorteandoId = this.seleccionado.id;
 
-                    const fichaWindow = window.open('', '_blank');
-
-                    if (fichaWindow) {
-                        fichaWindow.document.open();
-                        fichaWindow.document.write('Generando la ficha de sorteo…');
-                        fichaWindow.document.close();
-                    }
-
                     try {
                         const { ok, data } = await window.apiFetch(`/api/expedientes/${this.seleccionado.id}/sortear`, {
                             method: 'POST',
@@ -252,25 +244,24 @@
 
                             const fichaUrl = data?.data?.ficha_sorteo?.url || null;
 
-                            if (fichaUrl && fichaWindow) {
-                                const separador = fichaUrl.includes('?') ? '&' : '?';
-                                fichaWindow.location.href = fichaUrl + separador + 'impresion=1';
-                            } else if (fichaWindow) {
-                                fichaWindow.close();
+                            window.apiToast('exito', 'Sorteo completado. Asignado a: ' + nombre + '.');
+
+                            if (fichaUrl) {
+                                window.imprimirPdf({
+                                    url: fichaUrl,
+                                    titulo: 'Ficha de sorteo',
+                                });
                             }
 
-                            window.apiToast('exito', 'Sorteo completado. Asignado a: ' + nombre + '.');
                             this.seleccionado = null;
                             await this.cargar(this.meta.current_page);
                         } else {
-                            if (fichaWindow) fichaWindow.close();
                             const errores = data?.errors;
                             this.errorSorteo = errores
                                 ? Object.values(errores).flat().join(' ')
                                 : (data?.message || 'No se pudo realizar el sorteo.');
                         }
                     } catch (e) {
-                        if (fichaWindow) fichaWindow.close();
                         this.errorSorteo = e.message;
                     } finally {
                         this.sortearEnviando = false;

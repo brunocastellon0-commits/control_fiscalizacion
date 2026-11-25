@@ -52,7 +52,7 @@ function concurrenciaSeed(): array
         ]);
         $expediente = App\Models\Expediente::create([
             'nurej_code' => '2026-'.rand(1000000, 9999999),
-            'via' => 'TECNICO',
+            'via' => 'INGRESO_VERBAL',
             'reglamento_id' => $reglamento->id,
             'estado_actual_id' => $estado->id,
             'fecha_ingreso' => now(),

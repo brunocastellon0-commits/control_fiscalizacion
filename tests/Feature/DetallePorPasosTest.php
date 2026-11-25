@@ -35,7 +35,7 @@ function pasosSemilla(string $codigoEstado, array $codigosActuados = [], string 
 
     $expediente = Expediente::create([
         'nurej_code' => 'PASOS-'.fake()->unique()->numberBetween(10000, 99999),
-        'via' => 'JURIDICO',
+        'via' => 'INGRESO_VERBAL',
         'reglamento_id' => $reglamento->id,
         'estado_actual_id' => $estado->id,
         'fecha_ingreso' => now(),

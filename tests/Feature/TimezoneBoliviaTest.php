@@ -51,7 +51,7 @@ it('persiste expedientes, actuados y plazos sin corrimiento horario', function (
 
         $expediente = Expediente::create([
             'nurej_code' => 'TZ-'.fake()->unique()->numberBetween(100000, 999999),
-            'via' => 'TECNICO',
+            'via' => 'INGRESO_VERBAL',
             'reglamento_id' => $reglamento->id,
             'estado_actual_id' => $estado->id,
             'fecha_ingreso' => now(),

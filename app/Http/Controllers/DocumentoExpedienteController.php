@@ -6,6 +6,7 @@ use App\Models\Expediente;
 use App\Services\BoletaAperturaService;
 use App\Services\DocumentoPdfService;
 use App\Services\FichaSorteoService;
+use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -18,7 +19,7 @@ class DocumentoExpedienteController extends Controller
         protected DocumentoPdfService $documentoPdfService,
     ) {}
 
-    public function boletaApertura(Expediente $expediente): StreamedResponse
+    public function boletaApertura(Request $request, Expediente $expediente): View|StreamedResponse
     {
         $this->authorize('descargarBoletaApertura', $expediente);
 
@@ -28,10 +29,14 @@ class DocumentoExpedienteController extends Controller
             'La boleta de apertura todavía no está disponible.',
         );
 
+        if ($request->boolean('impresion')) {
+            return $this->boletaAperturaService->vistaImpresion($expediente);
+        }
+
         return $this->boletaAperturaService->descargar($expediente);
     }
 
-    public function fichaSorteo(Request $request, Expediente $expediente): StreamedResponse
+    public function fichaSorteo(Request $request, Expediente $expediente): View|StreamedResponse
     {
         $this->authorize('descargarFichaSorteo', $expediente);
 
@@ -42,7 +47,7 @@ class DocumentoExpedienteController extends Controller
         );
 
         if ($request->boolean('impresion')) {
-            return $this->fichaSorteoService->mostrar($expediente);
+            return $this->fichaSorteoService->vistaImpresion($expediente);
         }
 
         return $this->fichaSorteoService->descargar($expediente);

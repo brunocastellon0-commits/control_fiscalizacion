@@ -36,13 +36,27 @@ class EncargadaDashboardService
             ])
             ->values();
 
-        $expedientesPorVia = Expediente::query()
+        $expedientesPorReglamento = Expediente::query()
+            ->selectRaw('reglamento_id, COUNT(*) as total')
+            ->groupBy('reglamento_id')
+            ->orderByDesc('total')
+            ->with('reglamento:id,codigo,nombre')
+            ->get()
+            ->map(fn (Expediente $expediente): array => [
+                'codigo' => $expediente->reglamento?->codigo ?? 'SIN_REGLAMENTO',
+                'nombre' => $expediente->reglamento?->nombre ?? 'Sin reglamento',
+                'total' => (int) $expediente->getAttribute('total'),
+            ])
+            ->values();
+
+        $expedientesPorOrigenIngreso = Expediente::query()
             ->selectRaw('via, COUNT(*) as total')
             ->groupBy('via')
             ->orderByDesc('total')
             ->get()
             ->map(fn (Expediente $expediente): array => [
                 'via' => $expediente->via,
+                'origen' => Expediente::etiquetaVia($expediente->via),
                 'total' => (int) $expediente->getAttribute('total'),
             ])
             ->values();
@@ -58,6 +72,7 @@ class EncargadaDashboardService
             ])
             ->with([
                 'estadoActual:id,codigo,nombre',
+                'reglamento:id,codigo,nombre',
                 'creador:id,nombres,apellidos',
                 'asignacionActiva' => fn ($query) => $query->select([
                     'id',
@@ -74,6 +89,8 @@ class EncargadaDashboardService
                 'id' => $expediente->id,
                 'nurej_code' => $expediente->nurej_code,
                 'via' => $expediente->via,
+                'origen_ingreso' => Expediente::etiquetaVia($expediente->via),
+                'reglamento' => $expediente->reglamento?->codigo,
                 'estado' => $expediente->estadoActual?->nombre,
                 'fecha_ingreso' => $expediente->fecha_ingreso?->format('Y-m-d H:i'),
                 'creador' => $expediente->creador
@@ -177,7 +194,8 @@ class EncargadaDashboardService
                 'pendientes_sorteo' => $pendientesSorteo,
                 'sin_asignar' => Expediente::whereDoesntHave('asignacionActiva')->count(),
                 'por_estado' => $expedientesPorEstado,
-                'por_via' => $expedientesPorVia,
+                'por_reglamento' => $expedientesPorReglamento,
+                'por_origen_ingreso' => $expedientesPorOrigenIngreso,
                 'ultimos' => $ultimosExpedientes,
             ],
             'asignaciones' => [

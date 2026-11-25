@@ -39,7 +39,7 @@ function fase3SemillaAdjunto(): array
 
     $expediente = Expediente::create([
         'nurej_code' => 'ADJCNT-'.fake()->unique()->numberBetween(10000, 99999),
-        'via' => 'TECNICO',
+        'via' => 'INGRESO_VERBAL',
         'reglamento_id' => $reglamento->id,
         'estado_actual_id' => $estado->id,
         'fecha_ingreso' => now(),

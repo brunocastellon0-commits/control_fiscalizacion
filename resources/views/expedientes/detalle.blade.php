@@ -31,7 +31,11 @@
                                     x-text="expediente.estado_actual?.nombre || expediente.estado_actual?.codigo || 'Sin estado'"></span>
                             </div>
                             <p class="text-sm text-gris">
-                                Vía: <span class="font-medium text-grafito" x-text="expediente.via || '—'"></span>
+                                Origen:
+                                <span class="font-medium text-grafito" x-text="expediente.via === 'INGRESO_DISTRITAL' ? 'Ingreso desde distrital' : (expediente.via === 'INGRESO_VERBAL' ? 'Ingreso verbal' : (expediente.via || '—'))"></span>
+                                <template x-if="expediente.numero_hoja_ruta">
+                                    <span> (Hoja de ruta: <span class="font-medium text-grafito" x-text="expediente.numero_hoja_ruta"></span>)</span>
+                                </template>
                                 <span class="mx-1">|</span>
                                 Ingreso: <span x-text="formatDate(expediente.fecha_ingreso)"></span>
                             </p>
@@ -729,9 +733,15 @@
                             body: { justificacion: this.formAmpliacion.justificacion },
                         });
                         if (ok || status === 201) {
-                            window.apiToast('exito', data?.message || 'Solicitud de ampliación enviada.');
+                            const mensaje = data?.message || 'Solicitud de ampliación enviada. El expediente quedó en la bandeja de la Encargada hasta su aprobación.';
                             this.formAmpliacion = { justificacion: '' };
-                            await this.recargarTrasAccion();
+                            try {
+                                sessionStorage.setItem('avisoBandeja', mensaje);
+                            } catch (e) {
+                                window.apiToast('exito', mensaje);
+                            }
+                            window.location.href = '/expedientes';
+                            return;
                         } else {
                             window.apiToast('error', data?.message || 'No se pudo solicitar la ampliación.', data?.errors);
                         }

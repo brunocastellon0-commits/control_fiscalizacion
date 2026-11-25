@@ -63,7 +63,7 @@ function fnCrearPadre(array $semilla, bool $conHistorial = false): Expediente
 {
     $padre = Expediente::create([
         'nurej_code' => '2026-00001',
-        'via' => 'TECNICO',
+        'via' => 'INGRESO_VERBAL',
         'reglamento_id' => $semilla['ac022']->id,
         'estado_actual_id' => $semilla['ejecucion']->id,
         'resumen_hechos' => 'Hechos de la causa padre con detalle suficiente para su derivación.',
