@@ -63,9 +63,15 @@
                             <p class="text-grafito" x-text="formatoFecha(expediente.fecha_ingreso)"></p>
                         </div>
                         <div>
-                            <p class="text-xs text-gris uppercase tracking-wide">Vía</p>
-                            <p class="text-grafito" x-text="expediente.via || '—'"></p>
+                            <p class="text-xs text-gris uppercase tracking-wide">Origen de ingreso</p>
+                            <p class="text-grafito" x-text="expediente.via === 'INGRESO_DISTRITAL' ? 'Ingreso desde distrital' : (expediente.via === 'INGRESO_VERBAL' ? 'Ingreso verbal' : (expediente.via || '—'))"></p>
                         </div>
+                        <template x-if="expediente.numero_hoja_ruta">
+                            <div>
+                                <p class="text-xs text-gris uppercase tracking-wide">Número de hoja de ruta</p>
+                                <p class="text-grafito" x-text="expediente.numero_hoja_ruta"></p>
+                            </div>
+                        </template>
                         <div>
                             <p class="text-xs text-gris uppercase tracking-wide">Naturaleza</p>
                             <p class="text-grafito" x-text="etiquetaNaturaleza(expediente.naturaleza)"></p>

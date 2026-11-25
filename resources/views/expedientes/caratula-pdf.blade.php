@@ -267,9 +267,23 @@
             <td>{{ $expediente->fecha_ingreso?->format('d/m/Y H:i') ?? 'Sin registro' }}</td>
         </tr>
         <tr>
-            <th>Vía procesal</th>
-            <td>{{ $expediente->via }}</td>
+            <th>Origen de ingreso</th>
+            <td>
+                @if ($expediente->via === \App\Models\Expediente::VIA_INGRESO_DISTRITAL)
+                    Ingreso desde distrital
+                @elseif ($expediente->via === \App\Models\Expediente::VIA_INGRESO_VERBAL)
+                    Ingreso verbal
+                @else
+                    {{ $expediente->via }}
+                @endif
+            </td>
         </tr>
+        @if ($expediente->numero_hoja_ruta)
+            <tr>
+                <th>Número de hoja de ruta</th>
+                <td>{{ $expediente->numero_hoja_ruta }}</td>
+            </tr>
+        @endif
         <tr>
             <th>Reglamento</th>
             <td>

@@ -141,7 +141,7 @@ it('el Técnico de AC022 solicita la ampliación: PENDIENTE_APROBACION_AMPLIACIO
     Carbon::setTestNow('2026-09-10 10:00:00');
 
     $semilla = ampliacionSemilla();
-    $expediente = ampliacionCrearExpediente($semilla['ejecucion']->id, $semilla['ac022']->id, 'TECNICO', $semilla['tecnico']->id);
+    $expediente = ampliacionCrearExpediente($semilla['ejecucion']->id, $semilla['ac022']->id, 'INGRESO_VERBAL', $semilla['tecnico']->id);
     ampliacionAsignar($expediente, $semilla['tecnico']);
     $plazoEjecucion = ampliacionPlazoEjecucion($expediente, $semilla['paramEjecucion']);
 
@@ -190,7 +190,7 @@ it('la Encargada aprueba la ampliación: EJECUCION cerrado y EJECUCION_AMPLIADA 
     Carbon::setTestNow('2026-09-10 10:00:00');
 
     $semilla = ampliacionSemilla();
-    $expediente = ampliacionCrearExpediente($semilla['ejecucion']->id, $semilla['ac022']->id, 'TECNICO', $semilla['tecnico']->id);
+    $expediente = ampliacionCrearExpediente($semilla['ejecucion']->id, $semilla['ac022']->id, 'INGRESO_VERBAL', $semilla['tecnico']->id);
     ampliacionAsignar($expediente, $semilla['tecnico']);
     $plazoEjecucion = ampliacionPlazoEjecucion($expediente, $semilla['paramEjecucion']);
 
@@ -251,7 +251,7 @@ it('la Encargada aprueba la ampliación: EJECUCION cerrado y EJECUCION_AMPLIADA 
 
 it('devuelve 403 si un Técnico sin bandeja activa solicita la ampliación', function () {
     $semilla = ampliacionSemilla();
-    $expediente = ampliacionCrearExpediente($semilla['ejecucion']->id, $semilla['ac022']->id, 'TECNICO', $semilla['tecnico']->id);
+    $expediente = ampliacionCrearExpediente($semilla['ejecucion']->id, $semilla['ac022']->id, 'INGRESO_VERBAL', $semilla['tecnico']->id);
     ampliacionAsignar($expediente, $semilla['tecnico']);
     ampliacionPlazoEjecucion($expediente, $semilla['paramEjecucion']);
 
@@ -264,7 +264,7 @@ it('devuelve 403 si un Técnico sin bandeja activa solicita la ampliación', fun
 
 it('devuelve 403 si un Auditor Jurídico intenta solicitar ampliación (solo AC022)', function () {
     $semilla = ampliacionSemilla();
-    $expediente = ampliacionCrearExpediente($semilla['ejecucion']->id, $semilla['ac054']->id, 'JURIDICO', $semilla['audJuridico']->id);
+    $expediente = ampliacionCrearExpediente($semilla['ejecucion']->id, $semilla['ac054']->id, 'INGRESO_VERBAL', $semilla['audJuridico']->id);
     ampliacionAsignar($expediente, $semilla['audJuridico']);
 
     Sanctum::actingAs($semilla['audJuridico'], ['*']);
@@ -276,7 +276,7 @@ it('devuelve 403 si un Auditor Jurídico intenta solicitar ampliación (solo AC0
 
 it('devuelve 403 si la Encargada intenta solicitar la ampliación', function () {
     $semilla = ampliacionSemilla();
-    $expediente = ampliacionCrearExpediente($semilla['ejecucion']->id, $semilla['ac022']->id, 'TECNICO', $semilla['tecnico']->id);
+    $expediente = ampliacionCrearExpediente($semilla['ejecucion']->id, $semilla['ac022']->id, 'INGRESO_VERBAL', $semilla['tecnico']->id);
     ampliacionAsignar($expediente, $semilla['tecnico']);
 
     Sanctum::actingAs($semilla['encargada'], ['*']);
@@ -288,7 +288,7 @@ it('devuelve 403 si la Encargada intenta solicitar la ampliación', function () 
 
 it('devuelve 403 si un operador intenta aprobar la ampliación', function () {
     $semilla = ampliacionSemilla();
-    $expediente = ampliacionCrearExpediente($semilla['ejecucion']->id, $semilla['ac022']->id, 'TECNICO', $semilla['tecnico']->id);
+    $expediente = ampliacionCrearExpediente($semilla['ejecucion']->id, $semilla['ac022']->id, 'INGRESO_VERBAL', $semilla['tecnico']->id);
     ampliacionAsignar($expediente, $semilla['tecnico']);
     ampliacionPlazoEjecucion($expediente, $semilla['paramEjecucion']);
 
@@ -303,7 +303,7 @@ it('devuelve 403 si un operador intenta aprobar la ampliación', function () {
 
 it('devuelve 403 si la Encargada aprueba fuera de PENDIENTE_APROBACION_AMPLIACION', function () {
     $semilla = ampliacionSemilla();
-    $expediente = ampliacionCrearExpediente($semilla['ejecucion']->id, $semilla['ac022']->id, 'TECNICO', $semilla['tecnico']->id);
+    $expediente = ampliacionCrearExpediente($semilla['ejecucion']->id, $semilla['ac022']->id, 'INGRESO_VERBAL', $semilla['tecnico']->id);
     ampliacionAsignar($expediente, $semilla['tecnico']);
     ampliacionPlazoEjecucion($expediente, $semilla['paramEjecucion']);
 
@@ -314,7 +314,7 @@ it('devuelve 403 si la Encargada aprueba fuera de PENDIENTE_APROBACION_AMPLIACIO
 
 it('devuelve 422 si la justificación de la ampliación es demasiado corta', function () {
     $semilla = ampliacionSemilla();
-    $expediente = ampliacionCrearExpediente($semilla['ejecucion']->id, $semilla['ac022']->id, 'TECNICO', $semilla['tecnico']->id);
+    $expediente = ampliacionCrearExpediente($semilla['ejecucion']->id, $semilla['ac022']->id, 'INGRESO_VERBAL', $semilla['tecnico']->id);
     ampliacionAsignar($expediente, $semilla['tecnico']);
 
     Sanctum::actingAs($semilla['tecnico'], ['*']);
@@ -327,7 +327,7 @@ it('devuelve 422 si la justificación de la ampliación es demasiado corta', fun
 
 it('devuelve 422 si no hay plazo EJECUCION vigente al aprobar la ampliación', function () {
     $semilla = ampliacionSemilla();
-    $expediente = ampliacionCrearExpediente($semilla['pendienteAmpliacion']->id, $semilla['ac022']->id, 'TECNICO', $semilla['tecnico']->id);
+    $expediente = ampliacionCrearExpediente($semilla['pendienteAmpliacion']->id, $semilla['ac022']->id, 'INGRESO_VERBAL', $semilla['tecnico']->id);
     ampliacionAsignar($expediente, $semilla['encargada']);
 
     Sanctum::actingAs($semilla['encargada'], ['*']);
@@ -341,7 +341,7 @@ it('devuelve 422 si el expediente ya tiene una ampliación otorgada (única por 
     Carbon::setTestNow('2026-09-10 10:00:00');
 
     $semilla = ampliacionSemilla();
-    $expediente = ampliacionCrearExpediente($semilla['ejecucion']->id, $semilla['ac022']->id, 'TECNICO', $semilla['tecnico']->id);
+    $expediente = ampliacionCrearExpediente($semilla['ejecucion']->id, $semilla['ac022']->id, 'INGRESO_VERBAL', $semilla['tecnico']->id);
     ampliacionAsignar($expediente, $semilla['tecnico']);
     ampliacionPlazoEjecucion($expediente, $semilla['paramEjecucion']);
 

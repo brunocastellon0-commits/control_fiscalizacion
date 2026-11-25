@@ -126,7 +126,7 @@
                                 </div>
                                 <div class="flex items-center gap-1.5">
                                     <i class="fa-solid fa-route w-3.5 text-center text-verde-institucional"></i>
-                                    <span x-text="exp.via || 'Vía no indicada'"></span>
+                                    <span x-text="exp.via === 'INGRESO_DISTRITAL' ? 'Ingreso desde distrital' : (exp.via === 'INGRESO_VERBAL' ? 'Ingreso verbal' : (exp.via || 'Origen no indicado'))"></span>
                                 </div>
                                 <div class="flex items-center gap-1.5 sm:col-span-2" x-show="textoPartes(exp)">
                                     <i class="fa-solid fa-users w-3.5 text-center text-verde-institucional"></i>

@@ -77,7 +77,7 @@ function evaluacionCrearExpediente(int $estadoId, int $creadorId, int $reglament
 {
     return Expediente::create([
         'nurej_code' => 'EXP-'.fake()->unique()->numberBetween(10000, 99999),
-        'via' => 'JURIDICO',
+        'via' => 'INGRESO_VERBAL',
         'reglamento_id' => $reglamentoId,
         'estado_actual_id' => $estadoId,
         'fecha_ingreso' => now(),

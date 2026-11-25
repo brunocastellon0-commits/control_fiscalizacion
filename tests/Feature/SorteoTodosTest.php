@@ -41,7 +41,7 @@ function loteTestCrearPendiente(string $via, int $reglamentoId, int $tecnicoId):
 }
 
 it('sortea todas las causas pendientes de una sola vez y mueve a EN_EVALUACION', function () {
-    $reglamento = Reglamento::factory()->create();
+    $reglamento = Reglamento::factory()->create(['codigo' => Reglamento::CODIGO_AC_022]);
     $rolTecnico = loteTestCrearRol(Rol::CODIGO_TECNICO);
     $tecnico = loteTestCrearUsuario($rolTecnico, 'tecnico_lote');
     $rolEncargada = loteTestCrearRol(Rol::CODIGO_ENCARGADA);
@@ -63,9 +63,9 @@ it('sortea todas las causas pendientes de una sola vez y mueve a EN_EVALUACION',
     ]);
 
     $tecnicoId = $tecnico->id;
-    loteTestCrearPendiente('TECNICO', $reglamento->id, $tecnicoId);
-    loteTestCrearPendiente('JURIDICO', $reglamento->id, $tecnicoId);
-    loteTestCrearPendiente('FINANCIERO', $reglamento->id, $tecnicoId);
+    loteTestCrearPendiente('INGRESO_VERBAL', $reglamento->id, $tecnicoId);
+    loteTestCrearPendiente('INGRESO_VERBAL', $reglamento->id, $tecnicoId);
+    loteTestCrearPendiente('INGRESO_VERBAL', $reglamento->id, $tecnicoId);
 
     expect(Expediente::where('estado_actual_id', CatalogoEstado::where('codigo', 'PENDIENTE_SORTEO')->value('id'))->count())->toBe(3);
 
@@ -84,11 +84,11 @@ it('sortea todas las causas pendientes de una sola vez y mueve a EN_EVALUACION',
 
 it('rechaza el sorteo en lote a un usuario sin rol ENCARGADA (403)', function () {
     CatalogoEstado::factory()->create(['codigo' => 'PENDIENTE_SORTEO']);
-    $reglamento = Reglamento::factory()->create();
+    $reglamento = Reglamento::factory()->create(['codigo' => Reglamento::CODIGO_AC_022]);
     $rolTecnico = loteTestCrearRol(Rol::CODIGO_TECNICO);
     $tecnico = loteTestCrearUsuario($rolTecnico, 'tecnico_lote403');
 
-    loteTestCrearPendiente('TECNICO', $reglamento->id, $tecnico->id);
+    loteTestCrearPendiente('INGRESO_VERBAL', $reglamento->id, $tecnico->id);
 
     Sanctum::actingAs($tecnico, ['*']);
     $this->postJson('/api/bandeja/sorteo/todos')->assertForbidden();
@@ -103,8 +103,8 @@ it('devuelve 422 cuando no hay causas pendientes de sorteo', function () {
     $this->postJson('/api/bandeja/sorteo/todos')->assertUnprocessable();
 });
 
-it('revierte todo si una vía no tiene candidatos activos (todo-o-nada)', function () {
-    $reglamento = Reglamento::factory()->create();
+it('revierte todo si un reglamento no tiene candidatos activos (todo-o-nada)', function () {
+    $reglamento = Reglamento::factory()->create(['codigo' => Reglamento::CODIGO_AC_054]);
     CatalogoEstado::factory()->create(['codigo' => 'PENDIENTE_SORTEO']);
     CatalogoEstado::factory()->create(['codigo' => 'EN_EVALUACION']);
 
@@ -125,8 +125,8 @@ it('revierte todo si una vía no tiene candidatos activos (todo-o-nada)', functi
         'es_automatico' => false, 'requiere_adjunto' => false,
     ]);
 
-    loteTestCrearPendiente('TECNICO', $reglamento->id, $tecnico->id);
-    loteTestCrearPendiente('JURIDICO', $reglamento->id, $tecnico->id);
+    loteTestCrearPendiente('INGRESO_VERBAL', $reglamento->id, $tecnico->id);
+    loteTestCrearPendiente('INGRESO_VERBAL', $reglamento->id, $tecnico->id);
 
     Sanctum::actingAs($encargada, ['*']);
     $this->postJson('/api/bandeja/sorteo/todos')->assertUnprocessable();

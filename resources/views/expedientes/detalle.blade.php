@@ -31,7 +31,11 @@
                                     x-text="expediente.estado_actual?.nombre || expediente.estado_actual?.codigo || 'Sin estado'"></span>
                             </div>
                             <p class="text-sm text-gris">
-                                Vía: <span class="font-medium text-grafito" x-text="expediente.via || '—'"></span>
+                                Origen:
+                                <span class="font-medium text-grafito" x-text="expediente.via === 'INGRESO_DISTRITAL' ? 'Ingreso desde distrital' : (expediente.via === 'INGRESO_VERBAL' ? 'Ingreso verbal' : (expediente.via || '—'))"></span>
+                                <template x-if="expediente.numero_hoja_ruta">
+                                    <span> (Hoja de ruta: <span class="font-medium text-grafito" x-text="expediente.numero_hoja_ruta"></span>)</span>
+                                </template>
                                 <span class="mx-1">|</span>
                                 Ingreso: <span x-text="formatDate(expediente.fecha_ingreso)"></span>
                             </p>

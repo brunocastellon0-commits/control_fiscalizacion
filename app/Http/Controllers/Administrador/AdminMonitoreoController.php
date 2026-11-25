@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Administrador;
 
 use App\Http\Controllers\Controller;
-use App\Models\Asignacion;
 use App\Models\Expediente;
 use App\Models\Rol;
 use App\Services\SemaforoPlazoService;
@@ -138,8 +137,8 @@ class AdminMonitoreoController extends Controller
                 $responsable = [
                     'id' => $asignacion->usuario->id,
                     'nombre' => trim(
-                        $asignacion->usuario->nombres .
-                        ' ' .
+                        $asignacion->usuario->nombres.
+                        ' '.
                         $asignacion->usuario->apellidos
                     ),
                     'rol' => $tipoResponsable,
@@ -161,8 +160,8 @@ class AdminMonitoreoController extends Controller
                     'fecha' => $asignacion->fecha_asignacion?->format('d/m/Y H:i'),
                     'por' => $asignacion->actuadoOrigen?->usuario
                         ? trim(
-                            $asignacion->actuadoOrigen->usuario->nombres .
-                            ' ' .
+                            $asignacion->actuadoOrigen->usuario->nombres.
+                            ' '.
                             $asignacion->actuadoOrigen->usuario->apellidos
                         )
                         : null,
@@ -240,6 +239,10 @@ class AdminMonitoreoController extends Controller
 
                 'via' => $expediente->via,
 
+                'origen_ingreso' => Expediente::etiquetaVia($expediente->via),
+
+                'numero_hoja_ruta' => $expediente->numero_hoja_ruta,
+
                 'reglamento' => $expediente->reglamento
                     ? [
                         'id' => $expediente->reglamento->id,
@@ -305,8 +308,7 @@ class AdminMonitoreoController extends Controller
 
             $resultado = $resultado
                 ->filter(
-                    fn ($expediente) =>
-                        $expediente['estado'] === $estado
+                    fn ($expediente) => $expediente['estado'] === $estado
                 )
                 ->values();
         }

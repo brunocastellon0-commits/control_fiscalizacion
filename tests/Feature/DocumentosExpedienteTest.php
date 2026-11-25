@@ -26,7 +26,7 @@ function documentosPdfSemilla(): array
     $rolEncargada = Rol::factory()->create(['codigo' => Rol::CODIGO_ENCARGADA]);
     $encargada = Usuario::factory()->create(['rol_id' => $rolEncargada->id]);
 
-    $reglamento = Reglamento::factory()->create();
+    $reglamento = Reglamento::factory()->create(['codigo' => Reglamento::CODIGO_AC_022]);
 
     $pendiente = CatalogoEstado::factory()->create(['codigo' => 'PENDIENTE_SORTEO']);
     $evaluacion = CatalogoEstado::factory()->create(['codigo' => 'EN_EVALUACION']);
@@ -67,7 +67,7 @@ function documentosPdfSemilla(): array
 function documentosPdfPayload(int $reglamentoId): array
 {
     return [
-        'via' => 'TECNICO',
+        'via' => 'INGRESO_VERBAL',
         'naturaleza' => 'JURISDICCIONAL',
         'reglamento_id' => $reglamentoId,
         'resumen_hechos' => 'Hechos denunciados para la constancia de recepción.',
@@ -91,9 +91,10 @@ function documentosPdfCrearExpediente(int $estadoId, int $creadorId): Expediente
 {
     return Expediente::create([
         'nurej_code' => 'DOC-'.fake()->unique()->numberBetween(10000, 99999),
-        'via' => 'TECNICO',
+        'via' => 'INGRESO_VERBAL',
         'naturaleza' => 'JURISDICCIONAL',
-        'reglamento_id' => Reglamento::factory()->create()->id,
+        'reglamento_id' => Reglamento::where('codigo', Reglamento::CODIGO_AC_022)->value('id')
+            ?? Reglamento::factory()->create(['codigo' => Reglamento::CODIGO_AC_022])->id,
         'estado_actual_id' => $estadoId,
         'fecha_ingreso' => now(),
         'resumen_hechos' => 'Hechos de prueba para documentos institucionales.',

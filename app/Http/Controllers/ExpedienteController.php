@@ -170,7 +170,7 @@ class ExpedienteController extends Controller
             return [
                 'expediente_id' => $resultado['expediente']->id,
                 'nurej_code' => $resultado['expediente']->nurej_code,
-                'via' => $resultado['expediente']->via,
+                'reglamento' => $resultado['expediente']->reglamento?->codigo,
                 'ganador' => [
                     'id' => $resultado['ganador']->id,
                     'nombres' => $resultado['ganador']->nombres,

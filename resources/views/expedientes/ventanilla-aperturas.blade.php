@@ -86,7 +86,7 @@
                         <tr>
                             <th class="px-4 py-3">NURED</th>
                             <th class="px-4 py-3">Fecha de apertura</th>
-                            <th class="px-4 py-3">Vía</th>
+                            <th class="px-4 py-3">Origen de ingreso</th>
                             <th class="px-4 py-3">Reglamento</th>
                             <th class="px-4 py-3">Estado actual</th>
                             <th class="px-4 py-3">Responsable</th>
@@ -99,7 +99,7 @@
                             <tr class="hover:bg-gris-claro/30 transition">
                                 <td class="px-4 py-3 font-mono font-semibold text-grafito" x-text="exp.nurej_code"></td>
                                 <td class="px-4 py-3 text-gris" x-text="formatoFecha(exp.fecha_ingreso)"></td>
-                                <td class="px-4 py-3 text-gris" x-text="exp.via || '—'"></td>
+                                <td class="px-4 py-3 text-gris" x-text="exp.via === 'INGRESO_DISTRITAL' ? 'Ingreso desde distrital' : (exp.via === 'INGRESO_VERBAL' ? 'Ingreso verbal' : (exp.via || '—'))"></td>
                                 <td class="px-4 py-3 text-gris" x-text="exp.reglamento?.nombre || exp.reglamento?.codigo || '—'"></td>
                                 <td class="px-4 py-3">
                                     <span class="px-2 py-0.5 rounded bg-gris-claro text-grafito text-xs font-medium"

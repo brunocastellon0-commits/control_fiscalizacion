@@ -56,7 +56,7 @@ function versionadoSemillaNormativa(): array
 
     $expediente = Expediente::create([
         'nurej_code' => 'RN06-'.fake()->unique()->numberBetween(100000, 999999),
-        'via' => 'TECNICO',
+        'via' => 'INGRESO_VERBAL',
         'reglamento_id' => $reglamentoOrigen->id,
         'estado_actual_id' => $estado->id,
         'resumen_hechos' => 'Causa bajo verificación de inmutabilidad normativa.',
@@ -112,7 +112,7 @@ it('la creación de expedientes e hijos sigue funcionando con reglamento_id', fu
     $semilla = versionadoSemillaNormativa();
 
     $apertura = app(ExpedienteService::class)->aperturaCausa([
-        'via' => 'TECNICO',
+        'via' => 'INGRESO_VERBAL',
         'naturaleza' => 'JURISDICCIONAL',
         'reglamento_id' => $semilla['reglamentoOrigen']->id,
         'resumen_hechos' => 'Apertura bajo RN-06.',

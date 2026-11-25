@@ -53,7 +53,7 @@ it('genera NUREJ hijo derivado correlativo del padre', function () {
 
     $padre = Expediente::create([
         'nurej_code' => $padreCode,
-        'via' => 'TECNICO',
+        'via' => 'INGRESO_VERBAL',
         'reglamento_id' => $reglamento->id,
         'estado_actual_id' => $estado->id,
         'creado_por' => $usuario->id,
@@ -65,7 +65,7 @@ it('genera NUREJ hijo derivado correlativo del padre', function () {
     Expediente::create([
         'nurej_code' => $hijo1,
         'nurej_padre_id' => $padre->id,
-        'via' => 'TECNICO',
+        'via' => 'INGRESO_VERBAL',
         'reglamento_id' => $reglamento->id,
         'estado_actual_id' => $estado->id,
         'creado_por' => $usuario->id,
@@ -86,7 +86,7 @@ it('no permite derivar un NUREJ de un expediente ya derivado (RN-10)', function 
 
     $padre = Expediente::create([
         'nurej_code' => $padreCode,
-        'via' => 'TECNICO',
+        'via' => 'INGRESO_VERBAL',
         'reglamento_id' => $reglamento->id,
         'estado_actual_id' => $estado->id,
         'creado_por' => $usuario->id,
@@ -95,7 +95,7 @@ it('no permite derivar un NUREJ de un expediente ya derivado (RN-10)', function 
     $hijo = Expediente::create([
         'nurej_code' => $service->generarHijo($padre->id),
         'nurej_padre_id' => $padre->id,
-        'via' => 'TECNICO',
+        'via' => 'INGRESO_VERBAL',
         'reglamento_id' => $reglamento->id,
         'estado_actual_id' => $estado->id,
         'creado_por' => $usuario->id,

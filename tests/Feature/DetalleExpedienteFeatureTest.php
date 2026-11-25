@@ -42,7 +42,7 @@ it('incluye los actuados con hashes en el detalle del expediente', function () {
 
     $expediente = Expediente::create([
         'nurej_code' => 'DET-'.fake()->unique()->numberBetween(10000, 99999),
-        'via' => 'TECNICO',
+        'via' => 'INGRESO_VERBAL',
         'reglamento_id' => $reglamento->id,
         'estado_actual_id' => $estado->id,
         'fecha_ingreso' => now(),
@@ -96,7 +96,7 @@ it('carga la vista de detalle por sesion web con asignacion activa', function ()
 
     $expediente = Expediente::create([
         'nurej_code' => 'WEBDET-'.fake()->unique()->numberBetween(10000, 99999),
-        'via' => 'TECNICO',
+        'via' => 'INGRESO_VERBAL',
         'reglamento_id' => $reglamento->id,
         'estado_actual_id' => $estado->id,
         'fecha_ingreso' => now(),
@@ -133,7 +133,7 @@ it('el creador sin asignacion no accede al detalle operativo aunque este pendien
 
     $expediente = Expediente::create([
         'nurej_code' => 'CREADOR-'.fake()->unique()->numberBetween(10000, 99999),
-        'via' => 'TECNICO',
+        'via' => 'INGRESO_VERBAL',
         'reglamento_id' => $reglamento->id,
         'estado_actual_id' => $estado->id,
         'fecha_ingreso' => now(),
@@ -163,7 +163,7 @@ it('el creador pierde acceso una vez el expediente ya fue sorteado', function ()
 
     $expediente = Expediente::create([
         'nurej_code' => 'CREADOR-'.fake()->unique()->numberBetween(10000, 99999),
-        'via' => 'TECNICO',
+        'via' => 'INGRESO_VERBAL',
         'reglamento_id' => $reglamento->id,
         'estado_actual_id' => $estado->id,
         'fecha_ingreso' => now(),
@@ -202,7 +202,7 @@ it('deniega 403 por sesion web a un operador sin asignacion', function () {
 
     $expediente = Expediente::create([
         'nurej_code' => 'WEB403-'.fake()->unique()->numberBetween(10000, 99999),
-        'via' => 'TECNICO',
+        'via' => 'INGRESO_VERBAL',
         'reglamento_id' => $reglamento->id,
         'estado_actual_id' => $estado->id,
         'fecha_ingreso' => now(),

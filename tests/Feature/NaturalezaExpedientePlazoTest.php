@@ -33,7 +33,7 @@ function naturalezaSemillaApertura(): array
         'requiere_adjunto' => true,
     ]);
 
-    $reglamento = Reglamento::factory()->create();
+    $reglamento = Reglamento::factory()->create(['codigo' => Reglamento::CODIGO_AC_022]);
 
     return compact('ventanilla', 'pendiente', 'reglamento');
 }
@@ -41,7 +41,7 @@ function naturalezaSemillaApertura(): array
 function naturalezaPayloadApertura(int $reglamentoId, ?string $naturaleza): array
 {
     $payload = [
-        'via' => 'TECNICO',
+        'via' => 'INGRESO_VERBAL',
         'reglamento_id' => $reglamentoId,
         'resumen_hechos' => 'Hechos denunciados ante la autoridad municipal.',
         'partes' => [
@@ -114,7 +114,7 @@ function naturalezaCrearExpediente(int $estadoId, int $creadorId, int $reglament
 {
     return Expediente::create([
         'nurej_code' => 'EXP-'.fake()->unique()->numberBetween(10000, 99999),
-        'via' => 'TECNICO',
+        'via' => 'INGRESO_VERBAL',
         'naturaleza' => $naturaleza,
         'reglamento_id' => $reglamentoId,
         'estado_actual_id' => $estadoId,

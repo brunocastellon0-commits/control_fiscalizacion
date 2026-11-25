@@ -48,7 +48,7 @@ function b16ExpedienteConEstado(int $estadoId): Expediente
 {
     return Expediente::create([
         'nurej_code' => 'B16-'.fake()->unique()->numberBetween(100000, 999999),
-        'via' => 'TECNICO',
+        'via' => 'INGRESO_VERBAL',
         'reglamento_id' => Reglamento::factory()->create()->id,
         'estado_actual_id' => $estadoId,
         'fecha_ingreso' => now(),

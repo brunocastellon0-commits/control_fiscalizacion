@@ -14,7 +14,7 @@ class ReglamentoSeeder extends Seeder
     {
         $reglamentos = [
             [
-                'codigo' => 'AC_022_2018',
+                'codigo' => Reglamento::CODIGO_AC_022,
                 'nombre' => 'Reglamento de Control y Fiscalización (AC_022_2018)',
                 'version' => '1.0',
                 'vigente_desde' => '2018-05-15',
@@ -22,7 +22,7 @@ class ReglamentoSeeder extends Seeder
                 'activo' => true,
             ],
             [
-                'codigo' => 'AC_054_2018',
+                'codigo' => Reglamento::CODIGO_AC_054,
                 'nombre' => 'Reglamento de Fiscalización (AC_054_2018)',
                 'version' => '1.0',
                 'vigente_desde' => '2018-09-01',
@@ -30,7 +30,7 @@ class ReglamentoSeeder extends Seeder
                 'activo' => true,
             ],
             [
-                'codigo' => 'AC_055_2018',
+                'codigo' => Reglamento::CODIGO_AC_055,
                 'nombre' => 'Reglamento de Sanciones y Descargos (AC_055_2018)',
                 'version' => '1.0',
                 'vigente_desde' => '2018-09-01',

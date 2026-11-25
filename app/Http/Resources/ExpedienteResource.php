@@ -29,6 +29,7 @@ class ExpedienteResource extends JsonResource
             'nurej_code' => $expediente->nurej_code,
             'nurej_padre_id' => $expediente->nurej_padre_id,
             'via' => $expediente->via,
+            'numero_hoja_ruta' => $expediente->numero_hoja_ruta,
             'reglamento' => $this->whenLoaded('reglamento', fn () => $expediente->reglamento ? [
                 'id' => $expediente->reglamento->id,
                 'codigo' => $expediente->reglamento->codigo,

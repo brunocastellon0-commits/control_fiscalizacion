@@ -13,16 +13,30 @@ use Illuminate\Validation\ValidationException;
 
 beforeEach(function () {
     CatalogoEstado::factory()->create(['codigo' => 'PENDIENTE_SORTEO']);
-    $this->reglamento = Reglamento::factory()->create();
+
+    $this->reglamentos = collect([
+        Reglamento::CODIGO_AC_022 => Reglamento::factory()->create([
+            'codigo' => Reglamento::CODIGO_AC_022,
+        ]),
+        Reglamento::CODIGO_AC_054 => Reglamento::factory()->create([
+            'codigo' => Reglamento::CODIGO_AC_054,
+        ]),
+        Reglamento::CODIGO_AC_055 => Reglamento::factory()->create([
+            'codigo' => Reglamento::CODIGO_AC_055,
+        ]),
+    ]);
+
+    $this->reglamento = $this->reglamentos->get(Reglamento::CODIGO_AC_022);
 });
 
-function sorteoTestExpediente(string $via, int $reglamentoId): Expediente
+function sorteoTestExpediente(string $via, int $reglamentoId, ?string $numeroHojaRuta = null): Expediente
 {
     $creador = Usuario::factory()->create();
 
     return Expediente::create([
         'nurej_code' => 'NUREJ-'.strtoupper(Str::random(10)),
         'via' => $via,
+        'numero_hoja_ruta' => $numeroHojaRuta,
         'reglamento_id' => $reglamentoId,
         'estado_actual_id' => CatalogoEstado::where('codigo', 'PENDIENTE_SORTEO')->value('id'),
         'resumen_hechos' => 'Hechos de prueba del sorteo probabilístico.',
@@ -41,30 +55,56 @@ function sorteoTestUsuarioDeRol(Rol $rol, bool $activo = true): Usuario
     return Usuario::factory()->create(['rol_id' => $rol->id, 'activo' => $activo]);
 }
 
-it('mapea la via del expediente al rol participante del sorteo', function () {
+it('mapea el reglamento del expediente al rol participante del sorteo', function () {
     $servicio = new SorteoAlgorithmService;
 
-    expect($servicio->rolParaVia('TECNICO'))->toBe(Rol::CODIGO_TECNICO)
-        ->and($servicio->rolParaVia('JURIDICO'))->toBe(Rol::CODIGO_AUD_JURIDICO)
-        ->and($servicio->rolParaVia('FINANCIERO'))->toBe(Rol::CODIGO_AUD_FINANCIERO);
+    expect($servicio->rolParaReglamento($this->reglamentos->get(Reglamento::CODIGO_AC_022)))->toBe(Rol::CODIGO_TECNICO)
+        ->and($servicio->rolParaReglamento($this->reglamentos->get(Reglamento::CODIGO_AC_054)))->toBe(Rol::CODIGO_AUD_JURIDICO)
+        ->and($servicio->rolParaReglamento($this->reglamentos->get(Reglamento::CODIGO_AC_055)))->toBe(Rol::CODIGO_AUD_FINANCIERO);
 });
 
-it('lanza ValidationException para una via no soportada', function () {
-    (new SorteoAlgorithmService)->rolParaVia('INVALIDAR');
+it('lanza ValidationException para un reglamento no soportado', function () {
+    $reglamento = Reglamento::factory()->create(['codigo' => 'AC_999_2099']);
+
+    (new SorteoAlgorithmService)->rolParaReglamento($reglamento);
 })->throws(ValidationException::class);
 
-it('considera solo usuarios activos del rol de la via como candidatos', function () {
+it('considera solo usuarios activos del rol correspondiente al reglamento', function (string $codigoReglamento, string $codigoRol) {
+    $rol = sorteoTestRol($codigoRol);
+    $activo = sorteoTestUsuarioDeRol($rol);
+    $inactivo = sorteoTestUsuarioDeRol($rol, activo: false);
+    sorteoTestUsuarioDeRol(sorteoTestRol(Rol::CODIGO_ENCARGADA));
+
+    $expediente = sorteoTestExpediente(
+        Expediente::VIA_INGRESO_VERBAL,
+        $this->reglamentos->get($codigoReglamento)->id,
+    );
+
+    $ids = (new SorteoAlgorithmService)->candidatos($expediente)->pluck('id')->all();
+
+    expect($ids)->toBe([$activo->id])
+        ->and($ids)->not->toContain($inactivo->id);
+})->with([
+    [Reglamento::CODIGO_AC_022, Rol::CODIGO_TECNICO],
+    [Reglamento::CODIGO_AC_054, Rol::CODIGO_AUD_JURIDICO],
+    [Reglamento::CODIGO_AC_055, Rol::CODIGO_AUD_FINANCIERO],
+]);
+
+it('el origen de ingreso no modifica los candidatos del reglamento', function () {
     $rolTecnico = sorteoTestRol(Rol::CODIGO_TECNICO);
-    sorteoTestUsuarioDeRol($rolTecnico);
-    $inactivo = sorteoTestUsuarioDeRol($rolTecnico, activo: false);
+    $tecnico = sorteoTestUsuarioDeRol($rolTecnico);
     sorteoTestUsuarioDeRol(sorteoTestRol(Rol::CODIGO_AUD_JURIDICO));
 
-    $expediente = sorteoTestExpediente('TECNICO', $this->reglamento->id);
+    $servicio = new SorteoAlgorithmService;
+    $verbal = sorteoTestExpediente(Expediente::VIA_INGRESO_VERBAL, $this->reglamento->id);
+    $distrital = sorteoTestExpediente(
+        Expediente::VIA_INGRESO_DISTRITAL,
+        $this->reglamento->id,
+        'HR-2026-0001',
+    );
 
-    $ids = (new SorteoAlgorithmService)->candidatos($expediente)->pluck('id');
-
-    expect($ids)->toHaveCount(1)
-        ->and($ids)->not->toContain($inactivo->id);
+    expect($servicio->candidatos($verbal)->pluck('id')->all())->toBe([$tecnico->id])
+        ->and($servicio->candidatos($distrital)->pluck('id')->all())->toBe([$tecnico->id]);
 });
 
 it('calcula tickets de ruleta inversa: el menos cargado recibe mas y el mas cargado mantiene margen', function () {
@@ -99,8 +139,8 @@ it('selecciona al ganador ponderado de forma determinista con RNG inyectado', fu
     $primerTicket = new SorteoAlgorithmService(randomInt: fn (int $max): int => 1);
     $ultimoTicket = new SorteoAlgorithmService(randomInt: fn (int $max): int => $max);
 
-    expect($primerTicket->sortear(sorteoTestExpediente('TECNICO', $this->reglamento->id))->id)->toBe($a->id)
-        ->and($ultimoTicket->sortear(sorteoTestExpediente('TECNICO', $this->reglamento->id))->id)->toBe($b->id);
+    expect($primerTicket->sortear(sorteoTestExpediente(Expediente::VIA_INGRESO_VERBAL, $this->reglamento->id))->id)->toBe($a->id)
+        ->and($ultimoTicket->sortear(sorteoTestExpediente(Expediente::VIA_INGRESO_VERBAL, $this->reglamento->id))->id)->toBe($b->id);
 });
 
 it('incrementa el peso del ganador por reglamento con una unica fila por pareja', function () {
@@ -109,9 +149,9 @@ it('incrementa el peso del ganador por reglamento con una unica fila por pareja'
 
     $servicio = new SorteoAlgorithmService(randomInt: fn (int $max): int => 1);
 
-    $servicio->sortear(sorteoTestExpediente('TECNICO', $this->reglamento->id));
-    $servicio->sortear(sorteoTestExpediente('TECNICO', $this->reglamento->id));
-    $servicio->sortear(sorteoTestExpediente('TECNICO', $this->reglamento->id));
+    $servicio->sortear(sorteoTestExpediente(Expediente::VIA_INGRESO_VERBAL, $this->reglamento->id));
+    $servicio->sortear(sorteoTestExpediente(Expediente::VIA_INGRESO_VERBAL, $this->reglamento->id));
+    $servicio->sortear(sorteoTestExpediente(Expediente::VIA_INGRESO_VERBAL, $this->reglamento->id));
 
     $registro = SorteoPeso::where('usuario_id', $ganador->id)
         ->where('reglamento_id', $this->reglamento->id)
@@ -122,9 +162,9 @@ it('incrementa el peso del ganador por reglamento con una unica fila por pareja'
         ->and($registro->peso)->toBe(3);
 });
 
-it('rechaza el sorteo cuando no hay candidatos activos para la via', function () {
+it('rechaza el sorteo cuando no hay candidatos activos para el reglamento', function () {
     $rolTecnico = sorteoTestRol(Rol::CODIGO_TECNICO);
     sorteoTestUsuarioDeRol($rolTecnico, activo: false);
 
-    (new SorteoAlgorithmService)->sortear(sorteoTestExpediente('TECNICO', $this->reglamento->id));
+    (new SorteoAlgorithmService)->sortear(sorteoTestExpediente(Expediente::VIA_INGRESO_VERBAL, $this->reglamento->id));
 })->throws(ValidationException::class);

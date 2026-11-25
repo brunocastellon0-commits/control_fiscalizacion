@@ -59,7 +59,7 @@ function fvExpediente(array $semilla): Expediente
 {
     return Expediente::create([
         'nurej_code' => 'EXP-'.fake()->unique()->numberBetween(100000, 999999),
-        'via' => 'JURIDICO',
+        'via' => 'INGRESO_VERBAL',
         'reglamento_id' => $semilla['reglamento']->id,
         'estado_actual_id' => $semilla['subsanacion']->id,
         'fecha_ingreso' => now(),

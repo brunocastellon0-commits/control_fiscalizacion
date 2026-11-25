@@ -30,7 +30,7 @@ function paso6Plazo(string $estado = 'VIGENTE', ?string $fechaLimite = '2026-09-
 
     $expediente = Expediente::create([
         'nurej_code' => 'PLZ-'.fake()->unique()->numberBetween(10000, 99999),
-        'via' => 'TECNICO',
+        'via' => 'INGRESO_VERBAL',
         'reglamento_id' => $reglamento->id,
         'estado_actual_id' => $estadoCatalogo->id,
         'fecha_ingreso' => now(),

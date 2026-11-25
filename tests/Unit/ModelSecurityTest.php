@@ -104,9 +104,9 @@ it('ignora el mass-assignment de hash_sha256 en Adjunto', function () {
 
 it('ignora el mass-assignment de created_at en Expediente', function () {
     $expediente = new Expediente;
-    $expediente->fill(['created_at' => '2020-01-01 00:00:00', 'via' => 'TECNICO']);
+    $expediente->fill(['created_at' => '2020-01-01 00:00:00', 'via' => 'INGRESO_VERBAL']);
 
     expect($expediente->getAttributes())
         ->not->toHaveKey('created_at')
-        ->toHaveKey('via', 'TECNICO');
+        ->toHaveKey('via', 'INGRESO_VERBAL');
 });

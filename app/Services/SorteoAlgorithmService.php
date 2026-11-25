@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Expediente;
+use App\Models\Reglamento;
 use App\Models\Rol;
 use App\Models\SorteoPeso;
 use App\Models\Usuario;
@@ -25,12 +26,13 @@ use Illuminate\Validation\ValidationException;
 class SorteoAlgorithmService
 {
     /**
-     * Mapeo vía del expediente -> rol que participa del sorteo.
+     * Mapeo reglamento -> rol que participa del sorteo. La vía del
+     * expediente registra solo el origen del ingreso y no interviene aquí.
      */
-    protected const MAPA_VIA_ROL = [
-        'TECNICO' => Rol::CODIGO_TECNICO,
-        'JURIDICO' => Rol::CODIGO_AUD_JURIDICO,
-        'FINANCIERO' => Rol::CODIGO_AUD_FINANCIERO,
+    protected const MAPA_REGLAMENTO_ROL = [
+        Reglamento::CODIGO_AC_022 => Rol::CODIGO_TECNICO,
+        Reglamento::CODIGO_AC_054 => Rol::CODIGO_AUD_JURIDICO,
+        Reglamento::CODIGO_AC_055 => Rol::CODIGO_AUD_FINANCIERO,
     ];
 
     /**
@@ -53,7 +55,7 @@ class SorteoAlgorithmService
 
         if ($candidatos->isEmpty()) {
             throw ValidationException::withMessages([
-                'expediente' => 'No hay funcionarios activos disponibles para la vía '.$expediente->via,
+                'expediente' => 'No hay funcionarios activos disponibles para el reglamento '.($expediente->reglamento?->codigo ?? 'sin reglamento'),
             ]);
         }
 
@@ -66,23 +68,31 @@ class SorteoAlgorithmService
     }
 
     /**
-     * Resuelve el rol participante según la vía del expediente.
+     * Resuelve el rol participante según el reglamento del expediente.
      */
-    public function rolParaVia(string $via): string
+    public function rolParaReglamento(Reglamento $reglamento): string
     {
-        return static::MAPA_VIA_ROL[$via] ?? throw ValidationException::withMessages([
-            'via' => 'Vía de expediente no soportada para el sorteo: '.$via,
+        return static::MAPA_REGLAMENTO_ROL[$reglamento->codigo] ?? throw ValidationException::withMessages([
+            'reglamento' => 'Reglamento no soportado para el sorteo: '.$reglamento->codigo,
         ]);
     }
 
     /**
-     * Candidatos activos del rol correspondiente a la vía del expediente.
+     * Candidatos activos del rol correspondiente al reglamento del expediente.
      *
      * @return Collection<int, Usuario>
      */
     public function candidatos(Expediente $expediente): Collection
     {
-        $codigoRol = $this->rolParaVia($expediente->via);
+        $reglamento = $expediente->reglamento;
+
+        if ($reglamento === null) {
+            throw ValidationException::withMessages([
+                'reglamento' => 'El expediente no tiene reglamento asignado para el sorteo.',
+            ]);
+        }
+
+        $codigoRol = $this->rolParaReglamento($reglamento);
 
         return Usuario::query()
             ->where('activo', true)

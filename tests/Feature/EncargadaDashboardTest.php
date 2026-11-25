@@ -69,7 +69,7 @@ it('devuelve datos operativos sin exponer información administrativa', function
 
     Expediente::create([
         'nurej_code' => 'ENC-'.fake()->unique()->numerify('#####'),
-        'via' => 'JURIDICO',
+        'via' => 'INGRESO_VERBAL',
         'reglamento_id' => $reglamento->id,
         'estado_actual_id' => $pendiente->id,
         'fecha_ingreso' => now(),
@@ -103,7 +103,7 @@ it('calcula la carga de los operadores activos', function () {
     ]);
     $expediente = Expediente::create([
         'nurej_code' => 'ENC-'.fake()->unique()->numerify('#####'),
-        'via' => 'JURIDICO',
+        'via' => 'INGRESO_VERBAL',
         'reglamento_id' => $reglamento->id,
         'estado_actual_id' => $evaluacion->id,
         'fecha_ingreso' => now(),

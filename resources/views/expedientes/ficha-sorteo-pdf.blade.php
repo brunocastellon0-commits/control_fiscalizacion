@@ -124,7 +124,10 @@
     </div>
 
     @php
-        $vias = ['TECNICO' => 'Técnica', 'JURIDICO' => 'Jurídica', 'FINANCIERO' => 'Financiera'];
+        $origenes = [
+            \App\Models\Expediente::VIA_INGRESO_VERBAL => 'Ingreso verbal',
+            \App\Models\Expediente::VIA_INGRESO_DISTRITAL => 'Ingreso desde distrital',
+        ];
         $naturalezas = ['JURISDICCIONAL' => 'Jurisdiccional', 'ADMINISTRATIVA' => 'Administrativa'];
     @endphp
 
@@ -140,9 +143,15 @@
             <td>{{ $expediente->fecha_ingreso?->format('H:i') ?? 'Sin registro' }}</td>
         </tr>
         <tr>
-            <th>Vía</th>
-            <td>{{ $vias[$expediente->via] ?? $expediente->via }}</td>
+            <th>Origen de ingreso</th>
+            <td>{{ $origenes[$expediente->via] ?? $expediente->via }}</td>
         </tr>
+        @if ($expediente->numero_hoja_ruta)
+            <tr>
+                <th>Número de hoja de ruta</th>
+                <td>{{ $expediente->numero_hoja_ruta }}</td>
+            </tr>
+        @endif
         <tr>
             <th>Naturaleza</th>
             <td>{{ $naturalezas[$expediente->naturaleza] ?? $expediente->naturaleza }}</td>

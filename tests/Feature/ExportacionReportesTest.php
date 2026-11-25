@@ -26,7 +26,7 @@ function expExpediente(): Expediente
 
     return Expediente::create([
         'nurej_code' => '2026-'.fake()->unique()->numerify('#####'),
-        'via' => 'TECNICO',
+        'via' => 'INGRESO_VERBAL',
         'reglamento_id' => $reglamento->id,
         'estado_actual_id' => $estado->id,
         'resumen_hechos' => 'Hechos de prueba para la exportación de reportes.',

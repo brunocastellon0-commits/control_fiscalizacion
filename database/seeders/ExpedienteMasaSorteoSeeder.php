@@ -17,8 +17,9 @@ class ExpedienteMasaSorteoSeeder extends Seeder
     public const CASOS_POR_VIA = 4;
 
     /**
-     * Lote masivo de expedientes PENDIENTE_SORTEO (varias causas por vía)
-     * para ejercitar el sorteo en lote ("Sortear todo") desde la workstation.
+     * Lote masivo de expedientes PENDIENTE_SORTEO (varias causas por
+     * reglamento) para ejercitar el sorteo en lote ("Sortear todo") desde
+     * la workstation. El origen de ingreso siempre es verbal.
      * Idempotente por etiqueta propia.
      */
     public function run(): void
@@ -30,29 +31,29 @@ class ExpedienteMasaSorteoSeeder extends Seeder
         }
 
         $ventanilla = Usuario::where('username', 'ventanilla')->first();
-        $reglamento = Reglamento::where('codigo', 'AC_022_2018')->first();
+        $reglamentoBase = Reglamento::where('codigo', Reglamento::CODIGO_AC_022)->first();
         $catalogoRegistro = CatalogoActuado::where('codigo', 'ACT_REGISTRO_DIGITALIZACION')->first();
 
-        if (! $ventanilla || ! $reglamento || ! $catalogoRegistro) {
-            $this->command->error('Faltan dependencias base (ventanilla, reglamento AC_022_2018 o ACT_REGISTRO_DIGITALIZACION). Ejecutar DatabaseSeeder.');
+        if (! $ventanilla || ! $reglamentoBase || ! $catalogoRegistro) {
+            $this->command->error('Faltan dependencias base (ventanilla, reglamento AC-022/2018 o ACT_REGISTRO_DIGITALIZACION). Ejecutar DatabaseSeeder.');
 
             return;
         }
 
         $resumenes = [
-            'TECNICO' => [
+            Reglamento::CODIGO_AC_022 => [
                 'Presunta contaminación ambiental por residuos industriales sin licencia.',
                 'Denuncia por incumplimiento de normas técnicas en obras de infraestructura.',
                 'Fiscalización de permisos de funcionamiento otorgados sin inspección previa.',
                 'Irregularidades en la gestión de residuos sólidos municipales.',
             ],
-            'JURIDICO' => [
+            Reglamento::CODIGO_AC_054 => [
                 'Revisión de nulidad en proceso de licitación con observaciones de legalidad.',
                 'Denuncia por contratación directa de servicios jurídicos sin convocatoria.',
                 'Fiscalización del cumplimiento de plazos procesales en resoluciones administrativas.',
                 'Presunto conflicto de intereses en adjudicación de concesiones.',
             ],
-            'FINANCIERO' => [
+            Reglamento::CODIGO_AC_055 => [
                 'Presunta planilla de personal sin respaldo en el sistema contable.',
                 'Revisión de transferencias presupuestarias sin aprobación del órgano competente.',
                 'Desviación de fondos en proyectos de inversión municipal.',
@@ -62,13 +63,14 @@ class ExpedienteMasaSorteoSeeder extends Seeder
 
         $expedienteService = app(ExpedienteService::class);
 
-        foreach ($resumenes as $via => $casos) {
-            $this->command->info('Creando '.static::CASOS_POR_VIA." expedientes PENDIENTE_SORTEO (vía {$via})...");
+        foreach ($resumenes as $codigoReglamento => $casos) {
+            $reglamento = Reglamento::where('codigo', $codigoReglamento)->firstOrFail();
+            $this->command->info('Creando '.static::CASOS_POR_VIA." expedientes PENDIENTE_SORTEO (reglamento {$codigoReglamento})...");
 
             foreach (array_slice($casos, 0, static::CASOS_POR_VIA) as $resumen) {
                 $expediente = $expedienteService->aperturaCausa(
                     datos: [
-                        'via' => $via,
+                        'via' => Expediente::VIA_INGRESO_VERBAL,
                         'reglamento_id' => $reglamento->id,
                         'resumen_hechos' => static::TAG_DEMO_MASA.' '.$resumen,
                         'partes' => [
@@ -79,7 +81,7 @@ class ExpedienteMasaSorteoSeeder extends Seeder
                     ventanilla: $ventanilla,
                     adjunto: $this->crearPdfDummy(),
                 );
-                $this->command->line("  - NUREJ: {$expediente->nurej_code} | {$via} | PENDIENTE_SORTEO");
+                $this->command->line("  - NUREJ: {$expediente->nurej_code} | {$codigoReglamento} | PENDIENTE_SORTEO");
             }
         }
 

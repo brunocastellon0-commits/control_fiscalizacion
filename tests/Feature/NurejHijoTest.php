@@ -73,7 +73,7 @@ function nurejHijoCrearPadre(array $semilla, bool $conHistorial = false): Expedi
 {
     $padre = Expediente::create([
         'nurej_code' => '2026-00001',
-        'via' => 'TECNICO',
+        'via' => 'INGRESO_VERBAL',
         'reglamento_id' => $semilla['ac022']->id,
         'estado_actual_id' => $semilla['ejecucion']->id,
         'resumen_hechos' => 'Hechos de la causa padre con detalle suficiente para su derivación.',
@@ -160,7 +160,7 @@ it('la Encargada deriva un NUREJ Hijo: emite ACT_CREACION_NUREJ_HIJO, padre cons
     ])->assertCreated()
         ->assertJsonPath('data.nurej_code', '2026-00001-1')
         ->assertJsonPath('data.nurej_padre_id', $padre->id)
-        ->assertJsonPath('data.via', 'JURIDICO')
+        ->assertJsonPath('data.via', 'INGRESO_VERBAL')
         ->assertJsonPath('data.estado_actual.codigo', 'PENDIENTE_SORTEO')
         ->assertJsonPath('data.reglamento.id', $semilla['ac054']->id)
         ->assertJsonPath('data.resumen_hechos', $padre->resumen_hechos);
@@ -169,7 +169,7 @@ it('la Encargada deriva un NUREJ Hijo: emite ACT_CREACION_NUREJ_HIJO, padre cons
     expect($hijo)->not->toBeNull()
         ->and($hijo->nurej_padre_id)->toBe($padre->id)
         ->and($hijo->estado_actual_id)->toBe($semilla['pendienteSorteo']->id)
-        ->and($hijo->via)->toBe('JURIDICO')
+        ->and($hijo->via)->toBe('INGRESO_VERBAL')
         ->and($hijo->reglamento_id)->toBe($semilla['ac054']->id)
         ->and($hijo->creado_por)->toBe($semilla['encargada']->id);
 

@@ -54,7 +54,7 @@ it('abre una causa registrando expediente, actuado y partes sin asignar bandeja'
         $adjunto = UploadedFile::fake()->create('denuncia.pdf', 100, 'application/pdf');
 
         $expediente = app(ExpedienteService::class)->aperturaCausa([
-            'via' => 'TECNICO',
+            'via' => 'INGRESO_VERBAL',
             'naturaleza' => 'JURISDICCIONAL',
             'reglamento_id' => $reglamento->id,
             'resumen_hechos' => 'Hechos denunciados.',
@@ -66,7 +66,7 @@ it('abre una causa registrando expediente, actuado y partes sin asignar bandeja'
 
         expect($expediente->nurej_code)->toMatch('/^2026-\d{5}$/')
             ->and($expediente->estado_actual_id)->toBe($estado->id)
-            ->and($expediente->via)->toBe('TECNICO')
+            ->and($expediente->via)->toBe('INGRESO_VERBAL')
             ->and($expediente->creado_por)->toBe($ventanilla->id);
 
         $actuado = $expediente->actuados()->first();
@@ -113,7 +113,7 @@ it('revierte toda la apertura si falla el registro del actuado', function () {
     );
 
     expect(fn () => $service->aperturaCausa([
-        'via' => 'TECNICO',
+        'via' => 'INGRESO_VERBAL',
         'naturaleza' => 'JURISDICCIONAL',
         'reglamento_id' => $reglamento->id,
         'partes' => [
@@ -147,7 +147,7 @@ it('revierte la apertura completa si falla la generación de la boleta', functio
     );
 
     expect(fn () => $service->aperturaCausa([
-        'via' => 'TECNICO',
+        'via' => 'INGRESO_VERBAL',
         'naturaleza' => 'JURISDICCIONAL',
         'reglamento_id' => $reglamento->id,
         'partes' => [

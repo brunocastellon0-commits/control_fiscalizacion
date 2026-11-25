@@ -14,9 +14,9 @@ use Illuminate\Validation\ValidationException;
 class NurejHijoService
 {
     /**
-     * MATRIZ_DERIVACIONES §2 (filas M1-M4): actuados habilitantes, todos
-     * con origen en vía TECNICO. D-P1: sin uno de estos informes previos
-     * en el padre no se permite ninguna derivación.
+     * MATRIZ_DERIVACIONES §2 (filas M1-M4): actuados habilitantes de los
+     * expedientes tramitados bajo el reglamento AC-022/2018. D-P1: sin uno
+     * de estos informes previos en el padre no se permite ninguna derivación.
      *
      * @var array<int, string>
      */
@@ -39,18 +39,18 @@ class NurejHijoService
     ];
 
     /**
-     * Mapeo fijo vía destino → reglamento destino, resuelto solo en el
-     * servidor (R2 de la matriz; reglamentos verificados en
-     * ReglamentoSeeder). La entrada TECNICO existe para completar el
-     * mapeo normativo pero jamás se alcanza: TECNICO está fuera de la
-     * whitelist.
+     * Mapeo fijo especialidad destino (parámetro histórico `via_destino`)
+     * → reglamento destino, resuelto solo en el servidor (R2 de la matriz;
+     * reglamentos verificados en ReglamentoSeeder). La entrada TECNICO
+     * existe para completar el mapeo normativo pero jamás se alcanza:
+     * TECNICO está fuera de la whitelist.
      *
      * @var array<string, string>
      */
     protected const MAPA_VIA_DESTINO_REGLAMENTO = [
-        'TECNICO' => 'AC_022_2018',
-        'JURIDICO' => 'AC_054_2018',
-        'FINANCIERO' => 'AC_055_2018',
+        'TECNICO' => Reglamento::CODIGO_AC_022,
+        'JURIDICO' => Reglamento::CODIGO_AC_054,
+        'FINANCIERO' => Reglamento::CODIGO_AC_055,
     ];
 
     public function __construct(
@@ -67,16 +67,16 @@ class NurejHijoService
      * 2. Valida la combinación contra la MATRIZ_DERIVACIONES (D-P1:
      *    informe técnico habilitante previo; D-P2: whitelist estricta).
      * 3. Genera el NUREJ Hijo (formato YYYY-NNNNN-X).
-     * 4. Crea el expediente hijo con la vía y el reglamento de destino
-     *    elegidos (no hereda los del padre) más los metadatos
-     *    informativos (resumen_hechos, partes) pero sin actuados, plazos
-     *    ni asignaciones previas — línea de tiempo en cero.
+     * 4. Crea el expediente hijo con el reglamento de destino elegido y el
+     *    mismo origen de ingreso que el padre (`via`). No hereda línea de
+     *    tiempo: copia solo metadatos informativos (resumen_hechos, partes),
+     *    sin actuados, plazos ni asignaciones previas.
      * 5. Registra ACT_CREACION_NUREJ_HIJO sobre el padre con la
      *    trazabilidad via_destino/reglamento_destino_id (C8). El padre
      *    conserva su estado actual.
      *
      * El hijo nace en PENDIENTE_SORTEO para ser sorteado por la Encargada
-     * hacia la bandeja de la especialidad destino (MAPA_VIA_ROL).
+     * hacia la bandeja de la especialidad destino (MAPA_REGLAMENTO_ROL).
      */
     public function crearHijo(
         Expediente $padre,
@@ -95,7 +95,8 @@ class NurejHijoService
             $hijo = Expediente::create([
                 'nurej_code' => $nurejHijo,
                 'nurej_padre_id' => $padre->id,
-                'via' => $viaDestino,
+                'via' => $padre->via,
+                'numero_hoja_ruta' => $padre->numero_hoja_ruta,
                 'reglamento_id' => $reglamentoDestino->id,
                 'estado_actual_id' => $estadoPendienteSorteo->id,
                 'resumen_hechos' => $padre->resumen_hechos,
@@ -129,15 +130,15 @@ class NurejHijoService
     /**
      * D-P1/D-P2 (MATRIZ_DERIVACIONES §2): única fuente de verdad de qué
      * combinaciones están permitidas. Lanza 422 cuando (a) no existe un
-     * informe técnico habilitante previo en el padre o su vía no es la
-     * de origen de las filas M1-M4 (M6/M7/M8), o (b) la vía destino no
-     * está en la whitelist de la matriz (M5 u otra no listada).
+     * informe técnico habilitante previo en el padre o su reglamento no es
+     * AC-022/2018, el de las filas M1-M4 (M6/M7/M8), o (b) la especialidad
+     * destino no está en la whitelist de la matriz (M5 u otra no listada).
      *
      * @return Reglamento Reglamento destino resuelto server-side.
      */
     protected function verificarDerivable(Expediente $padre, string $viaDestino): Reglamento
     {
-        $tieneHabilitante = $padre->via === 'TECNICO'
+        $tieneHabilitante = $padre->reglamento?->codigo === Reglamento::CODIGO_AC_022
             && $padre->actuados()
                 ->whereHas('tipoActuado', function ($query) {
                     $query->whereIn('codigo', self::ACTUADOS_HABILITANTES);
@@ -146,7 +147,7 @@ class NurejHijoService
 
         if (! $tieneHabilitante) {
             throw ValidationException::withMessages([
-                'via_destino' => 'La derivación requiere un informe técnico con recomendación previo en el expediente (RN-10, matriz de derivaciones M1-M4).',
+                'via_destino' => 'La derivación requiere un informe técnico con recomendación previo en un expediente del reglamento AC-022/2018 (RN-10, matriz de derivaciones M1-M4).',
             ]);
         }
 

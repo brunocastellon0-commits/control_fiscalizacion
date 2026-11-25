@@ -122,8 +122,8 @@
                     <p>
                         <i class="fa-solid fa-shuffle mr-2 text-verde-institucional"></i>
                         Sorteo probabilístico a ciegas: el sistema asigna este expediente
-                        al funcionario de menor carga del rol según la vía
-                        (<span x-text="seleccionado?.via"></span>), sin selección manual.
+                        al funcionario de menor carga del rol según el reglamento
+                        (<span x-text="seleccionado?.reglamento?.codigo || '—'"></span>), sin selección manual.
                     </p>
                 </div>
 

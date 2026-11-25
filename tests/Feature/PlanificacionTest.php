@@ -180,7 +180,7 @@ it('el Técnico de AC022 carga el Cronograma, continúa en Ejecución y solo not
     Notification::fake();
 
     $semilla = planificacionSemilla();
-    $expediente = planificacionCrearExpediente($semilla['planificacion']->id, $semilla['ac022']->id, 'TECNICO', $semilla['tecnico']->id);
+    $expediente = planificacionCrearExpediente($semilla['planificacion']->id, $semilla['ac022']->id, 'INGRESO_VERBAL', $semilla['tecnico']->id);
     planificacionAsignar($expediente, $semilla['tecnico']);
     planificacionPlazoVigente($expediente, $semilla['paramPlanificacion']);
 
@@ -231,7 +231,7 @@ it('el Auditor Jurídico de AC054 carga el MPA con la fecha límite dinámica en
     Storage::fake('local');
 
     $semilla = planificacionSemilla();
-    $expediente = planificacionCrearExpediente($semilla['planificacion']->id, $semilla['ac054']->id, 'JURIDICO', $semilla['audJuridico']->id);
+    $expediente = planificacionCrearExpediente($semilla['planificacion']->id, $semilla['ac054']->id, 'INGRESO_VERBAL', $semilla['audJuridico']->id);
     planificacionAsignar($expediente, $semilla['audJuridico']);
 
     Sanctum::actingAs($semilla['audJuridico'], ['*']);
@@ -260,7 +260,7 @@ it('el Auditor Jurídico de AC054 carga el MPA con la fecha límite dinámica en
 
 it('devuelve 403 si un operador sin bandeja activa intenta cargar la planificación', function () {
     $semilla = planificacionSemilla();
-    $expediente = planificacionCrearExpediente($semilla['planificacion']->id, $semilla['ac022']->id, 'TECNICO', $semilla['tecnico']->id);
+    $expediente = planificacionCrearExpediente($semilla['planificacion']->id, $semilla['ac022']->id, 'INGRESO_VERBAL', $semilla['tecnico']->id);
     planificacionAsignar($expediente, $semilla['tecnico']);
 
     Sanctum::actingAs($semilla['otroTecnico'], ['*']);
@@ -273,7 +273,7 @@ it('devuelve 403 si un operador sin bandeja activa intenta cargar la planificaci
 
 it('devuelve 403 si el rol no corresponde al reglamento (Técnico intenta cargar un MPA de AC054)', function () {
     $semilla = planificacionSemilla();
-    $expediente = planificacionCrearExpediente($semilla['planificacion']->id, $semilla['ac054']->id, 'JURIDICO', $semilla['audJuridico']->id);
+    $expediente = planificacionCrearExpediente($semilla['planificacion']->id, $semilla['ac054']->id, 'INGRESO_VERBAL', $semilla['audJuridico']->id);
     planificacionAsignar($expediente, $semilla['tecnico']);
 
     Sanctum::actingAs($semilla['tecnico'], ['*']);
@@ -287,7 +287,7 @@ it('devuelve 403 si el rol no corresponde al reglamento (Técnico intenta cargar
 
 it('devuelve 403 si la Encargada intenta cargar la planificación', function () {
     $semilla = planificacionSemilla();
-    $expediente = planificacionCrearExpediente($semilla['planificacion']->id, $semilla['ac022']->id, 'TECNICO', $semilla['tecnico']->id);
+    $expediente = planificacionCrearExpediente($semilla['planificacion']->id, $semilla['ac022']->id, 'INGRESO_VERBAL', $semilla['tecnico']->id);
     planificacionAsignar($expediente, $semilla['tecnico']);
 
     Sanctum::actingAs($semilla['encargada'], ['*']);
@@ -300,7 +300,7 @@ it('devuelve 403 si la Encargada intenta cargar la planificación', function () 
 
 it('devuelve 422 si el MPA llega sin fecha_limite_propuesta', function () {
     $semilla = planificacionSemilla();
-    $expediente = planificacionCrearExpediente($semilla['planificacion']->id, $semilla['ac054']->id, 'JURIDICO', $semilla['audJuridico']->id);
+    $expediente = planificacionCrearExpediente($semilla['planificacion']->id, $semilla['ac054']->id, 'INGRESO_VERBAL', $semilla['audJuridico']->id);
     planificacionAsignar($expediente, $semilla['audJuridico']);
 
     Sanctum::actingAs($semilla['audJuridico'], ['*']);
@@ -314,7 +314,7 @@ it('devuelve 422 si el MPA llega sin fecha_limite_propuesta', function () {
 
 it('devuelve 422 si la fecha_limite_propuesta es anterior a hoy', function () {
     $semilla = planificacionSemilla();
-    $expediente = planificacionCrearExpediente($semilla['planificacion']->id, $semilla['ac054']->id, 'JURIDICO', $semilla['audJuridico']->id);
+    $expediente = planificacionCrearExpediente($semilla['planificacion']->id, $semilla['ac054']->id, 'INGRESO_VERBAL', $semilla['audJuridico']->id);
     planificacionAsignar($expediente, $semilla['audJuridico']);
 
     Sanctum::actingAs($semilla['audJuridico'], ['*']);
@@ -329,7 +329,7 @@ it('devuelve 422 si la fecha_limite_propuesta es anterior a hoy', function () {
 
 it('devuelve 422 si la carga del Cronograma llega sin adjunto', function () {
     $semilla = planificacionSemilla();
-    $expediente = planificacionCrearExpediente($semilla['planificacion']->id, $semilla['ac022']->id, 'TECNICO', $semilla['tecnico']->id);
+    $expediente = planificacionCrearExpediente($semilla['planificacion']->id, $semilla['ac022']->id, 'INGRESO_VERBAL', $semilla['tecnico']->id);
     planificacionAsignar($expediente, $semilla['tecnico']);
 
     Sanctum::actingAs($semilla['tecnico'], ['*']);
@@ -345,7 +345,7 @@ it('el Cronograma de AC022 ya no requiere Visto Bueno: la Encargada no puede apr
     Storage::fake('local');
 
     $semilla = planificacionSemilla();
-    $expediente = planificacionCrearExpediente($semilla['planificacion']->id, $semilla['ac022']->id, 'TECNICO', $semilla['tecnico']->id);
+    $expediente = planificacionCrearExpediente($semilla['planificacion']->id, $semilla['ac022']->id, 'INGRESO_VERBAL', $semilla['tecnico']->id);
     planificacionAsignar($expediente, $semilla['tecnico']);
 
     Sanctum::actingAs($semilla['tecnico'], ['*']);
@@ -389,7 +389,7 @@ it('el Visto Bueno sobre MPA abre EJECUCION con la fecha límite dinámica exact
     Storage::fake('local');
 
     $semilla = planificacionSemilla();
-    $expediente = planificacionCrearExpediente($semilla['planificacion']->id, $semilla['ac054']->id, 'JURIDICO', $semilla['audJuridico']->id);
+    $expediente = planificacionCrearExpediente($semilla['planificacion']->id, $semilla['ac054']->id, 'INGRESO_VERBAL', $semilla['audJuridico']->id);
     planificacionAsignar($expediente, $semilla['audJuridico']);
 
     Sanctum::actingAs($semilla['audJuridico'], ['*']);
@@ -428,7 +428,7 @@ it('devuelve 403 si un operador intenta emitir el Visto Bueno', function () {
     Storage::fake('local');
 
     $semilla = planificacionSemilla();
-    $expediente = planificacionCrearExpediente($semilla['planificacion']->id, $semilla['ac022']->id, 'TECNICO', $semilla['tecnico']->id);
+    $expediente = planificacionCrearExpediente($semilla['planificacion']->id, $semilla['ac022']->id, 'INGRESO_VERBAL', $semilla['tecnico']->id);
     planificacionAsignar($expediente, $semilla['tecnico']);
 
     Sanctum::actingAs($semilla['tecnico'], ['*']);
@@ -445,7 +445,7 @@ it('devuelve 403 si un operador intenta emitir el Visto Bueno', function () {
 
 it('devuelve 403 si se intenta cargar planificación fuera del estado EN_PLANIFICACION', function () {
     $semilla = planificacionSemilla();
-    $expediente = planificacionCrearExpediente($semilla['ejecucion']->id, $semilla['ac022']->id, 'TECNICO', $semilla['tecnico']->id);
+    $expediente = planificacionCrearExpediente($semilla['ejecucion']->id, $semilla['ac022']->id, 'INGRESO_VERBAL', $semilla['tecnico']->id);
     planificacionAsignar($expediente, $semilla['tecnico']);
 
     Sanctum::actingAs($semilla['tecnico'], ['*']);
@@ -461,7 +461,7 @@ it('la Encargada no puede devolver un Cronograma de AC022 porque ya está en Eje
     Storage::fake('local');
 
     $semilla = planificacionSemilla();
-    $expediente = planificacionCrearExpediente($semilla['planificacion']->id, $semilla['ac022']->id, 'TECNICO', $semilla['tecnico']->id);
+    $expediente = planificacionCrearExpediente($semilla['planificacion']->id, $semilla['ac022']->id, 'INGRESO_VERBAL', $semilla['tecnico']->id);
     planificacionAsignar($expediente, $semilla['tecnico']);
     planificacionPlazoVigente($expediente, $semilla['paramPlanificacion']);
 
@@ -500,7 +500,7 @@ it('la Encargada devuelve el MPA de AC054 y la bandeja vuelve al Auditor Jurídi
     Storage::fake('local');
 
     $semilla = planificacionSemilla();
-    $expediente = planificacionCrearExpediente($semilla['planificacion']->id, $semilla['ac054']->id, 'JURIDICO', $semilla['audJuridico']->id);
+    $expediente = planificacionCrearExpediente($semilla['planificacion']->id, $semilla['ac054']->id, 'INGRESO_VERBAL', $semilla['audJuridico']->id);
     planificacionAsignar($expediente, $semilla['audJuridico']);
 
     Sanctum::actingAs($semilla['audJuridico'], ['*']);
@@ -538,7 +538,7 @@ it('devuelve 403 si un operador intenta usar el endpoint de devolución', functi
     Storage::fake('local');
 
     $semilla = planificacionSemilla();
-    $expediente = planificacionCrearExpediente($semilla['planificacion']->id, $semilla['ac022']->id, 'TECNICO', $semilla['tecnico']->id);
+    $expediente = planificacionCrearExpediente($semilla['planificacion']->id, $semilla['ac022']->id, 'INGRESO_VERBAL', $semilla['tecnico']->id);
     planificacionAsignar($expediente, $semilla['tecnico']);
 
     Sanctum::actingAs($semilla['tecnico'], ['*']);

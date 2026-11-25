@@ -277,7 +277,7 @@
                 error: null,
                 datos: {
                     usuarios: { total: 0, activos: 0, inactivos: 0, por_rol: [] },
-                    expedientes: { total: 0, sin_asignar: 0, por_estado: [], por_via: [], ultimos: [] },
+                    expedientes: { total: 0, sin_asignar: 0, por_estado: [], por_reglamento: [], por_origen_ingreso: [], ultimos: [] },
                     asignaciones: { activas: 0 },
                     semaforo: { total_en_plazo: 0, total_precaucion: 0, total_urgente: 0, total_fuera_de_plazo: 0 },
                     expedientes_fuera_de_plazo: [],

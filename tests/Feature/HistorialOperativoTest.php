@@ -50,7 +50,7 @@ function historialOperativoExpediente(
 ): Expediente {
     return Expediente::create([
         'nurej_code' => '2026-HIS-'.str_pad((string) $secuencia, 5, '0', STR_PAD_LEFT),
-        'via' => 'TECNICO',
+        'via' => 'INGRESO_VERBAL',
         'naturaleza' => Expediente::NATURALEZA_JURISDICCIONAL,
         'reglamento_id' => $reglamento->id,
         'estado_actual_id' => $estado->id,

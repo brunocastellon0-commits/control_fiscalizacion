@@ -69,7 +69,7 @@ function subsanacionExitoCrearExpediente(int $estadoId, int $reglamentoId, int $
 {
     return Expediente::create([
         'nurej_code' => 'EXP-SUBS-'.fake()->unique()->numberBetween(100000, 999999),
-        'via' => 'TECNICO',
+        'via' => 'INGRESO_VERBAL',
         'reglamento_id' => $reglamentoId,
         'estado_actual_id' => $estadoId,
         'fecha_ingreso' => now(),

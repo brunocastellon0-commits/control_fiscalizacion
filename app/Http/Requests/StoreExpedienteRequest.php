@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\Expediente;
+use App\Models\Reglamento;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -23,12 +24,23 @@ class StoreExpedienteRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'via' => ['required', 'string', Rule::in(['TECNICO', 'JURIDICO', 'FINANCIERO'])],
+            'via' => ['required', 'string', Rule::in(Expediente::VIAS_INGRESO)],
+            'numero_hoja_ruta' => [
+                'nullable',
+                'string',
+                'max:50',
+                Rule::requiredIf(fn () => $this->input('via') === Expediente::VIA_INGRESO_DISTRITAL),
+            ],
             'naturaleza' => ['required', 'string', Rule::in([
                 Expediente::NATURALEZA_JURISDICCIONAL,
                 Expediente::NATURALEZA_ADMINISTRATIVA,
             ])],
-            'reglamento_id' => ['required', 'integer', 'exists:reglamentos,id'],
+            'reglamento_id' => [
+                'required',
+                'integer',
+                Rule::exists((new Reglamento)->getTable(), 'id')
+                    ->where(fn ($query) => $query->whereIn('codigo', Reglamento::CODIGOS)),
+            ],
             'resumen_hechos' => ['required', 'string', 'min:10', 'max:5000'],
             'partes' => ['required', 'array', 'min:1'],
             'partes.*.tipo' => ['required', 'string', Rule::in(['DENUNCIANTE', 'DENUNCIADO'])],
@@ -36,6 +48,17 @@ class StoreExpedienteRequest extends FormRequest
             'partes.*.documento_identidad' => ['nullable', 'string', 'max:30'],
             'partes.*.cargo_institucion' => ['nullable', 'string', 'max:150'],
             'adjunto' => ['required', 'file', 'mimes:pdf', 'max:20480'],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'numero_hoja_ruta.required_if' => 'El número de hoja de ruta es obligatorio cuando el ingreso es desde distrital.',
+            'reglamento_id.exists' => 'El reglamento seleccionado no es válido para la apertura de causas.',
         ];
     }
 }
