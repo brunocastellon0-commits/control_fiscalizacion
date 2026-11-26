@@ -40,7 +40,8 @@
                             <label class="flex items-start gap-3" :class="pasoEditable() ? 'cursor-pointer' : 'cursor-default'">
                                 <input type="checkbox"
                                     class="mt-1 rounded border-gris-claro text-verde-institucional focus:ring-verde-institucional disabled:opacity-70 disabled:cursor-not-allowed"
-                                    x-model="req._cumplido" :disabled="!pasoEditable()">
+                                    x-model="req._cumplido"
+                                    :disabled="!pasoEditable() || (esSubsanacionPendiente() && !!documentosEvaluacion[req.id])">
                                 <div class="flex-1 min-w-0">
                                     <div class="flex items-center gap-2 flex-wrap">
                                         <span class="text-sm font-medium text-grafito" x-text="req.nombre || req.codigo || ('Requisito #' + req.id)"></span>
@@ -49,19 +50,67 @@
                                     <p class="text-xs text-gris mt-0.5" x-show="req.descripcion" x-text="req.descripcion"></p>
                                 </div>
                             </label>
+
+                            <template x-if="pasoEditable() && !req._cumplido">
+                                <div class="mt-3 pt-3 border-t border-gris-claro">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <button type="button"
+                                            @click="document.getElementById('doc-eval-' + req.id).click()"
+                                            class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-verde-institucional text-xs font-medium text-verde-profundo hover:bg-verde-institucional/10">
+                                            <i class="fa-solid fa-file-arrow-up"></i>
+                                            <span x-text="documentosEvaluacion[req.id] ? 'Cambiar PDF' : (req.es_critico ? 'Impugnación' : 'Subir subsanación')"></span>
+                                        </button>
+                                        <input type="file" accept="application/pdf,.pdf" class="hidden"
+                                            :id="'doc-eval-' + req.id"
+                                            @change="seleccionarDocumentoEvaluacion(req, $event)">
+
+                                        <template x-if="documentosEvaluacion[req.id]">
+                                            <span class="inline-flex items-center gap-1.5 rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-[11px] font-semibold text-green-800">
+                                                <i class="fa-solid fa-circle-check"></i>
+                                                <span class="font-semibold">PDF cargado:</span>
+                                                <span class="max-w-[14rem] truncate" x-text="documentosEvaluacion[req.id].name"></span>
+                                                <span class="font-normal text-green-700/80" x-text="tamanoDocumentoEvaluacion(req)"></span>
+                                                <button type="button" @click="quitarDocumentoEvaluacion(req)"
+                                                    class="ml-0.5 text-green-800 hover:text-green-950"
+                                                    title="Quitar archivo" aria-label="Quitar archivo">
+                                                    <i class="fa-solid fa-xmark"></i>
+                                                </button>
+                                            </span>
+                                        </template>
+
+                                        <span class="text-[11px] font-medium text-[#B53F12]"
+                                            x-show="!documentosEvaluacion[req.id]">PDF pendiente</span>
+                                    </div>
+                                </div>
+                            </template>
                         </div>
                     </template>
                 </div>
 
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pt-2 border-t border-gris-claro">
-                    <p class="text-xs text-gris" x-text="pasoEditable()
-                        ? 'Marque los requisitos que se cumplen. El sistema determinará el resultado según la configuración.'
-                        : 'Evaluación conservada para la trazabilidad del expediente.'"></p>
-                    <button type="submit" x-show="pasoEditable()" :disabled="submittingEvaluacion || !pasoEditable()"
-                        class="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-verde-profundo text-white text-sm font-semibold hover:bg-verde-institucional disabled:opacity-50">
-                        <i class="fa-solid mr-2" :class="submittingEvaluacion ? 'fa-spinner fa-spin' : 'fa-check-double'"></i>
-                        <span x-text="submittingEvaluacion ? 'Guardando...' : 'Guardar evaluación'"></span>
-                    </button>
+                    <p class="text-xs text-gris" x-text="documentosFaltantes().length > 0
+                        ? 'Cargue un PDF junto a cada requisito no cumplido para habilitar el guardado.'
+                        : (pasoEditable()
+                            ? 'Marque los requisitos que se cumplen. El sistema determinará el resultado según la configuración.'
+                            : 'Evaluación conservada para la trazabilidad del expediente.')"></p>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button type="button" x-show="estadoCodigo() === 'RECHAZADO' && pasoEditable()"
+                            @click="remitirImpugnacion()" :disabled="submittingEvaluacion"
+                            class="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gris-claro bg-white text-xs font-medium text-grafito hover:bg-gris-claro/40 disabled:opacity-50">
+                            <i class="fa-solid fa-paper-plane"></i> Remitir impugnación
+                        </button>
+                        <button type="submit" x-show="pasoEditable()" :disabled="!puedeGuardarEvaluacion()"
+                            :title="puedeGuardarEvaluacion() ? 'Registrar la evaluación' : 'Cargue un PDF por cada requisito no cumplido para habilitar el guardado'"
+                            class="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-verde-profundo text-white text-sm font-semibold hover:bg-verde-institucional transition disabled:cursor-not-allowed disabled:opacity-50">
+                            <i class="fa-solid mr-2" :class="submittingEvaluacion ? 'fa-spinner fa-spin' : 'fa-check-double'"></i>
+                            <span x-text="submittingEvaluacion ? 'Guardando...' : 'Guardar evaluación'"></span>
+                        </button>
+                        <button type="button" x-show="esImpugnacionPendiente() && pasoEditable()"
+                            @click="ratificarRechazo()" :disabled="submittingEvaluacion"
+                            class="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-red-300 bg-red-50 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50">
+                            <i class="fa-solid fa-gavel"></i> Ratificar rechazo
+                        </button>
+                    </div>
                 </div>
 
                 <template x-if="resultadoEvaluacion || resultadoEvaluacionGuardado()">

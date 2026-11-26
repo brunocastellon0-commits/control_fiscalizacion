@@ -41,6 +41,10 @@
                                 <div class="flex-1 min-w-0">
                                     <p class="text-sm text-grafito font-medium" x-text="n.data?.titulo || n.data?.mensaje || 'Notificación'"></p>
                                     <p class="text-xs text-gris mt-0.5" x-show="n.data?.detalle || n.data?.descripcion" x-text="n.data?.detalle || n.data?.descripcion"></p>
+                                    <a x-show="n.adjunto_url" :href="n.adjunto_url" target="_blank"
+                                        class="inline-flex items-center gap-1 mt-1.5 text-[11px] text-verde-profundo hover:underline">
+                                        <i class="fa-solid fa-file-pdf"></i> Ver PDF
+                                    </a>
                                     <p class="text-[11px] text-gris mt-1" x-text="formatearFecha(n.created_at)"></p>
                                 </div>
                                 <button type="button" class="text-xs text-verde-profundo hover:underline shrink-0" @click="marcarLeida(n.id)" x-show="!n.read_at">Leída</button>

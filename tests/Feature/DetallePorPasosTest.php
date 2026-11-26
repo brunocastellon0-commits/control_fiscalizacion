@@ -218,6 +218,6 @@ it('muestra el botón para avanzar al siguiente paso al pie del detalle', functi
         ->assertOk()
         ->assertSee('Siguiente paso')
         ->assertSee('irASiguientePaso')
-        ->assertSee('cumple: !!r._cumplido', false)
+        ->assertSee('_cumplido: cumplido', false)
         ->assertDontSee('Observación (si no se cumple)');
 });

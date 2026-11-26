@@ -217,8 +217,29 @@ class ExpedientePolicy
     }
 
     /**
+     * RN-03: el operador asignado acepta la subsanación presentada por el
+     * ciudadano. La Encargada solo recibe el aviso para su visto de revisado.
+     */
+    public function aceptarSubsanacion(Usuario $user, Expediente $expediente): bool
+    {
+        if (! $user->activo) {
+            return false;
+        }
+
+        $esOperativo = in_array($user->rol?->codigo ?? null, [
+            Rol::CODIGO_TECNICO,
+            Rol::CODIGO_AUD_JURIDICO,
+            Rol::CODIGO_AUD_FINANCIERO,
+        ], true);
+
+        return $esOperativo
+            && $expediente->asignacionActiva?->usuario_id === $user->id
+            && in_array($expediente->estadoActual?->codigo, ['OBSERVADO', 'EN_SUBSANACION'], true);
+    }
+
+    /**
      * RN-08 (Remisión): solo el operador operativo con asignación activa
-     * puede remitir a la Encargada un expediente en estado RECHAZADO.
+     * puede remitir para resolución un expediente en estado RECHAZADO.
      */
     public function remitirImpugnacion(Usuario $user, Expediente $expediente): bool
     {
@@ -238,13 +259,24 @@ class ExpedientePolicy
     }
 
     /**
-     * RN-08 (Resolución): solo la Encargada activa puede resolver la
-     * impugnación de un expediente en estado EN_IMPUGNACION.
+     * RN-08 (Resolución): el mismo operador asignado que remitió la
+     * impugnación ratifica o revoca el rechazo. La Encargada solo recibe el
+     * aviso para su visto de revisado, sin poder resolver.
      */
     public function resolverImpugnacion(Usuario $user, Expediente $expediente): bool
     {
-        return $user->activo
-            && ($user->rol?->codigo ?? null) === Rol::CODIGO_ENCARGADA
+        if (! $user->activo) {
+            return false;
+        }
+
+        $esOperativo = in_array($user->rol?->codigo ?? null, [
+            Rol::CODIGO_TECNICO,
+            Rol::CODIGO_AUD_JURIDICO,
+            Rol::CODIGO_AUD_FINANCIERO,
+        ], true);
+
+        return $esOperativo
+            && $expediente->asignacionActiva?->usuario_id === $user->id
             && $expediente->estadoActual?->codigo === 'EN_IMPUGNACION';
     }
 

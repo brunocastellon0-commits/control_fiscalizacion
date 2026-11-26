@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Route;
 // Evaluación de admisibilidad
 Route::get('/expedientes/{expediente}/requisitos', [EvaluacionAdmisibilidadController::class, 'requisitos']);
 Route::post('/expedientes/{expediente}/evaluacion', [EvaluacionAdmisibilidadController::class, 'store']);
+Route::post('/expedientes/{expediente}/subsanacion/aceptar', [EvaluacionAdmisibilidadController::class, 'aceptarSubsanacion']);
 
 // Impugnaciones de rechazo (RN-08)
 Route::post('/expedientes/{expediente}/impugnacion/remitir', [ImpugnacionController::class, 'remitir']);

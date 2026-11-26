@@ -10,6 +10,8 @@ use App\Models\Impugnacion;
 use App\Models\Plazo;
 use App\Models\Rol;
 use App\Models\Usuario;
+use App\Notifications\AvisoParaRevision;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -39,6 +41,7 @@ class ImpugnacionService
 
     public function __construct(
         protected ActuadoService $actuadoService,
+        protected AdjuntoService $adjuntoService,
     ) {}
 
     /**
@@ -47,16 +50,14 @@ class ImpugnacionService
      *
      * 1. Valida que el expediente esté en RECHAZADO.
      * 2. Emite ACT_REMITIR_IMPUGNACION vía ActuadoService (transiciona a
-     *    EN_IMPUGNACION, reasigna la bandeja a la Encargada y abre el plazo
-     *    IMPUGNACION_RESOLVER de 3 días hábiles).
+     *    EN_IMPUGNACION, mantiene la bandeja en el operador que resuelve y
+     *    abre el plazo IMPUGNACION_RESOLVER de 3 días hábiles).
      * 3. Crea el registro de impugnación con resultado PENDIENTE.
      */
     public function remitirImpugnacion(Expediente $expediente, Usuario $emisor, string $descripcion): Impugnacion
     {
         return DB::transaction(function () use ($expediente, $emisor, $descripcion) {
             $this->validarEstado($expediente, static::ESTADO_RECHAZADO);
-
-            $encargada = $this->resolverEncargada();
 
             $this->cerrarPlazoImpugnacionRemitir($expediente);
 
@@ -67,7 +68,6 @@ class ImpugnacionService
                 catalogoActuado: $catalogoRemitir,
                 emisor: $emisor,
                 descripcion: $descripcion,
-                usuarioDestinoId: $encargada->id,
                 metadatos: [
                     'tipo' => 'IMPUGNACION',
                     'fase' => 'REMITIR',
@@ -97,23 +97,28 @@ class ImpugnacionService
      *   los plazos vigentes y desactiva la bandeja. El expediente queda en
      *   ARCHIVO_DEFINITIVO.
      * - REVOCA (false): emite ACT_RESOLUCION_REVOCA_RECHAZO. El expediente
-     *   vuelve a ADMITIDO, se reasigna la bandeja al operador original y se
-     *   abre un nuevo plazo de PLANIFICACION para su sustanciación.
+     *   vuelve a ADMITIDO y abre el plazo de PLANIFICACION (2 días).
+     *
+     * En ambos casos la Encargada recibe solo un aviso para marcar revisado.
      */
-    public function resolverImpugnacion(Expediente $expediente, bool $ratifica, string $justificacion, Usuario $encargada): void
-    {
-        DB::transaction(function () use ($expediente, $ratifica, $justificacion, $encargada) {
+    public function resolverImpugnacion(
+        Expediente $expediente,
+        bool $ratifica,
+        string $justificacion,
+        Usuario $operador,
+        ?UploadedFile $archivo = null,
+        ?int $requisitoId = null,
+    ): void {
+        DB::transaction(function () use ($expediente, $ratifica, $justificacion, $operador, $archivo, $requisitoId) {
             $this->validarEstado($expediente, static::ESTADO_EN_IMPUGNACION);
 
             $impugnacion = $this->impugnacionPendiente($expediente);
 
             if ($ratifica) {
-                $catalogoRatifica = $this->catalogoPorCodigo(static::CODIGO_ACT_RATIFICA);
-
                 $actuadoResolucion = $this->actuadoService->registerActuado(
                     expediente: $expediente,
-                    catalogoActuado: $catalogoRatifica,
-                    emisor: $encargada,
+                    catalogoActuado: $this->catalogoPorCodigo(static::CODIGO_ACT_RATIFICA),
+                    emisor: $operador,
                     descripcion: $justificacion,
                     metadatos: [
                         'tipo' => 'IMPUGNACION',
@@ -130,21 +135,29 @@ class ImpugnacionService
                     'actuado_resolucion_id' => $actuadoResolucion->id,
                 ]);
 
+                $this->registrarRespuestaParaRevision(
+                    expediente: $expediente,
+                    actuado: $actuadoResolucion,
+                    operador: $operador,
+                    archivo: $archivo,
+                    requisitoId: $requisitoId,
+                    titulo: 'Impugnación resuelta: rechazo ratificado',
+                    detalle: sprintf(
+                        'El expediente %s ratificó el rechazo. La resolución queda disponible para su visto de revisado; no requiere su aprobación.',
+                        $expediente->nurej_code,
+                    ),
+                );
+
                 return;
             }
 
-            $operadorOriginal = $this->operadorOriginalDelExpediente($expediente);
-
             $this->cerrarPlazoImpugnacionResolver($expediente);
-
-            $catalogoRevoca = $this->catalogoPorCodigo(static::CODIGO_ACT_REVOCA);
 
             $actuadoResolucion = $this->actuadoService->registerActuado(
                 expediente: $expediente,
-                catalogoActuado: $catalogoRevoca,
-                emisor: $encargada,
+                catalogoActuado: $this->catalogoPorCodigo(static::CODIGO_ACT_REVOCA),
+                emisor: $operador,
                 descripcion: $justificacion,
-                usuarioDestinoId: $operadorOriginal->id,
                 metadatos: [
                     'tipo' => 'IMPUGNACION',
                     'fase' => 'REVOCA',
@@ -156,6 +169,19 @@ class ImpugnacionService
                 'resultado' => static::RESULTADO_REVOCADO,
                 'actuado_resolucion_id' => $actuadoResolucion->id,
             ]);
+
+            $this->registrarRespuestaParaRevision(
+                expediente: $expediente,
+                actuado: $actuadoResolucion,
+                operador: $operador,
+                archivo: $archivo,
+                requisitoId: $requisitoId,
+                titulo: 'Impugnación resuelta: rechazo revocado',
+                detalle: sprintf(
+                    'El expediente %s revocó el rechazo y pasó a planificación. El PDF presentado queda disponible para su visto de revisado; no requiere su aprobación.',
+                    $expediente->nurej_code,
+                ),
+            );
         }, 3);
     }
 
@@ -187,13 +213,51 @@ class ImpugnacionService
     /**
      * Encargada activa de la unidad (sistema no depende de IDs hardcodeados).
      */
-    protected function resolverEncargada(): Usuario
+    protected function resolverEncargada(): ?Usuario
     {
         return Usuario::query()
             ->where('activo', true)
             ->whereHas('rol', fn ($query) => $query->where('codigo', Rol::CODIGO_ENCARGADA))
             ->orderBy('id')
-            ->firstOrFail();
+            ->first();
+    }
+
+    /**
+     * Adjunta el PDF de la impugnación (si se cargó) y avisa a la Encargada
+     * para que solo marque el visto de revisado.
+     */
+    private function registrarRespuestaParaRevision(
+        Expediente $expediente,
+        Actuado $actuado,
+        Usuario $operador,
+        ?UploadedFile $archivo,
+        ?int $requisitoId,
+        string $titulo,
+        string $detalle,
+    ): void {
+        $adjunto = null;
+
+        if ($archivo !== null) {
+            $adjunto = $this->adjuntoService->guardarParaActuado($actuado, $archivo, $operador);
+            $adjunto->update([
+                'requisito_id' => $requisitoId,
+                'finalidad' => AdjuntoService::FINALIDAD_IMPUGNACION,
+            ]);
+        }
+
+        $encargada = $this->resolverEncargada();
+        if ($encargada === null) {
+            return;
+        }
+
+        $encargada->notify(new AvisoParaRevision(
+            expediente: $expediente,
+            actuado: $actuado,
+            titulo: $titulo,
+            detalle: $detalle,
+            categoria: 'impugnacion',
+            adjunto: $adjunto,
+        ));
     }
 
     /**

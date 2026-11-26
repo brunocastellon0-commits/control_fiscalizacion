@@ -24,11 +24,14 @@ class Actuado extends Model
         'contenido',
         'actuado_referencia_id',
         'ip_origen',
+        'revisado_por',
+        'revisado_en',
     ];
 
     protected $casts = [
         'fecha_hora' => 'datetime',
         'contenido' => 'array',
+        'revisado_en' => 'datetime',
     ];
 
     public function expediente(): BelongsTo
@@ -64,5 +67,10 @@ class Actuado extends Model
     public function adjuntos(): HasMany
     {
         return $this->hasMany(Adjunto::class, 'actuado_id');
+    }
+
+    public function revisadoPor(): BelongsTo
+    {
+        return $this->belongsTo(Usuario::class, 'revisado_por');
     }
 }

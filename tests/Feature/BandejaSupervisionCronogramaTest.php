@@ -133,3 +133,124 @@ test('la bandeja de supervisión pagina los cronogramas de quince en quince', fu
         ->and($respuesta->json('meta.total'))->toBe(16)
         ->and($respuesta->json('meta.per_page'))->toBe(15);
 });
+
+function bandejaSupervisionCrearCatalogoInformativo(array $semilla, string $codigo): CatalogoActuado
+{
+    return CatalogoActuado::create([
+        'codigo' => $codigo,
+        'nombre' => $codigo,
+        'fase' => 'ADMISIBILIDAD',
+        'rol_id' => $semilla['tecnico']->rol_id,
+        'reglamento_id' => null,
+        'estado_origen_id' => $semilla['planificacion']->id,
+        'estado_destino_id' => $semilla['ejecucion']->id,
+        'es_automatico' => false,
+        'requiere_adjunto' => false,
+    ]);
+}
+
+function bandejaSupervisionCrearActuadoInformativo(array $semilla, CatalogoActuado $catalogo, string $nurej, string $descripcion): array
+{
+    $expediente = Expediente::create([
+        'nurej_code' => $nurej,
+        'via' => 'INGRESO_VERBAL',
+        'naturaleza' => Expediente::NATURALEZA_JURISDICCIONAL,
+        'reglamento_id' => $semilla['reglamento']->id,
+        'estado_actual_id' => $semilla['ejecucion']->id,
+        'fecha_ingreso' => now(),
+        'creado_por' => $semilla['tecnico']->id,
+    ]);
+
+    $actuado = Actuado::create([
+        'expediente_id' => $expediente->id,
+        'catalogo_actuado_id' => $catalogo->id,
+        'usuario_id' => $semilla['tecnico']->id,
+        'estado_nuevo_id' => $semilla['ejecucion']->id,
+        'contenido' => ['descripcion' => $descripcion],
+    ]);
+
+    Asignacion::create([
+        'expediente_id' => $expediente->id,
+        'usuario_id' => $semilla['tecnico']->id,
+        'rol_id' => $semilla['tecnico']->rol_id,
+        'actuado_origen_id' => $actuado->id,
+        'fecha_asignacion' => now(),
+        'activa' => true,
+    ]);
+
+    return [$expediente, $actuado];
+}
+
+test('la Encargada marca revisado sin alterar el estado del expediente', function () {
+    $semilla = bandejaSupervisionSemilla();
+    [$expediente, $actuado] = bandejaSupervisionCrearCronograma($semilla, 'EXP-SUP-0101');
+
+    Sanctum::actingAs($semilla['encargada'], ['*']);
+
+    $this->postJson('/api/encargada/bandeja-supervision/marcar-revisado', [
+        'actuado_id' => $actuado->id,
+    ])->assertOk()
+        ->assertJsonPath('actuado_id', $actuado->id)
+        ->assertJsonPath('revisado', true)
+        ->assertJsonPath('revisado_por', trim($semilla['encargada']->nombres.' '.$semilla['encargada']->apellidos));
+
+    $actuado->refresh();
+    expect($actuado->revisado_por)->toBe($semilla['encargada']->id)
+        ->and($actuado->revisado_en)->not->toBeNull();
+
+    $this->getJson('/api/encargada/bandeja-supervision')
+        ->assertJsonPath('data.0.revisado', true)
+        ->assertJsonPath('data.0.revisado_por', trim($semilla['encargada']->nombres.' '.$semilla['encargada']->apellidos));
+
+    expect($expediente->fresh()->estado_actual_id)->toBe($semilla['ejecucion']->id);
+});
+
+test('el Técnico no puede marcar revisado un actuado de supervisión', function () {
+    $semilla = bandejaSupervisionSemilla();
+    [, $actuado] = bandejaSupervisionCrearCronograma($semilla, 'EXP-SUP-0102');
+
+    Sanctum::actingAs($semilla['tecnico'], ['*']);
+
+    $this->postJson('/api/encargada/bandeja-supervision/marcar-revisado', [
+        'actuado_id' => $actuado->id,
+    ])->assertForbidden();
+});
+
+test('la bandeja agrupa avisos de observación, rechazo, subsanación e impugnación', function () {
+    $semilla = bandejaSupervisionSemilla();
+
+    $casos = [
+        ['ACT_OBSERVACION', 'observacion', 'Aviso de observación (test).'],
+        ['ACT_RECHAZO', 'rechazo', 'Aviso de rechazo (test).'],
+        ['ACT_SUBSANACION_ACEPTADA', 'subsanacion', 'Subsanación aceptada (test).'],
+        ['ACT_REMITIR_IMPUGNACION', 'impugnacion', 'Impugnación remitida (test).'],
+        ['ACT_RESOLUCION_RATIFICA_RECHAZO', 'impugnacion', 'Rechazo ratificado (test).'],
+    ];
+
+    foreach ($casos as $i => [$codigo, $categoria, $descripcion]) {
+        $catalogo = bandejaSupervisionCrearCatalogoInformativo($semilla, $codigo);
+        bandejaSupervisionCrearActuadoInformativo(
+            $semilla,
+            $catalogo,
+            sprintf('EXP-SUP-01%02d', $i + 3),
+            $descripcion,
+        );
+    }
+
+    Sanctum::actingAs($semilla['encargada'], ['*']);
+
+    foreach ($casos as [$codigo, $categoria, $descripcion]) {
+        $respuesta = $this->getJson('/api/encargada/bandeja-supervision?categoria='.$categoria)
+            ->assertOk();
+
+        $elementos = $respuesta->json('data');
+        $descripciones = collect($elementos)->pluck('descripcion')->all();
+
+        expect($descripciones)->toContain($descripcion)
+            ->and(collect($elementos)->every(fn ($item) => $item['categoria'] === $categoria && $item['requiere_accion'] === false))->toBeTrue();
+    }
+
+    $this->getJson('/api/encargada/bandeja-supervision')
+        ->assertOk()
+        ->assertJsonPath('meta.total', 5);
+});

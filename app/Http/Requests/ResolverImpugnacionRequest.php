@@ -8,8 +8,8 @@ use Illuminate\Foundation\Http\FormRequest;
 class ResolverImpugnacionRequest extends FormRequest
 {
     /**
-     * RN-08: solo la Encargada activa puede resolver la impugnación de un
-     * expediente en EN_IMPUGNACION.
+     * RN-08: el operador asignado resuelve la impugnación de un expediente
+     * en EN_IMPUGNACION y puede adjuntar el PDF presentado por el ciudadano.
      */
     public function authorize(): bool
     {
@@ -28,6 +28,8 @@ class ResolverImpugnacionRequest extends FormRequest
         return [
             'ratifica' => 'required|boolean',
             'justificacion' => 'required|string|min:10|max:5000',
+            'archivo' => 'nullable|file|mimes:pdf|max:10240',
+            'requisito_id' => 'nullable|integer|exists:catalogo_requisitos,id,activo,1',
         ];
     }
 

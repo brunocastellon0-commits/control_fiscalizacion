@@ -4,11 +4,20 @@
     </div>
     <div class="p-4">
         <div class="flex items-start gap-3">
-            <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-verde-institucional/10 text-verde-profundo">
-                <i class="fa-solid fa-circle-check"></i>
+            <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+                :class="colorEstadoAdmisibilidad() === 'observacion'
+                    ? 'bg-amber-100 text-amber-800'
+                    : (colorEstadoAdmisibilidad() === 'rechazo'
+                        ? 'bg-red-100 text-red-700'
+                        : 'bg-verde-institucional/10 text-verde-profundo')">
+                <i class="fa-solid" :class="colorEstadoAdmisibilidad() === 'rechazo' ? 'fa-circle-xmark' : 'fa-circle-check'"></i>
             </span>
             <div class="min-w-0">
-                <p class="text-sm font-bold text-grafito" x-text="expediente.estado_actual?.nombre || expediente.estado_actual?.codigo || 'Sin estado'"></p>
+                <p class="text-sm font-bold"
+                    :class="colorEstadoAdmisibilidad() === 'observacion'
+                        ? 'text-amber-800'
+                        : (colorEstadoAdmisibilidad() === 'rechazo' ? 'text-red-700' : 'text-grafito')"
+                    x-text="expediente.estado_actual?.nombre || expediente.estado_actual?.codigo || 'Sin estado'"></p>
                 <p class="text-[11px] text-gris mt-0.5">Estado actual del trámite</p>
             </div>
         </div>

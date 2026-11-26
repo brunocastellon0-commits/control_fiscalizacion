@@ -99,7 +99,12 @@ class PlanificacionService
             );
 
             if ($esCronograma) {
-                $encargada->notify(new CronogramaCargado($expediente, $actuado));
+                $encargada->notify(new CronogramaCargado(
+                    expediente: $expediente,
+                    actuado: $actuado,
+                    descripcion: $descripcion,
+                    adjunto: $actuado->adjuntos()->latest('id')->first(),
+                ));
             }
 
             return $actuado;

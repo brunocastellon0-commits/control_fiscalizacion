@@ -16,7 +16,8 @@ class ImpugnacionController extends Controller
     ) {}
 
     /**
-     * RN-08: remite un expediente rechazado a la bandeja de la Encargada.
+     * RN-08: remite un expediente rechazado para su impugnación, sin sacarlo
+     * de la bandeja del operador que luego deberá resolverla.
      */
     public function remitir(ImpugnacionRemitirRequest $request, Expediente $expediente): JsonResponse
     {
@@ -39,7 +40,7 @@ class ImpugnacionController extends Controller
     }
 
     /**
-     * RN-08: la Encargada resuelve la impugnación (ratifica o revoca el rechazo).
+     * RN-08: el operador asignado resuelve la impugnación (ratifica o revoca).
      */
     public function resolver(ResolverImpugnacionRequest $request, Expediente $expediente): ExpedienteResource
     {
@@ -47,7 +48,11 @@ class ImpugnacionController extends Controller
             expediente: $expediente,
             ratifica: (bool) $request->input('ratifica'),
             justificacion: $request->input('justificacion'),
-            encargada: $request->user(),
+            operador: $request->user(),
+            archivo: $request->file('archivo'),
+            requisitoId: $request->validated('requisito_id') !== null
+                ? (int) $request->validated('requisito_id')
+                : null,
         );
 
         return new ExpedienteResource($expediente->load($this->relacionesDetalle()));

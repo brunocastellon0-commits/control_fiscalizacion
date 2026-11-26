@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\Actuado;
+use App\Models\Adjunto;
 use App\Models\Expediente;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
@@ -14,6 +15,8 @@ class CronogramaCargado extends Notification
     public function __construct(
         public Expediente $expediente,
         public Actuado $actuado,
+        public ?string $descripcion = null,
+        public ?Adjunto $adjunto = null,
     ) {}
 
     /**
@@ -38,6 +41,8 @@ class CronogramaCargado extends Notification
             'tipo' => 'CRONOGRAMA_CARGADO',
             'expediente_id' => $this->expediente->id,
             'actuado_id' => $this->actuado->id,
+            'descripcion' => $this->descripcion,
+            'adjunto_id' => $this->adjunto?->id,
             'requiere_accion' => false,
         ];
     }

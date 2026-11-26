@@ -9,7 +9,7 @@ class ImpugnacionRemitirRequest extends FormRequest
 {
     /**
      * RN-08: solo el operador con asignación activa de un expediente en
-     * RECHAZADO puede remitir la impugnación a la Encargada.
+     * RECHAZADO puede remitir la impugnación para su resolución.
      */
     public function authorize(): bool
     {
