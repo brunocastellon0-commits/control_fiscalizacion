@@ -72,8 +72,9 @@ Route::post('/expedientes/{expediente}/registrar-recepcion', [TransferenciaUnida
 // Dashboard operativo de la Encargada
 Route::get('/encargada/dashboard', [EncargadaDashboardController::class, 'index']);
 
-// Bandeja de supervisión de la Encargada (cronogramas informativos)
+// Bandeja de supervisión de la Encargada (documentos informativos)
 Route::get('/encargada/bandeja-supervision', [EncargadaSupervisionController::class, 'index']);
+Route::post('/encargada/bandeja-supervision/marcar-revisado', [EncargadaSupervisionController::class, 'marcarRevisado']);
 
 // Historial general de solo lectura de la Encargada
 Route::get('/encargada/historial', [HistorialEncargadaController::class, 'index']);

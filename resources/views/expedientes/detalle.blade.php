@@ -180,6 +180,7 @@
                 errorRequisitos: null,
                 submittingEvaluacion: false,
                 resultadoEvaluacion: null,
+                documentosEvaluacion: {},
 
                 // Planificación (paso 3)
                 submittingPlanificacion: false,
@@ -356,6 +357,147 @@
                         };
                     }
                     return null;
+                },
+
+                resultadoEvaluacionVista() {
+                    const guardado = this.resultadoEvaluacionGuardado();
+                    if (this.resultadoEvaluacion || guardado) {
+                        return this.resultadoEvaluacion || guardado;
+                    }
+                    if (!this.requisitos || this.requisitos.length === 0) {
+                        return null;
+                    }
+                    const faltantes = this.requisitos.filter(r => !r._cumplido);
+                    if (faltantes.length === 0) {
+                        return { resultado: 'ACT_ADMISION' };
+                    }
+                    return {
+                        resultado: faltantes.some(r => r.es_critico) ? 'ACT_RECHAZO' : 'ACT_OBSERVACION',
+                    };
+                },
+
+                colorEvaluacion() {
+                    const resultado = this.resultadoEvaluacionVista()?.resultado;
+                    if (resultado === 'ACT_OBSERVACION') {
+                        return 'observacion';
+                    }
+                    if (resultado === 'ACT_RECHAZO') {
+                        return 'rechazo';
+                    }
+                    return null;
+                },
+
+                colorEstadoAdmisibilidad() {
+                    const estado = this.estadoCodigo();
+                    if (['RECHAZADO', 'EN_IMPUGNACION'].includes(estado)) {
+                        return 'rechazo';
+                    }
+                    if (['OBSERVADO', 'EN_SUBSANACION'].includes(estado)) {
+                        return 'observacion';
+                    }
+                    return this.colorEvaluacion();
+                },
+
+                finalidadRequisito(req) {
+                    return req.es_critico ? 'IMPUGNACION' : 'SUBSANACION';
+                },
+
+                requisitoRequiereSubsanacion(req) {
+                    return !!req
+                        && (req._requiereSubsanacion === true
+                            || (this.esSubsanacionPendiente() && req._cumplido === false));
+                },
+
+                seleccionarDocumentoEvaluacion(req, event) {
+                    if (!this.documentosEvaluacion) {
+                        this.documentosEvaluacion = {};
+                    }
+
+                    const input = event?.target;
+                    const archivo = input?.files?.[0] ?? null;
+
+                    if (!archivo) {
+                        delete this.documentosEvaluacion[req.id];
+                        if (this.requisitoRequiereSubsanacion(req)) {
+                            req._cumplido = false;
+                        }
+                        return;
+                    }
+
+                    const esPdf = archivo.type === 'application/pdf'
+                        || archivo.name.toLowerCase().endsWith('.pdf');
+
+                    if (!esPdf) {
+                        delete this.documentosEvaluacion[req.id];
+                        if (this.requisitoRequiereSubsanacion(req)) {
+                            req._cumplido = false;
+                        }
+                        if (input) {
+                            input.value = '';
+                        }
+                        window.apiToast('error', 'Solo se aceptan archivos PDF.');
+                        return;
+                    }
+
+                    this.documentosEvaluacion[req.id] = archivo;
+                    if (this.requisitoRequiereSubsanacion(req)) {
+                        req._cumplido = true;
+                    }
+                },
+
+                quitarDocumentoEvaluacion(req) {
+                    if (!this.documentosEvaluacion) {
+                        return;
+                    }
+                    delete this.documentosEvaluacion[req.id];
+                    if (this.requisitoRequiereSubsanacion(req)) {
+                        req._cumplido = false;
+                    }
+
+                    const input = document.getElementById('doc-eval-' + req.id);
+                    if (input) {
+                        input.value = '';
+                    }
+                },
+
+                tamanoDocumentoEvaluacion(req) {
+                    const archivo = this.documentosEvaluacion?.[req.id];
+                    if (!archivo) {
+                        return '';
+                    }
+
+                    const kb = archivo.size / 1024;
+                    return kb >= 1024
+                        ? (kb / 1024).toFixed(1) + ' MB'
+                        : Math.max(1, Math.round(kb)) + ' KB';
+                },
+
+                requisitosQueNecesitanPdf() {
+                    const requisitos = this.requisitos || [];
+                    if (this.esSubsanacionPendiente()) {
+                        return requisitos.filter(r => this.requisitoRequiereSubsanacion(r));
+                    }
+
+                    return requisitos.filter(r => !r._cumplido);
+                },
+
+                documentosFaltantes() {
+                    const documentos = this.documentosEvaluacion || {};
+                    return this.requisitosQueNecesitanPdf().filter(r => !documentos[r.id]);
+                },
+
+                puedeGuardarEvaluacion() {
+                    return this.pasoEditable()
+                        && !this.submittingEvaluacion
+                        && this.documentosFaltantes().length === 0;
+                },
+
+                esSubsanacionPendiente() {
+                    return ['OBSERVADO', 'EN_SUBSANACION'].includes(this.estadoCodigo());
+                },
+
+                esImpugnacionPendiente() {
+                    return this.estadoCodigo() === 'EN_IMPUGNACION';
                 },
 
                 seleccionarPaso(paso) {
@@ -607,10 +749,15 @@
                         const { ok, status, data } = await window.apiFetch(`/api/expedientes/${this.expedienteId}/requisitos`);
                         if (ok) {
                             const lista = data.data || data || [];
-                            this.requisitos = (Array.isArray(lista) ? lista : []).map(r => ({
-                                ...r,
-                                _cumplido: !!(r.cumplido ?? r.cumple ?? false),
-                            }));
+                            this.requisitos = (Array.isArray(lista) ? lista : []).map(r => {
+                                const cumplido = !!(r.cumplido ?? r.cumple ?? false);
+
+                                return {
+                                    ...r,
+                                    _cumplido: cumplido,
+                                    _requiereSubsanacion: this.esSubsanacionPendiente() && !cumplido,
+                                };
+                            });
                         } else if (status === 403 || status === 404) {
                             this.requisitos = [];
                             this.errorRequisitos = data?.message || null;
@@ -626,28 +773,130 @@
                 },
 
                 async submitEvaluacion() {
+                    if (!this.puedeGuardarEvaluacion()) {
+                        return;
+                    }
+
                     this.submittingEvaluacion = true;
                     this.resultadoEvaluacion = null;
+
                     try {
-                        const payload = {
-                            requisitos: this.requisitos.map(r => ({
-                                requisito_id: r.id,
-                                cumple: !!r._cumplido,
-                            })),
-                        };
-                        const { ok, status, data } = await window.apiFetch(`/api/expedientes/${this.expedienteId}/evaluacion`, {
-                            method: 'POST',
-                            body: payload,
+                        const faltantes = this.requisitosQueNecesitanPdf();
+                        const pasoAntesDeGuardar = this.esSubsanacionPendiente() ? this.pasoActivo : null;
+                        const formData = new FormData();
+
+                        this.requisitos.forEach((r, index) => {
+                            formData.append(`requisitos[${index}][requisito_id]`, r.id);
+                            formData.append(`requisitos[${index}][cumple]`, r._cumplido ? '1' : '0');
                         });
+
+                        faltantes.forEach(r => {
+                            formData.append(`documentos[${r.id}][requisito_id]`, r.id);
+                            formData.append(`documentos[${r.id}][finalidad]`, this.finalidadRequisito(r));
+                            formData.append(`documentos[${r.id}][archivo]`, this.documentosEvaluacion[r.id]);
+                        });
+
+                        let url = `/api/expedientes/${this.expedienteId}/evaluacion`;
+                        let mensaje = 'Evaluación de admisibilidad registrada.';
+
+                        if (this.esSubsanacionPendiente()) {
+                            url = `/api/expedientes/${this.expedienteId}/subsanacion/aceptar`;
+                            formData.append('descripcion', 'Subsanación presentada por el ciudadano y cargada por el operador asignado.');
+                            mensaje = 'Se subsanó la observación. Ya puede continuar al siguiente paso.';
+                        } else if (this.esImpugnacionPendiente()) {
+                            url = `/api/expedientes/${this.expedienteId}/impugnacion/resolver`;
+                            formData.append('ratifica', '0');
+                            formData.append('justificacion', 'Se revoca el rechazo por haberse presentado la documentación que lo motivó.');
+                            if (faltantes.length > 0) {
+                                formData.append('archivo', this.documentosEvaluacion[faltantes[0].id]);
+                                formData.append('requisito_id', faltantes[0].id);
+                            }
+                            mensaje = 'Impugnación resuelta: rechazo revocado.';
+                        }
+
+                        const { ok, status, data } = await window.apiFetch(url, {
+                            method: 'POST',
+                            body: formData,
+                        });
+
                         if (ok || status === 201) {
                             this.resultadoEvaluacion = data?.resumen || data?.data || data || { resultado: 'Registrado' };
-                            window.apiToast('exito', 'Evaluación de admisibilidad registrada.');
+                            this.documentosEvaluacion = {};
+                            window.apiToast('exito', mensaje);
                             await this.recargarTrasAccion();
+
+                            if (pasoAntesDeGuardar) {
+                                this.pasoActivo = pasoAntesDeGuardar;
+                                this.avisoPaso = null;
+                            }
                         } else {
                             window.apiToast('error', data?.message || 'No se pudo registrar la evaluación.', data?.errors);
                         }
                     } catch (e) {
                         window.apiToast('error', e.message || 'Error al registrar la evaluación.');
+                    } finally {
+                        this.submittingEvaluacion = false;
+                    }
+                },
+
+                async ratificarRechazo() {
+                    if (!this.esImpugnacionPendiente() || this.submittingEvaluacion) {
+                        return;
+                    }
+
+                    this.submittingEvaluacion = true;
+                    try {
+                        const formData = new FormData();
+                        formData.append('ratifica', '1');
+                        formData.append('justificacion', 'Se ratifica el rechazo por no haberse subsanado el requisito crítico dentro del plazo.');
+
+                        const faltante = (this.requisitos || []).find(r => !r._cumplido && this.documentosEvaluacion[r.id]);
+                        if (faltante) {
+                            formData.append('archivo', this.documentosEvaluacion[faltante.id]);
+                            formData.append('requisito_id', faltante.id);
+                        }
+
+                        const { ok, status, data } = await window.apiFetch(`/api/expedientes/${this.expedienteId}/impugnacion/resolver`, {
+                            method: 'POST',
+                            body: formData,
+                        });
+
+                        if (ok || status === 200) {
+                            this.documentosEvaluacion = {};
+                            window.apiToast('exito', 'Rechazo ratificado. El expediente quedó archivado.');
+                            await this.recargarTrasAccion();
+                        } else {
+                            window.apiToast('error', data?.message || 'No se pudo ratificar el rechazo.', data?.errors);
+                        }
+                    } catch (e) {
+                        window.apiToast('error', e.message || 'Error al ratificar el rechazo.');
+                    } finally {
+                        this.submittingEvaluacion = false;
+                    }
+                },
+
+                async remitirImpugnacion() {
+                    if (this.estadoCodigo() !== 'RECHAZADO' || this.submittingEvaluacion) {
+                        return;
+                    }
+
+                    this.submittingEvaluacion = true;
+                    try {
+                        const { ok, status, data } = await window.apiFetch(`/api/expedientes/${this.expedienteId}/impugnacion/remitir`, {
+                            method: 'POST',
+                            body: {
+                                descripcion: 'Impugnación presentada por el ciudadano dentro del plazo de 1 día hábil.',
+                            },
+                        });
+
+                        if (ok || status === 201) {
+                            window.apiToast('exito', 'Impugnación remitida. Ahora puede resolverla.');
+                            await this.recargarTrasAccion();
+                        } else {
+                            window.apiToast('error', data?.message || 'No se pudo remitir la impugnación.', data?.errors);
+                        }
+                    } catch (e) {
+                        window.apiToast('error', e.message || 'Error al remitir la impugnación.');
                     } finally {
                         this.submittingEvaluacion = false;
                     }

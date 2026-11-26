@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\AceptarSubsanacionRequest;
 use App\Http\Requests\StoreEvaluacionAdmisibilidadRequest;
 use App\Http\Resources\CatalogoRequisitoResource;
 use App\Http\Resources\EvaluacionAdmisibilidadResource;
@@ -62,6 +63,7 @@ class EvaluacionAdmisibilidadController extends Controller
             operador: $request->user(),
             requisitos: $request->validated('requisitos'),
             ipOrigen: $request->ip(),
+            documentos: $request->validated('documentos') ?? [],
         );
 
         return response()->json([
@@ -69,6 +71,33 @@ class EvaluacionAdmisibilidadController extends Controller
             'evaluaciones' => EvaluacionAdmisibilidadResource::collection(
                 $resultado['evaluaciones'],
             ),
+        ], 201);
+    }
+
+    /**
+     * El técnico asignado registra la subsanación presentada por el ciudadano
+     * y la acepta: el PDF queda ligado al requisito observado y el expediente
+     * pasa a planificación. Autorizado por RF-03.
+     */
+    public function aceptarSubsanacion(AceptarSubsanacionRequest $request, Expediente $expediente): JsonResponse
+    {
+        $documentos = collect($request->validated('documentos'))
+            ->map(fn ($item) => [
+                'requisito_id' => (int) $item['requisito_id'],
+                'archivo' => $item['archivo'],
+            ])->all();
+
+        $actuado = $this->evaluacionService->aceptarSubsanacion(
+            expediente: $expediente,
+            operador: $request->user(),
+            documentos: $documentos,
+            descripcion: $request->validated('descripcion'),
+            ipOrigen: $request->ip(),
+        );
+
+        return response()->json([
+            'actuado_id' => $actuado->id,
+            'mensaje' => 'Subsanación registrada y aceptada.',
         ], 201);
     }
 }

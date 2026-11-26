@@ -31,12 +31,11 @@
                 <select x-model="filtros.categoria" @change="cargar()"
                     class="w-full border border-gris-claro rounded-lg px-3 py-2 text-sm text-grafito focus:border-verde-institucional focus:ring-verde-institucional">
                     <option value="">Todas</option>
-                    <option value="planificacion">Visto bueno de planificación</option>
-                    <option value="ampliacion">Ampliaciones por resolver</option>
-                    <option value="impugnacion">Impugnaciones recibidas</option>
-                    <option value="informe_final">Informes finales para visto bueno</option>
-                    <option value="incompetencia">Incompetencias por resolver</option>
-                    <option value="derivacion">Causas por derivar</option>
+                    <option value="cronogramas">Cronogramas informativos</option>
+                    <option value="observacion">Avisos de observación</option>
+                    <option value="rechazo">Avisos de rechazo</option>
+                    <option value="subsanacion">Subsanaciones aceptadas</option>
+                    <option value="impugnacion">Impugnaciones</option>
                 </select>
             </div>
             <div>
@@ -73,12 +72,27 @@
                             <span x-show="item.asignado_a"><i class="fa-solid fa-user mr-1"></i><span x-text="item.asignado_a"></span></span>
                             <span x-show="item.plazo_restante !== undefined && item.plazo_restante !== null"><i class="fa-solid fa-hourglass-half mr-1"></i><span x-text="item.plazo_restante + ' día(s) restante(s)'"></span></span>
                             <span x-show="item.fecha_limite"><i class="fa-solid fa-calendar mr-1"></i>Límite: <span x-text="formatearFecha(item.fecha_limite)"></span></span>
+                            <span x-show="item.revisado_en"><i class="fa-solid fa-check mr-1"></i>Revisado: <span x-text="formatearFecha(item.revisado_en)"></span></span>
                         </div>
+                        <template x-if="item.adjuntos && item.adjuntos.length > 0">
+                            <div class="mt-3 flex flex-wrap gap-2">
+                                <template x-for="adjunto in item.adjuntos" :key="adjunto.id">
+                                    <a :href="adjunto.url" target="_blank"
+                                        class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-gris-claro bg-gris-claro/40 text-xs text-verde-profundo hover:bg-gris-claro/70">
+                                        <i class="fa-solid fa-file-pdf"></i><span x-text="adjunto.nombre || 'Ver PDF'"></span>
+                                    </a>
+                                </template>
+                            </div>
+                        </template>
                     </div>
-                    <div class="shrink-0">
+                    <div class="shrink-0 flex flex-col sm:flex-row lg:flex-col gap-2">
                         <a :href="`/expedientes/${item.expediente_id || item.id}`" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-verde-profundo text-white text-sm font-medium hover:bg-verde-institucional transition">
                             <i class="fa-solid fa-arrow-up-right-from-square"></i> Revisar
                         </a>
+                        <button type="button" x-show="!item.revisado" @click="marcarRevisado(item)"
+                            class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-verde-institucional text-sm font-medium text-verde-profundo hover:bg-verde-institucional/10 transition">
+                            <i class="fa-solid fa-check"></i> Marcar revisado
+                        </button>
                     </div>
                 </div>
             </article>
@@ -128,16 +142,29 @@
                 this.filtros.q = '';
                 this.cargar();
             },
+            async marcarRevisado(item) {
+                const { ok, data } = await window.apiFetch('/api/encargada/bandeja-supervision/marcar-revisado', {
+                    method: 'POST',
+                    body: { actuado_id: item.actuado_id || item.id },
+                });
+                if (ok) {
+                    item.revisado = true;
+                    item.revisado_en = data.revisado_en;
+                    item.revisado_por = data.revisado_por;
+                    window.apiToast('exito', 'Visto de revisado registrado.');
+                } else {
+                    window.apiToast('error', data?.message || 'No se pudo registrar el visto de revisado.', data?.errors);
+                }
+            },
             etiquetaAccion(item) {
                 const map = {
-                    planificacion: 'Visto bueno de planificación',
-                    ampliacion: 'Ampliación por resolver',
+                    cronogramas: 'Cronograma informativo',
+                    observacion: 'Aviso de observación',
+                    rechazo: 'Aviso de rechazo',
+                    subsanacion: 'Subsanación aceptada',
                     impugnacion: 'Impugnación',
-                    informe_final: 'Informe final',
-                    incompetencia: 'Incompetencia',
-                    derivacion: 'Derivación',
                 };
-                return item.accion_pendiente || map[item.categoria] || item.categoria || 'Pendiente';
+                return item.accion_pendiente || map[item.categoria] || item.categoria || 'Documento informativo';
             },
             claseSemaforo(item) {
                 const color = item.semaforo?.codigo_color || item.urgencia || '';

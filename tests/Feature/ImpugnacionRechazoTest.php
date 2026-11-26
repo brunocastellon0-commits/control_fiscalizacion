@@ -1,17 +1,23 @@
 <?php
 
 use App\Models\Actuado;
+use App\Models\Adjunto;
 use App\Models\Asignacion;
 use App\Models\CatalogoActuado;
 use App\Models\CatalogoEstado;
+use App\Models\CatalogoRequisito;
 use App\Models\Expediente;
 use App\Models\ParametroPlazo;
 use App\Models\Reglamento;
 use App\Models\Rol;
 use App\Models\Usuario;
+use App\Notifications\AvisoParaRevision;
 use App\Services\ActuadoService;
 use App\Services\ImpugnacionService;
 use Carbon\Carbon;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Laravel\Sanctum\Sanctum;
 
@@ -26,6 +32,11 @@ function impugnacionSemilla(): array
     $otroOperador = Usuario::factory()->create(['rol_id' => $rolAudJuridico->id, 'activo' => true]);
 
     $reglamento = Reglamento::factory()->create();
+    $requisito = CatalogoRequisito::factory()->create([
+        'reglamento_id' => $reglamento->id,
+        'es_critico' => true,
+        'activo' => true,
+    ]);
 
     $evaluacion = CatalogoEstado::factory()->create(['codigo' => 'EN_EVALUACION']);
     $rechazado = CatalogoEstado::factory()->create(['codigo' => 'RECHAZADO']);
@@ -123,7 +134,7 @@ function impugnacionSemilla(): array
 
     return compact(
         'encargada', 'tecnico', 'otroOperador',
-        'reglamento',
+        'reglamento', 'requisito',
         'evaluacion', 'rechazado', 'enImpugnacion', 'admitido', 'archivoDefinitivo', 'planificacion',
         'actRechazo', 'actRemitir', 'actRatifica', 'actRevoca', 'actPasoPlanificacion',
     );
@@ -206,7 +217,7 @@ it('devuelve 403 si la Encargada intenta remitir la impugnación', function () {
     ])->assertForbidden();
 });
 
-it('remite a la Encargada abriendo el plazo de 3 días hábiles con salto de fin de semana', function () {
+it('remite sin sacar la bandeja del operador y abre el plazo de 3 días hábiles con salto de fin de semana', function () {
     Carbon::setTestNow('2026-09-10 10:00:00');
 
     $semilla = impugnacionSemilla();
@@ -218,7 +229,7 @@ it('remite a la Encargada abriendo el plazo de 3 días hábiles con salto de fin
     Sanctum::actingAs($semilla['tecnico'], ['*']);
 
     $this->postJson("/api/expedientes/{$expediente->id}/impugnacion/remitir", [
-        'descripcion' => 'Remisión a la Encargada para resolución de la impugnación (test).',
+        'descripcion' => 'Remisión para resolución de la impugnación (test).',
     ])->assertCreated();
 
     $expediente->refresh();
@@ -227,7 +238,7 @@ it('remite a la Encargada abriendo el plazo de 3 días hábiles con salto de fin
 
     $asignacionActiva = $expediente->asignacionActiva()->first();
     expect($asignacionActiva)->not->toBeNull()
-        ->and($asignacionActiva->usuario_id)->toBe($semilla['encargada']->id);
+        ->and($asignacionActiva->usuario_id)->toBe($semilla['tecnico']->id);
 
     $plazoResolver = $expediente->plazos()
         ->where('tipo_plazo', 'IMPUGNACION_RESOLVER')
@@ -264,10 +275,8 @@ it('ratifica el rechazo dejando el expediente en ARCHIVO_DEFINITIVO con la bande
     Sanctum::actingAs($semilla['tecnico'], ['*']);
 
     $this->postJson("/api/expedientes/{$expediente->id}/impugnacion/remitir", [
-        'descripcion' => 'Remisión a la Encargada para resolución de la impugnación (test).',
+        'descripcion' => 'Remisión para resolución de la impugnación (test).',
     ])->assertCreated();
-
-    Sanctum::actingAs($semilla['encargada'], ['*']);
 
     $this->postJson("/api/expedientes/{$expediente->id}/impugnacion/resolver", [
         'ratifica' => true,
@@ -286,7 +295,7 @@ it('ratifica el rechazo dejando el expediente en ARCHIVO_DEFINITIVO con la bande
     $actuado = $impugnacion->actuadoResolucion()->first();
     expect($actuado)->not->toBeNull()
         ->and($actuado->catalogo_actuado_id)->toBe($semilla['actRatifica']->id)
-        ->and($actuado->usuario_id)->toBe($semilla['encargada']->id);
+        ->and($actuado->usuario_id)->toBe($semilla['tecnico']->id);
 
     expect($expediente->asignaciones()->where('activa', true)->count())->toBe(0)
         ->and($expediente->plazos()->where('estado', 'VIGENTE')->count())->toBe(0);
@@ -306,10 +315,8 @@ it('revoca el rechazo y pasa automáticamente a EN_PLANIFICACION con el operador
     Sanctum::actingAs($semilla['tecnico'], ['*']);
 
     $this->postJson("/api/expedientes/{$expediente->id}/impugnacion/remitir", [
-        'descripcion' => 'Remisión a la Encargada para resolución de la impugnación (test).',
+        'descripcion' => 'Remisión para resolución de la impugnación (test).',
     ])->assertCreated();
-
-    Sanctum::actingAs($semilla['encargada'], ['*']);
 
     $this->postJson("/api/expedientes/{$expediente->id}/impugnacion/resolver", [
         'ratifica' => false,
@@ -359,11 +366,75 @@ it('lanza error de validación al resolver un expediente que no está en EN_IMPU
             expediente: $expediente,
             ratifica: true,
             justificacion: 'Resolución fuera de estado para validar el rechazo del servicio (test).',
-            encargada: $semilla['encargada'],
+            operador: $semilla['tecnico'],
         );
 
         expect(true)->toBeFalse('Debería haber lanzado ValidationException');
     } catch (ValidationException $e) {
         expect($e->errors())->toHaveKey('expediente');
     }
+});
+
+it('la Encargada no puede resolver la impugnación', function () {
+    $semilla = impugnacionSemilla();
+    $expediente = impugnacionCrearExpediente($semilla['evaluacion']->id, $semilla['reglamento']->id, $semilla['tecnico']->id);
+
+    impugnacionAsignar($expediente, $semilla['tecnico']);
+    impugnacionEmitirRechazo($semilla, $expediente, $semilla['tecnico']);
+
+    Sanctum::actingAs($semilla['tecnico'], ['*']);
+
+    $this->postJson("/api/expedientes/{$expediente->id}/impugnacion/remitir", [
+        'descripcion' => 'Remisión para resolución de la impugnación (test).',
+    ])->assertCreated();
+
+    Sanctum::actingAs($semilla['encargada'], ['*']);
+
+    $this->postJson("/api/expedientes/{$expediente->id}/impugnacion/resolver", [
+        'ratifica' => true,
+        'justificacion' => 'Intento de resolución por la Encargada, que solo debe revisar (test).',
+    ])->assertForbidden();
+});
+
+it('adjunta el PDF de la impugnación y avisa a la Encargada solo para su revisado', function () {
+    Storage::fake('local');
+    Notification::fake();
+
+    $semilla = impugnacionSemilla();
+    $expediente = impugnacionCrearExpediente($semilla['evaluacion']->id, $semilla['reglamento']->id, $semilla['tecnico']->id);
+
+    impugnacionAsignar($expediente, $semilla['tecnico']);
+    impugnacionEmitirRechazo($semilla, $expediente, $semilla['tecnico']);
+
+    Sanctum::actingAs($semilla['tecnico'], ['*']);
+
+    $this->postJson("/api/expedientes/{$expediente->id}/impugnacion/remitir", [
+        'descripcion' => 'Remisión para resolución de la impugnación (test).',
+    ])->assertCreated();
+
+    $this->post("/api/expedientes/{$expediente->id}/impugnacion/resolver", [
+        'ratifica' => '0',
+        'justificacion' => 'Se revoca el rechazo por haberse presentado la documentación que lo motivó (test).',
+        'archivo' => UploadedFile::fake()->create('impugnacion.pdf', 32, 'application/pdf'),
+        'requisito_id' => $semilla['requisito']->id,
+    ])->assertOk();
+
+    $impugnacion = $expediente->impugnaciones()->first();
+    $adjunto = Adjunto::where('actuado_id', $impugnacion->actuado_resolucion_id)->first();
+
+    expect($adjunto)->not->toBeNull()
+        ->and($adjunto->finalidad)->toBe('IMPUGNACION')
+        ->and($adjunto->requisito_id)->toBe($semilla['requisito']->id);
+
+    Notification::assertSentTo(
+        $semilla['encargada'],
+        AvisoParaRevision::class,
+        function (AvisoParaRevision $notification) use ($adjunto) {
+            $datos = $notification->toArray($notification);
+
+            return $notification->categoria === 'impugnacion'
+                && $notification->adjunto?->id === $adjunto->id
+                && $datos['requiere_accion'] === false;
+        },
+    );
 });

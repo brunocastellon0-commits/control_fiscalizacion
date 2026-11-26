@@ -26,12 +26,22 @@
                         class="group flex flex-col items-center px-1 pb-1 text-center focus:outline-none"
                         :class="paso.estado === 'bloqueado' ? 'cursor-not-allowed' : ''">
                         <span class="relative z-10 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
-                            :class="paso.estado === 'activo' ? 'bg-[#dceaf6]' : 'bg-transparent'">
+                            :class="paso.estado === 'activo'
+                                ? (paso.codigo === 'admisibilidad' && colorEvaluacion() === 'observacion'
+                                    ? 'bg-amber-100'
+                                    : (paso.codigo === 'admisibilidad' && colorEvaluacion() === 'rechazo'
+                                        ? 'bg-red-100'
+                                        : 'bg-[#dceaf6]'))
+                                : 'bg-transparent'">
                             <span class="inline-flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs font-bold"
                                 :class="paso.estado === 'completado'
                                     ? 'border-verde-institucional bg-verde-institucional text-white'
                                     : (paso.estado === 'activo'
-                                        ? 'border-azul-petroleo bg-azul-petroleo text-white'
+                                        ? (paso.codigo === 'admisibilidad' && colorEvaluacion() === 'observacion'
+                                            ? 'border-amber-500 bg-amber-100 text-amber-800'
+                                            : (paso.codigo === 'admisibilidad' && colorEvaluacion() === 'rechazo'
+                                                ? 'border-red-500 bg-red-100 text-red-700'
+                                                : 'border-azul-petroleo bg-azul-petroleo text-white'))
                                         : 'border-gris-claro bg-white text-gris')">
                                 <template x-if="paso.estado === 'completado'">
                                     <i class="fa-solid fa-check"></i>
@@ -50,7 +60,11 @@
 
                         <span class="mt-1 block text-[11px] font-semibold leading-tight"
                             :class="paso.estado === 'activo'
-                                ? 'text-azul-petroleo'
+                                ? (paso.codigo === 'admisibilidad' && colorEvaluacion() === 'observacion'
+                                    ? 'text-amber-800'
+                                    : (paso.codigo === 'admisibilidad' && colorEvaluacion() === 'rechazo'
+                                        ? 'text-red-700'
+                                        : 'text-azul-petroleo'))
                                 : (paso.estado === 'bloqueado' ? 'text-gris/60' : 'text-grafito')">
                             Paso <span x-text="paso.numero"></span>
                             <span class="mx-0.5 text-gris">|</span>

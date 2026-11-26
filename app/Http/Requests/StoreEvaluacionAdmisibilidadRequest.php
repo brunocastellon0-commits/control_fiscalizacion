@@ -4,7 +4,9 @@ namespace App\Http\Requests;
 
 use App\Models\CatalogoRequisito;
 use App\Models\Expediente;
+use App\Services\AdjuntoService;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreEvaluacionAdmisibilidadRequest extends FormRequest
 {
@@ -28,6 +30,13 @@ class StoreEvaluacionAdmisibilidadRequest extends FormRequest
             'requisitos' => ['required', 'array', 'min:1'],
             'requisitos.*.requisito_id' => ['required', 'integer', 'distinct', 'exists:catalogo_requisitos,id,activo,1'],
             'requisitos.*.cumple' => ['required', 'boolean'],
+            'documentos' => ['nullable', 'array'],
+            'documentos.*.requisito_id' => ['required', 'integer', 'distinct', 'exists:catalogo_requisitos,id,activo,1'],
+            'documentos.*.finalidad' => ['required', Rule::in([
+                AdjuntoService::FINALIDAD_SUBSANACION,
+                AdjuntoService::FINALIDAD_IMPUGNACION,
+            ])],
+            'documentos.*.archivo' => ['required', 'file', 'mimes:pdf', 'max:10240'],
         ];
     }
 
@@ -68,7 +77,51 @@ class StoreEvaluacionAdmisibilidadRequest extends FormRequest
             ];
         }
 
-        return [];
+        return [
+            function ($validator) use ($expediente) {
+                $cumplidos = collect($this->input('requisitos'))
+                    ->mapWithKeys(fn ($item) => [(int) $item['requisito_id'] => (bool) $item['cumple']]);
+
+                $criticos = CatalogoRequisito::where('reglamento_id', $expediente->reglamento_id)
+                    ->where('activo', true)
+                    ->get()
+                    ->mapWithKeys(fn ($req) => [(int) $req->id => (bool) $req->es_critico]);
+
+                $documentos = collect($this->input('documentos'))
+                    ->mapWithKeys(fn ($item) => [(int) $item['requisito_id'] => $item]);
+
+                foreach ($cumplidos as $requisitoId => $cumple) {
+                    $esperado = $criticos->get($requisitoId) === true
+                        ? 'IMPUGNACION'
+                        : 'SUBSANACION';
+
+                    if (! $cumple && ! $documentos->has($requisitoId)) {
+                        $validator->errors()->add(
+                            'documentos',
+                            "Debe cargar el PDF de {$esperado} para el requisito {$requisitoId} no cumplido.",
+                        );
+
+                        continue;
+                    }
+
+                    if ($cumple && $documentos->has($requisitoId)) {
+                        $validator->errors()->add(
+                            'documentos',
+                            "No se puede adjuntar un PDF en el requisito {$requisitoId} marcado como cumplido.",
+                        );
+
+                        continue;
+                    }
+
+                    if (! $cumple && ($documentos->get($requisitoId)['finalidad'] ?? null) !== $esperado) {
+                        $validator->errors()->add(
+                            'documentos',
+                            "La finalidad del PDF para el requisito {$requisitoId} debe ser {$esperado}.",
+                        );
+                    }
+                }
+            },
+        ];
     }
 
     private function expedienteDeRuta(): ?Expediente

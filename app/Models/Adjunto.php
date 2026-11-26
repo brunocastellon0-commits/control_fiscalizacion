@@ -13,7 +13,9 @@ class Adjunto extends Model
 
     protected $fillable = [
         'actuado_id',
+        'requisito_id',
         'nombre_original',
+        'finalidad',
         'ruta_almacenamiento',
         'mime_type',
         'tamanio_bytes',
@@ -34,5 +36,10 @@ class Adjunto extends Model
     public function subidoPor(): BelongsTo
     {
         return $this->belongsTo(Usuario::class, 'subido_por');
+    }
+
+    public function requisito(): BelongsTo
+    {
+        return $this->belongsTo(CatalogoRequisito::class, 'requisito_id');
     }
 }

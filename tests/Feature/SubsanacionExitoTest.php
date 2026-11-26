@@ -18,6 +18,7 @@ use Database\Seeders\ParametroPlazoSeeder;
 use Database\Seeders\ReglamentoSeeder;
 use Database\Seeders\RolSeeder;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -130,7 +131,7 @@ function subsanacionExitoEmitirAceptacion(Expediente $expediente): mixed
     ]);
 }
 
-it('acepta la subsanación: cierra el reloj, retorna a evaluación y habilita la admisión (RN-03)', function () {
+it('acepta la subsanación: cierra el reloj y pasa a planificación (RN-03)', function () {
     $s = subsanacionExitoSemilla($this);
     $servicio = app(ActuadoService::class);
 
@@ -173,11 +174,11 @@ it('acepta la subsanación: cierra el reloj, retorna a evaluación y habilita la
     subsanacionExitoEmitirAceptacion($expediente)
         ->assertCreated()
         ->assertJsonPath('data.tipo_actuado.codigo', 'ACT_SUBSANACION_ACEPTADA')
-        ->assertJsonPath('data.estado_nuevo.codigo', 'EN_EVALUACION');
+        ->assertJsonPath('data.estado_nuevo.codigo', 'EN_PLANIFICACION');
 
     $expediente->refresh();
 
-    expect($expediente->estado_actual_id)->toBe($s['estados']['EN_EVALUACION']->id)
+    expect($expediente->estado_actual_id)->toBe($s['estados']['EN_PLANIFICACION']->id)
         ->and($plazoSubsanacion->refresh()->estado)->toBe('CERRADO');
 
     $actuadoAceptacion = Actuado::where('expediente_id', $expediente->id)
@@ -187,20 +188,21 @@ it('acepta la subsanación: cierra el reloj, retorna a evaluación y habilita la
     expect($plazoSubsanacion->actuado_cierre_id)->toBe($actuadoAceptacion->id)
         ->and($plazoSubsanacion->fuera_de_plazo)->toBeFalse();
 
-    // Decisión B1.4: al volver a evaluación NO se reabre un reloj EVALUACION
+    // Al pasar a planificación NO se reabre un reloj EVALUACION
     // (el cerrado por la observación sigue cerrado y no nace uno nuevo).
     expect(Plazo::where('expediente_id', $expediente->id)
         ->where('tipo_plazo', 'EVALUACION')
         ->where('estado', 'VIGENTE')->count())->toBe(0)
         ->and($plazoEvaluacion->refresh()->estado)->toBe('CERRADO');
 
-    // La evaluación de admisibilidad vuelve a ser operable desde EN_EVALUACION.
-    $servicio->registerActuado(
+    // La subsanación aceptada ya dejó el expediente en planificación:
+    // ACT_ADMISION no puede emitirse desde ese estado.
+    expect(fn () => $servicio->registerActuado(
         expediente: $expediente,
         catalogoActuado: CatalogoActuado::where('codigo', 'ACT_ADMISION')->firstOrFail(),
         emisor: $s['tecnico'],
-        descripcion: 'Admisión tras la subsanación aceptada.',
-    );
+        descripcion: 'Admisión desde planificación (test).',
+    ))->toThrow(ValidationException::class, 'El actuado ACT_ADMISION solo puede emitirse desde el estado EN_EVALUACION');
 
     expect($expediente->refresh()->estado_actual_id)->toBe($s['estados']['EN_PLANIFICACION']->id);
 });
@@ -325,9 +327,9 @@ it('permite la aceptación cuando no existe plazo de subsanación parametrizado'
 
     subsanacionExitoEmitirAceptacion($expediente)
         ->assertCreated()
-        ->assertJsonPath('data.estado_nuevo.codigo', 'EN_EVALUACION');
+        ->assertJsonPath('data.estado_nuevo.codigo', 'EN_PLANIFICACION');
 
-    expect($expediente->refresh()->estado_actual_id)->toBe($s['estados']['EN_EVALUACION']->id)
+    expect($expediente->refresh()->estado_actual_id)->toBe($s['estados']['EN_PLANIFICACION']->id)
         ->and($expediente->plazos()->where('tipo_plazo', 'SUBSANACION')->count())->toBe(0);
 });
 

@@ -17,10 +17,13 @@ class NotificacionController extends Controller
                 ->limit(20)
                 ->get()
                 ->map(function ($n) {
+                    $adjuntoId = $n->data['adjunto_id'] ?? null;
+
                     return [
                         'id' => $n->id,
                         'tipo' => $n->type,
                         'data' => $n->data,
+                        'adjunto_url' => $adjuntoId ? '/api/adjuntos/'.$adjuntoId.'/descargar' : null,
                         'created_at' => optional($n->created_at)->toIso8601String(),
                         'read_at' => optional($n->read_at)->toIso8601String(),
                     ];

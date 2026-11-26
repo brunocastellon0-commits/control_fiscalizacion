@@ -149,7 +149,7 @@ function fjEmitirRechazo(array $semilla, Expediente $expediente, Usuario $emisor
     );
 }
 
-it('permite al Auditor Jurídico rechazar y remitir la impugnación a la Encargada (RN-08)', function () {
+it('permite al Auditor Jurídico rechazar y remitir la impugnación sin soltar la bandeja (RN-08)', function () {
     $s = fjSemilla();
     $expediente = fjCrearExpediente($s['evaluacion']->id, $s['reglamento']->id, $s['juridico']->id);
     fjAsignar($expediente, $s['juridico']);
@@ -160,7 +160,7 @@ it('permite al Auditor Jurídico rechazar y remitir la impugnación a la Encarga
     Sanctum::actingAs($s['juridico'], ['*']);
 
     $this->postJson("/api/expedientes/{$expediente->id}/impugnacion/remitir", [
-        'descripcion' => 'Remisión a la Encargada para resolución de la impugnación (test).',
+        'descripcion' => 'Remisión para resolución de la impugnación (test).',
     ])->assertCreated();
 
     $expediente->refresh();
@@ -169,7 +169,7 @@ it('permite al Auditor Jurídico rechazar y remitir la impugnación a la Encarga
 
     $asignacionActiva = $expediente->asignacionActiva()->first();
     expect($asignacionActiva)->not->toBeNull()
-        ->and($asignacionActiva->usuario_id)->toBe($s['encargada']->id);
+        ->and($asignacionActiva->usuario_id)->toBe($s['juridico']->id);
 
     $plazoResolver = $expediente->plazos()->where('tipo_plazo', 'IMPUGNACION_RESOLVER')->first();
     expect($plazoResolver)->not->toBeNull()

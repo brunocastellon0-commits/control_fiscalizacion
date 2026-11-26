@@ -10,6 +10,10 @@ use Illuminate\Support\Facades\Storage;
 
 class AdjuntoService
 {
+    public const FINALIDAD_SUBSANACION = 'SUBSANACION';
+
+    public const FINALIDAD_IMPUGNACION = 'IMPUGNACION';
+
     /**
      * Guarda un archivo adjunto dentro de la transacción del caller.
      *
@@ -52,6 +56,44 @@ class AdjuntoService
         }
 
         // 'subido_at' se resuelve con useCurrent() en BD; refresh trae el valor.
+        return $adjunto->refresh();
+    }
+
+    /**
+     * Guarda un PDF generado por el sistema con la misma cadena de custodia
+     * que un archivo subido por el usuario. Debe llamarse dentro de la
+     * transacción del caller.
+     */
+    public function guardarContenidoParaActuado(
+        Actuado $actuado,
+        string $contenido,
+        string $nombreOriginal,
+        Usuario $subidoPor,
+        string $disco = 'local',
+    ): Adjunto {
+        $hash = hash('sha256', $contenido);
+        $nombre = $hash.'.pdf';
+        $ruta = 'adjuntos/'.$actuado->expediente_id.'/'.$nombre;
+
+        Storage::disk($disco)->put($ruta, $contenido);
+
+        try {
+            $adjunto = Adjunto::forceCreate([
+                'actuado_id' => $actuado->id,
+                'nombre_original' => $nombreOriginal,
+                'ruta_almacenamiento' => $ruta,
+                'hash_sha256' => $hash,
+                'mime_type' => 'application/pdf',
+                'tamanio_bytes' => strlen($contenido),
+                'subido_por' => $subidoPor->id,
+                'subido_at' => now(),
+            ]);
+        } catch (\Throwable $e) {
+            Storage::disk($disco)->delete($ruta);
+
+            throw $e;
+        }
+
         return $adjunto->refresh();
     }
 }
