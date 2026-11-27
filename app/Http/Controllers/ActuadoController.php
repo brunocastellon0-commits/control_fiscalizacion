@@ -8,6 +8,7 @@ use App\Models\CatalogoActuado;
 use App\Models\Expediente;
 use App\Services\ActuadoService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class ActuadoController extends Controller
 {
@@ -33,6 +34,7 @@ class ActuadoController extends Controller
             metadatos: ['tipo' => 'ACTUADO'],
             ipOrigen: $request->ip(),
             adjunto: $request->file('adjunto'),
+            cambiarFase: $request->boolean('cambiar_fase', true),
         );
 
         return (new ActuadoResource($actuado->load([
@@ -42,5 +44,33 @@ class ActuadoController extends Controller
             'usuario',
             'adjuntos',
         ])))->response()->setStatusCode(201);
+    }
+
+    /**
+     * P1: aplica el cambio de fase pendiente del expediente (el actuado
+     * emitido con cambiar_fase=false), autorizado con la misma ability
+     * crearActuado sobre el catálogo del actuado pendiente.
+     */
+    public function pasarFase(Request $request, Expediente $expediente): JsonResponse
+    {
+        $pendiente = $this->actuadoService->fasePendiente($expediente);
+
+        if ($pendiente === null) {
+            return response()->json([
+                'message' => 'No hay un cambio de fase pendiente por aplicar.',
+            ], 422);
+        }
+
+        $this->authorize('crearActuado', [$expediente, $pendiente->tipoActuado]);
+
+        $actuado = $this->actuadoService->pasarFase($expediente, $request->user());
+
+        return (new ActuadoResource($actuado->load([
+            'tipoActuado',
+            'estadoAnterior',
+            'estadoNuevo',
+            'usuario',
+            'adjuntos',
+        ])))->response();
     }
 }

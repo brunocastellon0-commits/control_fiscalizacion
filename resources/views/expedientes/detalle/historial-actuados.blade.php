@@ -17,9 +17,21 @@
                                     x-text="formatDate(actuado.fecha_hora || actuado.created_at)"></span>
                                 <span class="text-sm font-semibold text-grafito"
                                     x-text="actuado.tipo_actuado?.nombre || actuado.tipo_actuado?.codigo || 'Actuado'"></span>
+                                <span x-show="(actuado.actuado_referencia_id ?? null) !== null"
+                                    class="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-bold uppercase"
+                                    :title="`Corrige el actuado #${actuado.actuado_referencia_id}`">Enmienda</span>
+                                <span x-show="esActuadoEnmendado(actuado)"
+                                    class="text-[10px] px-1.5 py-0.5 rounded bg-verde-institucional/15 text-verde-profundo font-bold uppercase"
+                                    title="Este actuado ya tiene una enmienda registrada">Enmendado</span>
                             </div>
                             <p class="text-xs text-gris mt-0.5 break-words" x-text="actuado.descripcion || ''"></p>
                         </div>
+                        <button type="button" x-show="puedeEnmendarActuado(actuado)"
+                            @click="abrirModalEnmiendaActuado(actuado)"
+                            title="Corrige la descripción de este actuado; el original permanece inmutable"
+                            class="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gris-claro bg-white text-xs font-medium text-grafito hover:bg-gris-claro/40 transition">
+                            <i class="fa-solid fa-pen-to-square"></i> Enmendar
+                        </button>
                         <button type="button" @click="abrirAdjuntoActuado(actuado)"
                             :disabled="!(actuado.adjuntos || []).length"
                             :title="(actuado.adjuntos || []).length

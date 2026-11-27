@@ -63,6 +63,10 @@
                                         <span x-text="semEtiqueta(plazo.sem_plazo.codigo_color)"></span>
                                     </span>
                                 </template>
+                                <span x-show="(plazo.sem_plazo?.dias_atrasados ?? 0) > 0"
+                                    class="text-[11px] font-bold text-[#B53F12] shrink-0">
+                                    Vencido hace <span x-text="plazo.sem_plazo.dias_atrasados"></span> día(s) hábil(es)
+                                </span>
                             </li>
                         </template>
                     </ul>

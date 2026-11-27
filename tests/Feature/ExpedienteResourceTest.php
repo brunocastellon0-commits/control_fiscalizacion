@@ -115,7 +115,8 @@ it('transforma el expediente con sus datos, asignacion y semaforo', function () 
             ->and(collect($salida['partes_vigentes'])->pluck('tipo')->all())->toBe(['DENUNCIANTE'])
             ->and(collect($salida['plazos'])->count())->toBe(1)
             ->and($salida['sem_plazo']['codigo_color'])->toBe('VERDE')
-            ->and($salida['sem_plazo']['fecha_limite'])->toBe('2026-09-07');
+            ->and($salida['sem_plazo']['fecha_limite'])->toBe('2026-09-07')
+            ->and($salida['sem_plazo'])->toHaveKey('dias_atrasados');
     } finally {
         Carbon::setTestNow();
     }

@@ -51,6 +51,7 @@ class StoreActuadoRequest extends FormRequest
             'catalogo_actuado_id' => ['required', 'integer', 'exists:catalogo_actuados,id'],
             'descripcion' => ['required', 'string', 'min:5', 'max:10000'],
             'usuario_destino_id' => ['nullable', 'integer', 'exists:usuarios,id'],
+            'cambiar_fase' => ['sometimes', 'nullable', 'boolean'],
             'adjunto' => [
                 Rule::requiredIf($catalogoActuado?->requiere_adjunto ?? false),
                 'file',

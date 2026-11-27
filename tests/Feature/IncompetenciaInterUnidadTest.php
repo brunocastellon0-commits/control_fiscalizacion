@@ -19,7 +19,9 @@ use Database\Seeders\CatalogoEstadoSeeder;
 use Database\Seeders\ReglamentoSeeder;
 use Database\Seeders\RolSeeder;
 use Database\Seeders\UnidadSeeder;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -31,6 +33,8 @@ use Tests\TestCase;
  */
 function incmpSemilla(TestCase $test): array
 {
+    Storage::fake('local');
+
     foreach ([
         RolSeeder::class,
         CatalogoEstadoSeeder::class,
@@ -120,10 +124,13 @@ function incmpAbrirPlazo(Expediente $expediente): Plazo
 
 function incmpSolicitar(Expediente $expediente, array $payload = [])
 {
-    return test()->postJson("/api/expedientes/{$expediente->id}/incompetencia/solicitar", array_merge([
+    return test()->post("/api/expedientes/{$expediente->id}/incompetencia/solicitar", array_merge([
         'unidad_destino_id' => Unidad::where('codigo', 'TRANSPARENCIA')->firstOrFail()->id,
         'motivo' => 'Indicios de delito de corrupción que competen a otra unidad (RN-09 Fase 5).',
-    ], $payload));
+        'adjunto' => UploadedFile::fake()->create('derivacion_transparencia.pdf', 100, 'application/pdf'),
+    ], $payload), [
+        'Accept' => 'application/json',
+    ]);
 }
 
 function incmpVistoBueno(Expediente $expediente, array $payload = [])
@@ -454,7 +461,7 @@ it('el seeder da de baja los tipos del flujo B1.3 y registra el par CTR-10 con s
 
     $solicitud = CatalogoActuado::where('codigo', TransparenciaService::CODIGO_ACT_SOLICITUD)->firstOrFail();
     expect($solicitud->estado_destino_id)->toBeNull()
-        ->and($solicitud->requiere_adjunto)->toBeFalse();
+        ->and($solicitud->requiere_adjunto)->toBeTrue();
 
     $vb = CatalogoActuado::where('codigo', TransparenciaService::CODIGO_ACT_VB)->firstOrFail();
     expect($vb->estado_destino_id)->toBeNull()
@@ -472,4 +479,30 @@ it('el seeder da de baja los tipos del flujo B1.3 y registra el par CTR-10 con s
     expect($pivotesVb->count())->toBe(1)
         ->and($pivotesVb->first()->rol_id)->toBe($semilla['rolEncargada']->id)
         ->and($pivotesVb->first()->reglamento_id)->toBeNull();
+});
+
+it('lista unidades filtradas por tipo TRANSPARENCIA', function () {
+    $semilla = incmpSemilla($this);
+    Sanctum::actingAs($semilla['tecnico'], ['*']);
+
+    $response = $this->getJson('/api/unidades?tipo=TRANSPARENCIA')->assertOk();
+    $codigos = collect($response->json('data'))->pluck('codigo');
+
+    expect($codigos)->toContain('TRANSPARENCIA')
+        ->not->toContain('MINISTERIO_PUBLICO')
+        ->not->toContain('REGIMEN_DISCIPLINARIO');
+});
+
+it('CTR-10 exige adjunto PDF obligatorio al solicitar derivación', function () {
+    $semilla = incmpSemilla($this);
+    $expediente = incmpCrearExpediente($semilla['planificacion']->id, $semilla['ac022']->id, $semilla['tecnico']->id);
+    incmpAsignar($expediente, $semilla['tecnico']);
+
+    Sanctum::actingAs($semilla['tecnico'], ['*']);
+
+    $this->postJson("/api/expedientes/{$expediente->id}/incompetencia/solicitar", [
+        'unidad_destino_id' => $semilla['unidadDestino']->id,
+        'motivo' => 'Indicios de delito de corrupción que competen a Transparencia (sin adjunto).',
+    ])->assertUnprocessable()
+        ->assertJsonValidationErrors(['adjunto']);
 });

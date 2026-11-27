@@ -26,7 +26,13 @@ class SemaforoPlazoService
      *   pero conservan el flag persistente fuera_de_plazo estampado por el
      *   comando diario, para que la penalización sobreviva al cierre del caso.
      *
-     * @return array{codigo_color: string, dias_restantes: int|null, porcentaje_consumido: float|null, fecha_limite: string, es_fuera_de_plazo: bool}
+     * `dias_atrasados` es una salida calculada del mismo motor (sin columna ni
+     * migración): días hábiles transcurridos después de fecha_limite hasta
+     * hoy. `0` cuando el plazo vigente no está vencido; `null` para estados no
+     * vigentes (el valor "de hoy" de un plazo cerrado crecería sin significado
+     * histórico; la marca persistente queda en fuera_de_plazo).
+     *
+     * @return array{codigo_color: string, dias_restantes: int|null, porcentaje_consumido: float|null, fecha_limite: string, es_fuera_de_plazo: bool, dias_atrasados: int|null}
      */
     public function evaluarPlazo(Plazo $plazo): array
     {
@@ -39,6 +45,7 @@ class SemaforoPlazoService
                 'porcentaje_consumido' => null,
                 'fecha_limite' => $fechaLimite,
                 'es_fuera_de_plazo' => (bool) $plazo->fuera_de_plazo,
+                'dias_atrasados' => null,
             ];
         }
 
@@ -52,6 +59,9 @@ class SemaforoPlazoService
             'porcentaje_consumido' => $this->calcularPorcentajeConsumido($plazo),
             'fecha_limite' => $fechaLimite,
             'es_fuera_de_plazo' => $esFueraDePlazo,
+            'dias_atrasados' => $esFueraDePlazo
+                ? $this->calculadoraPlazo->businessDaysBetween($plazo->fecha_limite, now())
+                : 0,
         ];
     }
 

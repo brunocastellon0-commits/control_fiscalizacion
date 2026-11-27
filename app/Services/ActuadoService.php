@@ -108,6 +108,10 @@ class ActuadoService
      * @param  int|null  $estadoNuevoIdExplicito  Estado destino override para
      *                                            actuados cuyo catálogo no define un destino (RN-10): recibe el
      *                                            estado actual del expediente como no-op. `null` usa el catálogo.
+     * @param  bool  $cambiarFase  P1: `false` registra el actuado sin aplicar
+     *                             la transición de fase (queda como cambio pendiente en
+     *                             `contenido.cambiar_fase`); `true` (default) aplica la
+     *                             transición en el mismo alta, como siempre.
      */
     public function registerActuado(
         Expediente $expediente,
@@ -120,6 +124,7 @@ class ActuadoService
         ?UploadedFile $adjunto = null,
         ?Carbon $fechaLimiteExplicita = null,
         ?int $estadoNuevoIdExplicito = null,
+        bool $cambiarFase = true,
     ): Actuado {
         return DB::transaction(function () use (
             $expediente,
@@ -132,6 +137,7 @@ class ActuadoService
             $adjunto,
             $fechaLimiteExplicita,
             $estadoNuevoIdExplicito,
+            $cambiarFase,
         ) {
             // D-6g (AUD-0033): bloqueo pesimista del expediente antes de
             // validar el estado origen, para que dos emisiones concurrentes
@@ -152,6 +158,16 @@ class ActuadoService
 
             $estadoAnteriorId = $expediente->estado_actual_id;
             $estadoNuevoId = $estadoNuevoIdExplicito ?? $catalogoActuado->estado_destino_id;
+            $hayTransicion = $estadoNuevoId !== null && $estadoNuevoId !== $estadoAnteriorId;
+
+            // P1: solo puede haber un cambio de fase pendiente por expediente.
+            if ($hayTransicion && $this->fasePendiente($expediente) !== null) {
+                throw ValidationException::withMessages([
+                    'cambiar_fase' => 'Hay un cambio de fase pendiente por aplicar antes de emitir otro actuado que cambie de fase.',
+                ]);
+            }
+
+            $aplicarTransicion = $hayTransicion ? $cambiarFase : true;
 
             $contenido = array_merge(
                 ['descripcion' => $descripcion],
@@ -160,6 +176,10 @@ class ActuadoService
 
             if ($usuarioDestinoId !== null) {
                 $contenido['usuario_destino_id'] = $usuarioDestinoId;
+            }
+
+            if ($hayTransicion && ! $aplicarTransicion) {
+                $contenido['cambiar_fase'] = false;
             }
 
             $actuado = Actuado::create([
@@ -178,7 +198,7 @@ class ActuadoService
             // instancia para que queden disponibles sin recargar el registro.
             $actuado->refresh();
 
-            if ($estadoNuevoId !== null) {
+            if ($aplicarTransicion && $estadoNuevoId !== null) {
                 $expediente->update([
                     'estado_actual_id' => $estadoNuevoId,
                 ]);
@@ -188,11 +208,13 @@ class ActuadoService
                 $this->reasignarBandeja($expediente, $usuarioDestinoId, $actuado);
             }
 
-            // B1.3 (AUD-0030): primero cierra los relojes de la fase que el
-            // actuado concluye; después abre los de la nueva fase si aplica.
-            $this->cerrarPlazosDeFase($expediente, $catalogoActuado, $actuado);
+            if ($aplicarTransicion) {
+                // B1.3 (AUD-0030): primero cierra los relojes de la fase que el
+                // actuado concluye; después abre los de la nueva fase si aplica.
+                $this->cerrarPlazosDeFase($expediente, $catalogoActuado, $actuado);
 
-            $this->abrirPlazoSiAplica($expediente, $catalogoActuado, $actuado, $fechaLimiteExplicita);
+                $this->abrirPlazoSiAplica($expediente, $catalogoActuado, $actuado, $fechaLimiteExplicita);
+            }
 
             if ($adjunto !== null) {
                 $this->adjuntoService->guardarParaActuado($actuado, $adjunto, $emisor);
@@ -201,13 +223,81 @@ class ActuadoService
             // D-6b (AUD-0033): el único camino real hacia ADMITIDO es la
             // revocación del rechazo; en la misma transacción el expediente
             // continúa a EN_PLANIFICACION con un actuado formal encadenado.
-            if ($estadoNuevoId !== null
+            if ($aplicarTransicion
+                && $estadoNuevoId !== null
                 && $estadoAnteriorId !== $estadoNuevoId
                 && $estadoNuevoId === $this->estadoAdmitidoId()) {
                 $this->registrarPasoPlanificacion($expediente, $emisor);
             }
 
             return $actuado;
+        }, 3);
+    }
+
+    /**
+     * P1: último actuado del expediente con un cambio de fase registrado sin
+     * aplicar: destino distinto del origen, origen = estado actual y marcador
+     * `contenido.cambiar_fase = false` (solo lo escriben las altas diferidas;
+     * los actuados históricos no lo traen y su transición ya se aplicó en el
+     * mismo alta). La igualdad origen/estado actual garantiza que la
+     * transición siga siendo aplicable.
+     */
+    public function fasePendiente(Expediente $expediente): ?Actuado
+    {
+        return Actuado::query()
+            ->where('expediente_id', $expediente->id)
+            ->whereNotNull('estado_nuevo_id')
+            ->whereColumn('estado_nuevo_id', '!=', 'estado_anterior_id')
+            ->where('estado_anterior_id', $expediente->estado_actual_id)
+            ->where('contenido->cambiar_fase', 'false')
+            ->orderByDesc('id')
+            ->first();
+    }
+
+    /**
+     * P1: aplica el cambio de fase pendiente del expediente con la misma
+     * transacción completa que habría hecho registerActuado: estado, bandeja,
+     * cierre/apertura de relojes y salto D-6b. El actuado pendiente no se
+     * modifica (append-only): deja de estar pendiente porque el estado actual
+     * pasa a coincidir con su destino.
+     *
+     * @throws ValidationException Cuando no hay cambio pendiente por aplicar.
+     */
+    public function pasarFase(Expediente $expediente, Usuario $emisor): Actuado
+    {
+        return DB::transaction(function () use ($expediente, $emisor) {
+            $expediente = Expediente::query()->lockForUpdate()->findOrFail($expediente->id);
+
+            $pendiente = $this->fasePendiente($expediente);
+
+            if ($pendiente === null) {
+                throw ValidationException::withMessages([
+                    'cambiar_fase' => 'No hay un cambio de fase pendiente por aplicar.',
+                ]);
+            }
+
+            $catalogoActuado = $pendiente->tipoActuado;
+            $estadoNuevoId = (int) $pendiente->estado_nuevo_id;
+
+            $expediente->update([
+                'estado_actual_id' => $estadoNuevoId,
+            ]);
+
+            $usuarioDestinoId = $pendiente->contenido['usuario_destino_id'] ?? null;
+
+            if ($usuarioDestinoId !== null) {
+                $this->reasignarBandeja($expediente, (int) $usuarioDestinoId, $pendiente);
+            }
+
+            $this->cerrarPlazosDeFase($expediente, $catalogoActuado, $pendiente);
+
+            $this->abrirPlazoSiAplica($expediente, $catalogoActuado, $pendiente);
+
+            if ($estadoNuevoId === $this->estadoAdmitidoId()) {
+                $this->registrarPasoPlanificacion($expediente, $emisor);
+            }
+
+            return $pendiente;
         }, 3);
     }
 

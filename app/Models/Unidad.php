@@ -14,6 +14,12 @@ class Unidad extends Model
      */
     protected $table = 'unidades';
 
+    public const TIPO_TRANSPARENCIA = 'TRANSPARENCIA';
+
+    public const TIPO_MINISTERIO_PUBLICO = 'MINISTERIO_PUBLICO';
+
+    public const TIPO_DISCIPLINARIO = 'DISCIPLINARIO';
+
     /**
      * Catálogo maestro de unidades organizacionales externas (RF-05).
      *
@@ -22,6 +28,7 @@ class Unidad extends Model
     protected $fillable = [
         'codigo',
         'nombre',
+        'tipo',
         'activa',
     ];
 

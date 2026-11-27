@@ -12,7 +12,6 @@ class ActuadoResource extends JsonResource
      * Transforma un actuado a su representacion del workstation, incluyendo
      * la cadena de custodia (hashes) y el contenido versionado en JSON.
      *
-     * @param  Request  $request
      * @return array<string, mixed>
      */
     public function toArray(Request $request): array
@@ -25,12 +24,14 @@ class ActuadoResource extends JsonResource
         return [
             'id' => $actuado->id,
             'fecha_hora' => $actuado->fecha_hora?->format('Y-m-d H:i:s'),
+            'actuado_referencia_id' => $actuado->actuado_referencia_id,
             'tipo_actuado' => $this->whenLoaded('tipoActuado', fn () => [
                 'id' => $actuado->tipoActuado->id,
                 'codigo' => $actuado->tipoActuado->codigo,
                 'nombre' => $actuado->tipoActuado->nombre,
             ]),
             'descripcion' => $contenido['descripcion'] ?? null,
+            'cambiar_fase' => $contenido['cambiar_fase'] ?? null,
             'estado_anterior' => $this->whenLoaded('estadoAnterior', fn () => $actuado->estadoAnterior ? [
                 'id' => $actuado->estadoAnterior->id,
                 'codigo' => $actuado->estadoAnterior->codigo,

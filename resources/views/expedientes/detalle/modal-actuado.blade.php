@@ -7,7 +7,7 @@
             </button>
         </div>
 
-        <form @submit.prevent="submitActuado()" class="p-6 space-y-4">
+        <form @submit.prevent="submitActuado()" class="p-6 space-y-4" x-show="!confirmarFaseModalOpen">
             <div>
                 <label class="block text-xs font-semibold text-grafito uppercase mb-1">Tipo de actuado <span class="text-[#F15A24]">*</span></label>
                 <select x-model="formActuado.catalogo_actuado_id" required @change="verificarRequisitoAdjunto()"
@@ -54,5 +54,38 @@
                 </button>
             </div>
         </form>
+
+        <div x-show="confirmarFaseModalOpen" x-cloak class="p-6 space-y-4">
+            <div class="rounded-lg border border-gris-claro bg-gris-claro/30 p-4 space-y-2">
+                <p class="text-xs font-bold uppercase tracking-wider text-gris">Confirmación de cambio de fase</p>
+                <h4 class="text-base font-bold text-grafito">
+                    ¿Deseas pasar de <span x-text="estadoActualEtiqueta()"></span> a <span x-text="estadoDestinoSeleccionado()"></span>?
+                </h4>
+                <p class="text-sm text-grafito/80">
+                    Permanecer en la fase actual no anula el actuado que estás registrando; simplemente mantiene el expediente en la fase <span class="font-medium" x-text="estadoActualEtiqueta()"></span> para que puedas seguir trabajando.
+                </p>
+            </div>
+
+            <p x-show="errorActuado" class="text-sm text-[#B53F12] bg-[#F15A24]/10 border border-[#F15A24]/20 rounded-lg p-3">
+                <i class="fa-solid fa-circle-exclamation mr-1"></i><span x-text="errorActuado"></span>
+            </p>
+
+            <div class="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-gris-claro">
+                <button type="button" @click="confirmarFaseModalOpen = false" :disabled="submittingActuado"
+                    class="px-3 py-2 bg-gris-claro text-grafito rounded-lg text-sm font-medium hover:bg-gris-claro/70 disabled:opacity-50">
+                    Volver
+                </button>
+                <div class="flex items-center gap-2">
+                    <button type="button" @click="ejecutarSubmitActuado(false)" :disabled="submittingActuado"
+                        class="px-4 py-2 rounded-lg border border-[#F15A24]/40 bg-[#F15A24]/10 text-[#B53F12] text-sm font-semibold hover:bg-[#F15A24]/20 disabled:opacity-50">
+                        Permanecer en fase actual
+                    </button>
+                    <button type="button" @click="ejecutarSubmitActuado(true)" :disabled="submittingActuado"
+                        class="px-4 py-2 rounded-lg bg-verde-profundo text-white text-sm font-semibold hover:bg-verde-institucional disabled:opacity-50">
+                        Pasar a <span x-text="estadoDestinoSeleccionado()"></span>
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 </div>

@@ -6,7 +6,7 @@
     @php
         $rolUsuario = auth()->user()?->rol?->codigo;
     @endphp
-    <div x-data="detalleExpediente({{ (int) $expedienteId }}, @js($rolUsuario))" x-init="init()" @keydown.escape.window="hashActuado = null; avisoPaso = null" class="p-6" x-cloak>
+    <div x-data="detalleExpediente({{ (int) $expedienteId }}, @js($rolUsuario), @js(auth()->id()))" x-init="init()" @keydown.escape.window="hashActuado = null; avisoPaso = null" class="p-6" x-cloak>
         <div x-show="loading" class="flex justify-center py-20">
             <i class="fa-solid fa-circle-notch fa-spin text-4xl text-verde-institucional"></i>
         </div>
@@ -128,15 +128,50 @@
 
         @include('expedientes.detalle.modal-actuado')
         @include('expedientes.detalle.modal-enmienda')
+        @include('expedientes.detalle.modal-enmienda-actuado')
         @include('expedientes.detalle.remision-unidad')
         @include('expedientes.detalle.modal-hash')
+
+        <div x-show="modalRechazarIncompetenciaOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-grafito/60 p-4" x-cloak>
+            <div class="bg-white rounded-xl shadow-2xl max-w-md w-full overflow-hidden border border-gris-claro" @click.away="modalRechazarIncompetenciaOpen = false">
+                <div class="bg-gris-claro px-5 py-3.5 flex justify-between items-center border-b border-gris-claro">
+                    <h3 class="font-bold text-sm text-grafito uppercase"><i class="fa-solid fa-xmark text-[#B53F12] mr-2"></i> Rechazar derivación a Transparencia</h3>
+                    <button type="button" @click="modalRechazarIncompetenciaOpen = false" class="text-gris hover:text-grafito" aria-label="Cerrar">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                <form @submit.prevent="confirmarRechazoIncompetencia()" class="p-5 space-y-4">
+                    <p class="text-sm text-grafito/80">
+                        La solicitud será devuelta al operador asignado y se reanudarán los plazos que estaban congelados.
+                    </p>
+                    <div>
+                        <label class="block text-xs font-semibold text-grafito uppercase mb-1">Observaciones (opcional)</label>
+                        <textarea x-model="observacionesRechazoIncompetencia" rows="3"
+                            placeholder="Indique el motivo de la observación para el operador..."
+                            class="w-full border border-gris-claro rounded-lg text-sm px-3 py-2 focus:border-verde-institucional focus:ring-verde-institucional text-grafito"></textarea>
+                    </div>
+                    <div class="flex justify-end gap-2 pt-3 border-t border-gris-claro">
+                        <button type="button" @click="modalRechazarIncompetenciaOpen = false" :disabled="submittingVbIncompetencia"
+                            class="px-3 py-2 bg-gris-claro text-grafito rounded-lg text-xs font-medium hover:bg-gris-claro/70 disabled:opacity-50">
+                            Cancelar
+                        </button>
+                        <button type="submit" :disabled="submittingVbIncompetencia"
+                            class="px-4 py-2 rounded-lg border border-[#F15A24]/40 bg-[#F15A24]/15 text-[#B53F12] text-xs font-semibold hover:bg-[#F15A24]/25 disabled:opacity-50">
+                            <i class="fa-solid" :class="submittingVbIncompetencia ? 'fa-spinner fa-spin' : 'fa-xmark'"></i>
+                            <span class="ml-1" x-text="submittingVbIncompetencia ? 'Rechazando...' : 'Confirmar rechazo'"></span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 
     <script>
-        function detalleExpediente(id, rolInicial = null) {
+        function detalleExpediente(id, rolInicial = null, usuarioId = null) {
             return {
                 expedienteId: id,
                 rolInicial: rolInicial,
+                usuarioId: usuarioId,
                 expediente: null,
                 loading: true,
                 error: null,
@@ -150,6 +185,8 @@
 
                 // Actuados / catálogo (B4.5)
                 modalActuadoOpen: false,
+                confirmarFaseModalOpen: false,
+                submittingPasarFase: false,
                 catalogoActuados: [],
                 catalogoCargado: false,
                 cargandoCatalogoActuados: false,
@@ -197,6 +234,13 @@
                 errorEnmienda: null,
                 formEnmienda: { campo_modificado: '', valor_nuevo: '', motivo: '' },
 
+                // Enmienda de actuado (Fase B)
+                modalEnmiendaActuadoOpen: false,
+                submittingEnmiendaActuado: false,
+                errorEnmiendaActuado: null,
+                enmiendaActuadoObjetivo: null,
+                formEnmiendaActuado: { descripcion: '', motivo: '' },
+
                 // Remisión/recepción (B4.9 / CTR-04,05)
                 modalRemisionOpen: false,
                 modoRemision: 'remitir',
@@ -207,7 +251,14 @@
 
                 // Incompetencia (B4.2 / CTR-10)
                 modalIncompetenciaOpen: false,
+                destacarTransparencia: false,
                 submittingIncompetencia: false,
+                modalRechazarIncompetenciaOpen: false,
+                observacionesRechazoIncompetencia: '',
+                submittingVbIncompetencia: false,
+                unidadesTransparencia: [],
+                cargandoUnidadesTransparencia: false,
+                archivoIncompetencia: null,
                 formIncompetencia: { unidad_destino_id: '', motivo: '' },
 
                 get pasos() {
@@ -572,6 +623,7 @@
 
                 async abrirModalActuado(catalogoId = null) {
                     this.modalActuadoOpen = true;
+                    this.confirmarFaseModalOpen = false;
                     this.errorActuado = null;
                     this.formActuado = { catalogo_actuado_id: catalogoId ? String(catalogoId) : '', descripcion: '' };
                     this.archivoSeleccionado = null;
@@ -581,21 +633,64 @@
                     await this.cargarCatalogoActuados();
                     if (catalogoId) this.verificarRequisitoAdjunto();
                 },
-                cerrarModalActuado() { this.modalActuadoOpen = false; },
+                cerrarModalActuado() {
+                    this.confirmarFaseModalOpen = false;
+                    this.modalActuadoOpen = false;
+                },
+
+                actuadoSeleccionado() {
+                    return this.catalogoActuados.find(c => String(c.id) === String(this.formActuado.catalogo_actuado_id)) || null;
+                },
+
+                estadoActualEtiqueta() {
+                    return this.expediente?.estado_actual?.nombre || this.expediente?.estado_actual?.codigo || 'actual';
+                },
+
+                estadoDestinoSeleccionado() {
+                    const seleccionado = this.actuadoSeleccionado();
+                    return seleccionado?.estado_destino?.nombre || seleccionado?.estado_destino?.codigo || '';
+                },
+
+                actuadoSeleccionadoCambiaFase() {
+                    const seleccionado = this.actuadoSeleccionado();
+                    const actualId = this.expediente?.estado_actual?.id || this.expediente?.estado_actual_id;
+                    return !!(seleccionado?.estado_destino && String(seleccionado.estado_destino.id) !== String(actualId));
+                },
+
+                fasePendiente() {
+                    const actualId = this.expediente?.estado_actual?.id || this.expediente?.estado_actual_id;
+                    return [...(this.expediente?.actuados || [])]
+                        .reverse()
+                        .find(a => a.cambiar_fase === false
+                            && a.estado_nuevo
+                            && a.estado_anterior
+                            && String(a.estado_nuevo.id) !== String(a.estado_anterior.id)
+                            && String(a.estado_anterior.id) === String(actualId)) || null;
+                },
 
                 verificarRequisitoAdjunto() {
-                    const seleccionado = this.catalogoActuados.find(c => String(c.id) === String(this.formActuado.catalogo_actuado_id));
+                    const seleccionado = this.actuadoSeleccionado();
                     this.requiereAdjunto = !!(seleccionado && (seleccionado.requiere_adjunto || seleccionado.requiereAdjunto));
                 },
                 manejarArchivoActuado(event) { this.archivoSeleccionado = event.target.files[0] || null; },
 
                 async submitActuado() {
+                    this.errorActuado = null;
+                    if (this.actuadoSeleccionadoCambiaFase() && !this.confirmarFaseModalOpen) {
+                        this.confirmarFaseModalOpen = true;
+                        return;
+                    }
+                    await this.ejecutarSubmitActuado(true);
+                },
+
+                async ejecutarSubmitActuado(cambiarFase = true) {
                     this.submittingActuado = true;
                     this.errorActuado = null;
                     try {
                         const formData = new FormData();
                         formData.append('catalogo_actuado_id', this.formActuado.catalogo_actuado_id);
                         formData.append('descripcion', this.formActuado.descripcion || '');
+                        formData.append('cambiar_fase', cambiarFase ? '1' : '0');
                         if (this.requiereAdjunto && this.archivoSeleccionado) {
                             formData.append('adjunto', this.archivoSeleccionado);
                         }
@@ -605,6 +700,7 @@
                         });
                         if (ok || status === 201) {
                             window.apiToast('exito', data?.message || 'Actuado registrado correctamente.');
+                            this.confirmarFaseModalOpen = false;
                             this.modalActuadoOpen = false;
                             await this.recargarTrasAccion();
                         } else {
@@ -615,6 +711,26 @@
                         this.errorActuado = e.message || 'Error al registrar el actuado.';
                     } finally {
                         this.submittingActuado = false;
+                    }
+                },
+
+                async pasarDeFase() {
+                    if (this.submittingPasarFase) return;
+                    this.submittingPasarFase = true;
+                    try {
+                        const { ok, data } = await window.apiFetch(`/api/expedientes/${this.expedienteId}/pasar-fase`, {
+                            method: 'POST',
+                        });
+                        if (ok) {
+                            window.apiToast('exito', data?.message || 'Cambio de fase aplicado correctamente.');
+                            await this.recargarTrasAccion();
+                        } else {
+                            window.apiToast('error', data?.message || 'No se pudo aplicar el cambio de fase.');
+                        }
+                    } catch (e) {
+                        window.apiToast('error', e.message || 'Error al aplicar el cambio de fase.');
+                    } finally {
+                        this.submittingPasarFase = false;
                     }
                 },
 
@@ -871,55 +987,187 @@
                     }
                 },
 
-                abrirModalIncompetencia() {
+                actuadosConEnmienda() {
+                    return (this.expediente?.actuados || [])
+                        .map(a => a.actuado_referencia_id)
+                        .filter(id => id !== null && id !== undefined);
+                },
+
+                esActuadoEnmendado(actuado) {
+                    return this.actuadosConEnmienda().includes(actuado?.id);
+                },
+
+                puedeEnmendarActuado(actuado) {
+                    if (!actuado || this.esEncargada()) {
+                        return false;
+                    }
+                    // No se enmienda una enmienda ni un actuado ya enmendado.
+                    if ((actuado.actuado_referencia_id ?? null) !== null || this.esActuadoEnmendado(actuado)) {
+                        return false;
+                    }
+                    return (this.expediente?.asignacion_activa?.usuario?.id ?? null) === (this.usuarioId ?? null);
+                },
+
+                abrirModalEnmiendaActuado(actuado) {
+                    this.enmiendaActuadoObjetivo = actuado;
+                    this.formEnmiendaActuado = { descripcion: actuado?.descripcion || '', motivo: '' };
+                    this.errorEnmiendaActuado = null;
+                    this.modalEnmiendaActuadoOpen = true;
+                },
+                cerrarModalEnmiendaActuado() { this.modalEnmiendaActuadoOpen = false; },
+                async submitEnmiendaActuado() {
+                    if (!this.enmiendaActuadoObjetivo) {
+                        return;
+                    }
+                    this.submittingEnmiendaActuado = true;
+                    this.errorEnmiendaActuado = null;
+                    try {
+                        const { ok, status, data } = await window.apiFetch(
+                            `/api/expedientes/${this.expedienteId}/actuados/${this.enmiendaActuadoObjetivo.id}/enmienda`,
+                            { method: 'POST', body: { ...this.formEnmiendaActuado } },
+                        );
+                        if (ok || status === 200 || status === 201) {
+                            window.apiToast('exito', 'Enmienda del actuado registrada correctamente.');
+                            this.modalEnmiendaActuadoOpen = false;
+                            await this.cargarExpediente();
+                        } else {
+                            this.errorEnmiendaActuado = data?.message
+                                || data?.errors?.actuado?.[0]
+                                || data?.errors?.motivo?.[0]
+                                || data?.errors?.descripcion?.[0]
+                                || 'No se pudo registrar la enmienda.';
+                        }
+                    } catch (e) {
+                        this.errorEnmiendaActuado = e.message || 'Error al registrar la enmienda.';
+                    } finally {
+                        this.submittingEnmiendaActuado = false;
+                    }
+                },
+
+                async cargarUnidadesTransparencia() {
+                    this.cargandoUnidadesTransparencia = true;
+                    try {
+                        const { ok, data } = await window.apiFetch('/api/unidades?tipo=TRANSPARENCIA');
+                        if (ok) {
+                            this.unidadesTransparencia = data.data || [];
+                            if (this.unidadesTransparencia.length === 1 && !this.formIncompetencia.unidad_destino_id) {
+                                this.formIncompetencia.unidad_destino_id = String(this.unidadesTransparencia[0].id);
+                            }
+                        } else {
+                            this.unidadesTransparencia = [];
+                        }
+                    } catch (e) {
+                        this.unidadesTransparencia = [];
+                    } finally {
+                        this.cargandoUnidadesTransparencia = false;
+                    }
+                },
+
+                manejarArchivoIncompetencia(event) {
+                    this.archivoIncompetencia = event.target.files[0] || null;
+                },
+
+                async abrirModalIncompetencia() {
                     this.formIncompetencia = { unidad_destino_id: '', motivo: '' };
+                    this.archivoIncompetencia = null;
+                    const input = document.getElementById('adjuntoIncompetencia');
+                    if (input) input.value = '';
                     this.modalIncompetenciaOpen = true;
+                    this.destacarTransparencia = true;
+                    this.$nextTick(() => {
+                        const panel = document.getElementById('panel-derivacion-transparencia');
+                        if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    });
+                    setTimeout(() => { this.destacarTransparencia = false; }, 2800);
+                    await this.cargarUnidadesTransparencia();
                 },
                 async submitIncompetenciaSolicitud() {
+                    if (!this.formIncompetencia.unidad_destino_id) {
+                        window.apiToast('error', 'Seleccione la unidad de destino.');
+                        return;
+                    }
                     if (!this.formIncompetencia.motivo) {
                         window.apiToast('error', 'Ingrese el motivo o justificación.');
                         return;
                     }
+                    if (!this.archivoIncompetencia) {
+                        window.apiToast('error', 'Adjunte el documento de respaldo en PDF.');
+                        return;
+                    }
                     this.submittingIncompetencia = true;
                     try {
-                        const payload = {
-                            unidad_destino_id: this.formIncompetencia.unidad_destino_id || null,
-                            motivo: this.formIncompetencia.motivo,
-                            justificacion: this.formIncompetencia.motivo,
-                        };
+                        const formData = new FormData();
+                        formData.append('unidad_destino_id', String(this.formIncompetencia.unidad_destino_id));
+                        formData.append('motivo', this.formIncompetencia.motivo);
+                        formData.append('adjunto', this.archivoIncompetencia);
                         const { ok, status, data } = await window.apiFetch(`/api/expedientes/${this.expedienteId}/incompetencia/solicitar`, {
                             method: 'POST',
-                            body: payload,
+                            body: formData,
                         });
                         if (ok || status === 201) {
-                            window.apiToast('exito', data?.message || 'Solicitud de incompetencia enviada.');
+                            window.apiToast('exito', data?.message || 'Solicitud de derivación enviada.');
                             this.modalIncompetenciaOpen = false;
                             await this.cargarExpediente();
                         } else {
-                            window.apiToast('error', data?.message || 'No se pudo enviar la solicitud de incompetencia.', data?.errors);
+                            window.apiToast('error', data?.message || 'No se pudo enviar la solicitud de derivación.', data?.errors);
                         }
                     } catch (e) {
-                        window.apiToast('error', e.message || 'Error al solicitar incompetencia.');
+                        window.apiToast('error', e.message || 'Error al solicitar la derivación.');
                     } finally {
                         this.submittingIncompetencia = false;
                     }
                 },
-                async resolverIncompetencia(aprobado) {
-                    const observaciones = aprobado ? null : prompt('Observaciones (opcional):');
-                    if (!aprobado && observaciones === null) return;
+                solicitudIncompetenciaAbierta() {
+                    if (this.estadoCodigo() !== 'EN_EVALUACION') {
+                        return null;
+                    }
+                    const actuados = this.expediente?.actuados || [];
+                    let ultimaSolicitud = null;
+                    let ultimoVbId = 0;
+                    for (const a of actuados) {
+                        const codigo = a?.tipo_actuado?.codigo;
+                        if (codigo === 'ACT_SOLICITUD_INCOMPETENCIA' && (a.id || 0) > (ultimaSolicitud?.id || 0)) {
+                            ultimaSolicitud = a;
+                        }
+                        if (codigo === 'ACT_VB_INCOMPETENCIA' && (a.id || 0) > ultimoVbId) {
+                            ultimoVbId = a.id || 0;
+                        }
+                    }
+                    return ultimaSolicitud && (ultimaSolicitud.id || 0) > ultimoVbId ? ultimaSolicitud : null;
+                },
+
+                tieneSolicitudIncompetenciaAbierta() {
+                    return this.solicitudIncompetenciaAbierta() !== null;
+                },
+
+                abrirModalRechazarIncompetencia() {
+                    this.observacionesRechazoIncompetencia = '';
+                    this.modalRechazarIncompetenciaOpen = true;
+                },
+
+                async confirmarRechazoIncompetencia() {
+                    await this.resolverIncompetencia(false, this.observacionesRechazoIncompetencia || null);
+                    this.modalRechazarIncompetenciaOpen = false;
+                },
+
+                async resolverIncompetencia(aprobado, observaciones = null) {
+                    if (this.submittingVbIncompetencia) return;
+                    this.submittingVbIncompetencia = true;
                     try {
                         const { ok, data } = await window.apiFetch(`/api/expedientes/${this.expedienteId}/incompetencia/visto-bueno`, {
                             method: 'POST',
                             body: { aprobado: !!aprobado, observaciones: observaciones || null },
                         });
                         if (ok) {
-                            window.apiToast('exito', data?.message || (aprobado ? 'Incompetencia aprobada.' : 'Incompetencia rechazada.'));
-                            await this.cargarExpediente();
+                            window.apiToast('exito', data?.message || (aprobado ? 'Derivación aprobada.' : 'Derivación rechazada.'));
+                            await this.recargarTrasAccion();
                         } else {
-                            window.apiToast('error', data?.message || 'No se pudo resolver la incompetencia.', data?.errors);
+                            window.apiToast('error', data?.message || 'No se pudo resolver la derivación.', data?.errors);
                         }
                     } catch (e) {
-                        window.apiToast('error', e.message || 'Error al resolver la incompetencia.');
+                        window.apiToast('error', e.message || 'Error al resolver la derivación.');
+                    } finally {
+                        this.submittingVbIncompetencia = false;
                     }
                 },
 

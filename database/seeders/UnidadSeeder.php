@@ -16,9 +16,9 @@ class UnidadSeeder extends Seeder
     public function run(): void
     {
         $unidades = [
-            ['codigo' => 'TRANSPARENCIA', 'nombre' => 'Unidad de Transparencia (Ley N° 974)'],
-            ['codigo' => 'MINISTERIO_PUBLICO', 'nombre' => 'Ministerio Público'],
-            ['codigo' => 'REGIMEN_DISCIPLINARIO', 'nombre' => 'Régimen Disciplinario'],
+            ['codigo' => 'TRANSPARENCIA', 'nombre' => 'Unidad de Transparencia (Ley N° 974)', 'tipo' => Unidad::TIPO_TRANSPARENCIA],
+            ['codigo' => 'MINISTERIO_PUBLICO', 'nombre' => 'Ministerio Público', 'tipo' => Unidad::TIPO_MINISTERIO_PUBLICO],
+            ['codigo' => 'REGIMEN_DISCIPLINARIO', 'nombre' => 'Régimen Disciplinario', 'tipo' => Unidad::TIPO_DISCIPLINARIO],
         ];
 
         foreach ($unidades as $unidad) {

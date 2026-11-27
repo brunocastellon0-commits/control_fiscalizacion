@@ -8,6 +8,7 @@ use App\Models\CatalogoEstado;
 use App\Models\Expediente;
 use App\Models\Unidad;
 use App\Models\Usuario;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -52,8 +53,9 @@ class TransparenciaService
         int $unidadDestinoId,
         string $motivo,
         ?string $ipOrigen = null,
+        ?UploadedFile $adjunto = null,
     ): Actuado {
-        return DB::transaction(function () use ($expediente, $operador, $unidadDestinoId, $motivo, $ipOrigen) {
+        return DB::transaction(function () use ($expediente, $operador, $unidadDestinoId, $motivo, $ipOrigen, $adjunto) {
             $expediente = Expediente::query()->lockForUpdate()->findOrFail($expediente->id);
 
             $this->validarSolicitudHabilitada($expediente);
@@ -90,6 +92,7 @@ class TransparenciaService
                     'plazos_suspendidos' => $plazos,
                 ],
                 ipOrigen: $ipOrigen,
+                adjunto: $adjunto,
                 estadoNuevoIdExplicito: (int) $estadoEspera->id,
             );
         }, 3);

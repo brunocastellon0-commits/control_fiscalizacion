@@ -20,6 +20,7 @@ use App\Http\Controllers\HistorialEncargadaController;
 use App\Http\Controllers\HistorialOperativoController;
 use App\Http\Controllers\ReglamentoController;
 use App\Http\Controllers\TransferenciaUnidadController;
+use App\Http\Controllers\UnidadController;
 use Illuminate\Support\Facades\Route;
 
 // Sesión de usuario (Sanctum)
@@ -47,6 +48,7 @@ Route::get('/catalogo/actuados', [CatalogoActuadoController::class, 'index']);
 
 // Catálogo de estados (lectura para filtros de bandeja y detalle)
 Route::get('/estados', [CatalogoEstadoController::class, 'index']);
+Route::get('/unidades', [UnidadController::class, 'index']);
 
 // Descarga de adjuntos de respaldo (autorizado por RF-03)
 Route::get('/adjuntos/{adjunto}/descargar', [AdjuntoController::class, 'descargar']);
@@ -56,6 +58,7 @@ Route::post('/expedientes', [ExpedienteController::class, 'store']);
 Route::get('/expedientes/{expediente}', [ExpedienteController::class, 'show']);
 Route::post('/expedientes/{expediente}/sortear', [ExpedienteController::class, 'sortear']);
 Route::post('/expedientes/{expediente}/actuados', [ActuadoController::class, 'store']);
+Route::post('/expedientes/{expediente}/pasar-fase', [ActuadoController::class, 'pasarFase']);
 
 // Documentos informativos del expediente (boleta de apertura y ficha de sorteo)
 Route::get('/expedientes/{expediente}/boleta-apertura', [DocumentoExpedienteController::class, 'boletaApertura']);

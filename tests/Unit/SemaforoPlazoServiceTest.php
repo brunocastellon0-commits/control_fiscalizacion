@@ -207,3 +207,53 @@ it('consolida las métricas de la bandeja por color de urgencia', function () {
         Carbon::setTestNow();
     }
 });
+
+it('calcula dias_atrasados en días hábiles excluyendo fines de semana', function () {
+    Carbon::setTestNow(HOY_SEMAFORO);
+
+    try {
+        // Límite viernes 21; hoy viernes 28: solo cuentan 24,25,26,27,28.
+        [, $plazo] = crearPlazoSemaforo(['fecha_limite' => '2026-08-21']);
+
+        $semaforo = app(SemaforoPlazoService::class)->evaluarPlazo($plazo);
+
+        expect($semaforo['es_fuera_de_plazo'])->toBeTrue()
+            ->and($semaforo['dias_atrasados'])->toBe(5);
+    } finally {
+        Carbon::setTestNow();
+    }
+});
+
+it('retorna dias_atrasados en 0 cuando el plazo vigente no está vencido', function () {
+    Carbon::setTestNow(HOY_SEMAFORO);
+
+    try {
+        [, $plazo] = crearPlazoSemaforo(['fecha_limite' => '2026-09-02']);
+
+        $semaforo = app(SemaforoPlazoService::class)->evaluarPlazo($plazo);
+
+        expect($semaforo['es_fuera_de_plazo'])->toBeFalse()
+            ->and($semaforo['dias_atrasados'])->toBe(0);
+    } finally {
+        Carbon::setTestNow();
+    }
+});
+
+it('retorna dias_atrasados nulo en plazos no vigentes conservando fuera_de_plazo', function () {
+    Carbon::setTestNow(HOY_SEMAFORO);
+
+    try {
+        [, $plazo] = crearPlazoSemaforo([
+            'estado' => 'CERRADO',
+            'fecha_limite' => '2026-08-21',
+            'fuera_de_plazo' => true,
+        ]);
+
+        $semaforo = app(SemaforoPlazoService::class)->evaluarPlazo($plazo);
+
+        expect($semaforo['es_fuera_de_plazo'])->toBeTrue()
+            ->and($semaforo['dias_atrasados'])->toBeNull();
+    } finally {
+        Carbon::setTestNow();
+    }
+});

@@ -31,6 +31,7 @@ class TransparenciaController extends Controller
             unidadDestinoId: (int) $datos['unidad_destino_id'],
             motivo: $datos['motivo'],
             ipOrigen: $request->ip(),
+            adjunto: $request->file('adjunto'),
         );
 
         return response()->json([

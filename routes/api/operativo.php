@@ -9,6 +9,7 @@
 use App\Http\Controllers\AmpliacionController;
 use App\Http\Controllers\CierreExpedienteController;
 use App\Http\Controllers\DescargoFinancieroController;
+use App\Http\Controllers\EnmiendaActuadoController;
 use App\Http\Controllers\EnmiendaController;
 use App\Http\Controllers\EvaluacionAdmisibilidadController;
 use App\Http\Controllers\ImpugnacionController;
@@ -48,3 +49,7 @@ Route::post('/expedientes/{expediente}/descargos/recibir', [DescargoFinancieroCo
 
 // Actuado de Enmienda (RF-02, CTR-09)
 Route::post('/expedientes/{expediente}/enmienda', [EnmiendaController::class, 'store']);
+
+// Enmienda de un actuado (Fase B): corrige la descripción de un actuado
+// emitido; el original permanece inmutable (append-only).
+Route::post('/expedientes/{expediente}/actuados/{actuado}/enmienda', [EnmiendaActuadoController::class, 'store']);
