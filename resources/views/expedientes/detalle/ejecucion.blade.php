@@ -31,36 +31,6 @@
         </div>
     </div>
 
-    <div class="bg-white rounded-xl border border-gris-claro shadow-sm overflow-hidden" x-show="esAc022()" x-cloak>
-        <div class="bg-gris-claro px-4 py-3 border-b border-gris-claro">
-            <h3 class="text-sm font-bold text-grafito uppercase"><i class="fa-solid fa-clock-rotate-left text-verde-institucional mr-2"></i> Ampliación de plazo (Acuerdo 022)</h3>
-        </div>
-        <div class="p-4 space-y-3">
-            <template x-if="tieneActuado('ACT_APROBAR_AMPLIACION')">
-                <p class="text-xs font-semibold text-green-800"><i class="fa-solid fa-circle-check mr-1"></i> Ampliación de 5 días hábiles aprobada.</p>
-            </template>
-            <template x-if="!tieneActuado('ACT_APROBAR_AMPLIACION') && !tieneActuado('ACT_SOLICITAR_AMPLIACION')">
-                <p class="text-xs text-gris">La ampliación excepcional de 5 días hábiles debe ser aprobada por la Encargada.</p>
-            </template>
-            <form @submit.prevent="submitAmpliacion()" x-show="!esEncargada() && pasoEditable() && estadoCodigo() === 'EN_EJECUCION' && !tieneActuado('ACT_SOLICITAR_AMPLIACION')"
-                x-cloak class="space-y-3 border-t border-gris-claro pt-3">
-                <div>
-                    <label class="block text-xs font-semibold text-grafito uppercase mb-1">Justificación <span class="text-[#F15A24]">*</span></label>
-                    <textarea x-model="formAmpliacion.justificacion" rows="2" minlength="10" required
-                        class="w-full border border-gris-claro rounded-lg text-sm px-3 py-2 focus:border-verde-institucional focus:ring-verde-institucional"
-                        placeholder="Fundamente la solicitud de ampliación"></textarea>
-                </div>
-                <div class="flex justify-end">
-                    <button type="submit" :disabled="submittingAmpliacion"
-                        title="Solicita 5 días hábiles adicionales sujetos a aprobación de la Encargada"
-                        class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-verde-institucional text-verde-profundo text-sm font-semibold hover:bg-verde-institucional/10 disabled:opacity-50">
-                        <i class="fa-solid fa-paper-plane"></i> Solicitar ampliación
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
     <div class="bg-white rounded-xl border border-gris-claro shadow-sm overflow-hidden" x-show="esAc055()" x-cloak>
         <div class="bg-gris-claro px-4 py-3 border-b border-gris-claro">
             <h3 class="text-sm font-bold text-grafito uppercase"><i class="fa-solid fa-scale-balanced text-verde-institucional mr-2"></i> Fase de descargos (Acuerdo 055)</h3>

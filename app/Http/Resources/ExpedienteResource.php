@@ -40,7 +40,13 @@ class ExpedienteResource extends JsonResource
                 'codigo' => $expediente->estadoActual->codigo,
                 'nombre' => $expediente->estadoActual->nombre,
                 'es_final' => (bool) $expediente->estadoActual->es_final,
+                'estado_padre' => $expediente->estadoActual->padre ? [
+                    'id' => $expediente->estadoActual->padre->id,
+                    'codigo' => $expediente->estadoActual->padre->codigo,
+                    'nombre' => $expediente->estadoActual->padre->nombre,
+                ] : null,
             ] : null),
+            'naturaleza' => $expediente->naturaleza,
             'resumen_hechos' => $expediente->resumen_hechos,
             'fecha_ingreso' => $expediente->fecha_ingreso?->format('Y-m-d H:i:s'),
             'creador' => $this->whenLoaded('creador', fn () => $expediente->creador ? [

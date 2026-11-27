@@ -245,7 +245,7 @@ class ExpedienteController extends Controller
     {
         return [
             'reglamento',
-            'estadoActual',
+            'estadoActual.padre',
             'creador',
             'asignacionActiva.usuario',
             'asignacionActiva.rol',

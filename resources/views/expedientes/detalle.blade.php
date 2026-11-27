@@ -109,32 +109,17 @@
                             </div>
                         </template>
 
-                        <template x-if="trazabilidadAbierta || seccionActiva === 'historial'">
-                            <div>@include('expedientes.detalle.trazabilidad')</div>
-                        </template>
+                        <div>@include('expedientes.detalle.acciones-operativas')</div>
 
-                        <template x-if="pasoSiguiente()">
-                            <div class="space-y-2">
-                                <button type="button" @click="irASiguientePaso()"
-                                    :disabled="!puedeAvanzarPaso()"
-                                    :title="puedeAvanzarPaso()
-                                        ? `Avanza al paso ${pasoSiguiente().numero}: ${pasoSiguiente().nombre}`
-                                        : 'Complete y guarde el trabajo de esta etapa para habilitar el avance'"
-                                    class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-verde-profundo text-white text-sm font-semibold hover:bg-verde-institucional transition disabled:cursor-not-allowed disabled:opacity-50">
-                                    <span x-text="etiquetaSiguientePaso()"></span>
-                                    <i class="fa-solid" :class="puedeAvanzarPaso() ? 'fa-arrow-right' : 'fa-lock'"></i>
-                                </button>
-                                <p x-show="!puedeAvanzarPaso()" class="text-[11px] text-gris">
-                                    Complete y guarde el trabajo de esta etapa para habilitar el avance.
-                                </p>
-                            </div>
+                        <div>@include('expedientes.detalle.historial-actuados')</div>
+
+                        <template x-if="(trazabilidadAbierta || seccionActiva === 'historial') && esAdmin()">
+                            <div>@include('expedientes.detalle.trazabilidad')</div>
                         </template>
                     </div>
 
                     <aside class="space-y-6">
                         @include('expedientes.detalle.estado-expediente')
-                        @include('expedientes.detalle.acciones-operativas')
-                        @include('expedientes.detalle.historial-resumen')
                     </aside>
                 </div>
 
@@ -250,6 +235,39 @@
 
                 esEncargada() {
                     return this.rolUsuarioActual() === 'ENCARGADA';
+                },
+
+                esAdmin() {
+                    return this.rolUsuarioActual() === 'ADMIN';
+                },
+
+                estadoPrincipal() {
+                    const estado = this.expediente?.estado_actual;
+                    return estado?.estado_padre?.nombre || estado?.nombre || 'Sin estado';
+                },
+
+                subestado() {
+                    const estado = this.expediente?.estado_actual;
+                    return estado?.estado_padre ? (estado?.nombre || '—') : '—';
+                },
+
+                plazoVigenteFase() {
+                    return [...(this.expediente?.plazos || [])]
+                        .filter(plazo => plazo.estado === 'VIGENTE')
+                        .sort((a, b) => new Date(a.fecha_limite || 0) - new Date(b.fecha_limite || 0))[0] || null;
+                },
+
+                actuadosDescendentes() {
+                    return [...(this.expediente?.actuados || [])]
+                        .sort((a, b) => (b.id || 0) - (a.id || 0));
+                },
+
+                abrirAdjuntoActuado(actuado) {
+                    const adjunto = (actuado?.adjuntos || [])[0];
+                    if (!adjunto) {
+                        return;
+                    }
+                    window.open(`/api/adjuntos/${adjunto.id}/descargar`, '_blank');
                 },
 
                 esAc022() {

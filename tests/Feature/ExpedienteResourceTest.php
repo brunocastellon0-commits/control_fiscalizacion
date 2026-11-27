@@ -134,3 +134,41 @@ it('devuelve semaforo nulo cuando no hay plazos vigentes', function () {
         Carbon::setTestNow();
     }
 });
+
+it('expone estado_padre y naturaleza para la vista de detalle', function () {
+    Carbon::setTestNow(PASO6_EXP_HOY);
+
+    try {
+        $expediente = paso6ExpedienteCompleto(conPlazoVigente: false);
+
+        $padre = CatalogoEstado::factory()->create();
+        $hijo = CatalogoEstado::factory()->create(['estado_padre_id' => $padre->id]);
+        $expediente->estadoActual()->associate($hijo);
+        $expediente->naturaleza = 'JURISDICCIONAL';
+        $expediente->save();
+        $expediente->load(['estadoActual.padre']);
+
+        $salida = (new ExpedienteResource($expediente))->resolve(request());
+
+        expect($salida['estado_actual']['codigo'])->toBe($hijo->codigo)
+            ->and($salida['estado_actual']['estado_padre']['codigo'])->toBe($padre->codigo)
+            ->and($salida['estado_actual']['estado_padre']['nombre'])->toBe($padre->nombre)
+            ->and($salida['naturaleza'])->toBe('JURISDICCIONAL');
+    } finally {
+        Carbon::setTestNow();
+    }
+});
+
+it('devuelve estado_padre nulo cuando el estado no tiene padre', function () {
+    Carbon::setTestNow(PASO6_EXP_HOY);
+
+    try {
+        $expediente = paso6ExpedienteCompleto(conPlazoVigente: false);
+
+        $salida = (new ExpedienteResource($expediente))->resolve(request());
+
+        expect($salida['estado_actual']['estado_padre'])->toBeNull();
+    } finally {
+        Carbon::setTestNow();
+    }
+});

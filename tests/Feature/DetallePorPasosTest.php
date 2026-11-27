@@ -150,7 +150,7 @@ it('muestra los cinco pasos, el aviso de bloqueo y los formularios de cada etapa
         ->assertSee('Partes Procesales')
         ->assertSee('Hechos del caso')
         ->assertSee('Estado del expediente')
-        ->assertSee('Historial de movimientos')
+        ->assertSee('Historial de actuados')
         ->assertSee('Evaluación de admisibilidad')
         ->assertSee('Revise los requisitos según el reglamento de la causa.')
         ->assertDontSee('Objetivo del paso')
