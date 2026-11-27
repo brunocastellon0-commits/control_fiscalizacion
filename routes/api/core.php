@@ -64,6 +64,8 @@ Route::post('/expedientes/{expediente}/pasar-fase', [ActuadoController::class, '
 Route::get('/expedientes/{expediente}/boleta-apertura', [DocumentoExpedienteController::class, 'boletaApertura']);
 Route::get('/expedientes/{expediente}/ficha-sorteo', [DocumentoExpedienteController::class, 'fichaSorteo']);
 Route::post('/expedientes/{expediente}/ficha-sorteo/regenerar', [DocumentoExpedienteController::class, 'regenerarFichaSorteo']);
+// Procedimiento de observación: formato on-demand del actuado de observación
+Route::get('/expedientes/{expediente}/actuados/{actuado}/formato-observacion', [DocumentoExpedienteController::class, 'formatoObservacion']);
 
 // Derivación NUREJ Hijo (E9-S1, RN-10)
 Route::post('/expedientes/{expediente}/nurej-hijo', [ExpedienteController::class, 'derivarNurejHijo']);

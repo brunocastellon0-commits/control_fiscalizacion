@@ -40,6 +40,12 @@
                             class="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gris-claro bg-white text-xs font-medium text-grafito hover:bg-gris-claro/40 transition disabled:opacity-50 disabled:cursor-not-allowed">
                             <i class="fa-solid fa-eye"></i> Ver más
                         </button>
+                        <button type="button" x-show="actuado.tipo_actuado?.codigo === 'ACT_OBSERVACION'"
+                            @click="imprimirFormatoObservacion(actuado)"
+                            title="Imprime el formato de observación entregado al interesado"
+                            class="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gris-claro bg-white text-xs font-medium text-grafito hover:bg-gris-claro/40 transition">
+                            <i class="fa-solid fa-print"></i> Formato
+                        </button>
                     </li>
                 </template>
             </ul>

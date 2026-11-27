@@ -31,6 +31,7 @@ class ActuadoResource extends JsonResource
                 'nombre' => $actuado->tipoActuado->nombre,
             ]),
             'descripcion' => $contenido['descripcion'] ?? null,
+            'detalle_observacion' => $contenido['detalle_observacion'] ?? null,
             'cambiar_fase' => $contenido['cambiar_fase'] ?? null,
             'estado_anterior' => $this->whenLoaded('estadoAnterior', fn () => $actuado->estadoAnterior ? [
                 'id' => $actuado->estadoAnterior->id,

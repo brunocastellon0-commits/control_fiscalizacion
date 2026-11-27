@@ -62,6 +62,7 @@ class EvaluacionAdmisibilidadController extends Controller
             operador: $request->user(),
             requisitos: $request->validated('requisitos'),
             ipOrigen: $request->ip(),
+            detalleObservacion: $request->validated('detalle_observacion'),
         );
 
         return response()->json([

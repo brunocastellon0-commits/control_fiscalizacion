@@ -111,6 +111,8 @@
 
                         <div>@include('expedientes.detalle.acciones-operativas')</div>
 
+                        <div>@include('expedientes.detalle.subsanacion')</div>
+
                         <div>@include('expedientes.detalle.historial-actuados')</div>
 
                         <template x-if="(trazabilidadAbierta || seccionActiva === 'historial') && esAdmin()">
@@ -202,6 +204,13 @@
                 errorRequisitos: null,
                 submittingEvaluacion: false,
                 resultadoEvaluacion: null,
+                detalleObservacion: '',
+
+                // Subsanación (procedimiento de observación, RN-03)
+                formSubsanacion: { descripcion: 'Subsanación presentada por el interesado y verificada por el operador.' },
+                archivoSubsanacion: null,
+                submittingSubsanacion: false,
+                errorSubsanacion: null,
 
                 // Planificación (paso 3)
                 submittingPlanificacion: false,
@@ -768,6 +777,7 @@
                                 requisito_id: r.id,
                                 cumple: !!r._cumplido,
                             })),
+                            detalle_observacion: this.detalleObservacion || '',
                         };
                         const { ok, status, data } = await window.apiFetch(`/api/expedientes/${this.expedienteId}/evaluacion`, {
                             method: 'POST',
@@ -775,8 +785,20 @@
                         });
                         if (ok || status === 201) {
                             this.resultadoEvaluacion = data?.resumen || data?.data || data || { resultado: 'Registrado' };
+                            this.detalleObservacion = '';
                             window.apiToast('exito', 'Evaluación de admisibilidad registrada.');
                             await this.recargarTrasAccion();
+                            if (this.resultadoEvaluacion?.resultado === 'ACT_OBSERVACION') {
+                                const observacion = [...(this.expediente?.actuados || [])]
+                                    .reverse()
+                                    .find(a => a.tipo_actuado?.codigo === 'ACT_OBSERVACION');
+                                if (observacion) {
+                                    window.imprimirPdf({
+                                        url: `/api/expedientes/${this.expedienteId}/actuados/${observacion.id}/formato-observacion`,
+                                        titulo: 'Formato de observación',
+                                    });
+                                }
+                            }
                         } else {
                             window.apiToast('error', data?.message || 'No se pudo registrar la evaluación.', data?.errors);
                         }
@@ -1013,6 +1035,58 @@
                     this.formEnmiendaActuado = { descripcion: actuado?.descripcion || '', motivo: '' };
                     this.errorEnmiendaActuado = null;
                     this.modalEnmiendaActuadoOpen = true;
+                },
+
+                imprimirFormatoObservacion(actuado) {
+                    window.imprimirPdf({
+                        url: `/api/expedientes/${this.expedienteId}/actuados/${actuado.id}/formato-observacion`,
+                        titulo: 'Formato de observación',
+                    });
+                },
+
+                observacionActuada() {
+                    return this.actuadosDescendentes()
+                        .find(a => a.tipo_actuado?.codigo === 'ACT_OBSERVACION') || null;
+                },
+
+                async aceptarSubsanacion() {
+                    if (this.submittingSubsanacion) return;
+                    this.errorSubsanacion = null;
+                    const catalogo = this.catalogoActuados.find(c => c.codigo === 'ACT_SUBSANACION_ACEPTADA');
+                    if (!catalogo) {
+                        this.errorSubsanacion = 'No tiene habilitada la aceptación de subsanación.';
+                        return;
+                    }
+                    if (!this.archivoSubsanacion) {
+                        this.errorSubsanacion = 'Debe adjuntar el documento de subsanación en PDF.';
+                        return;
+                    }
+                    this.submittingSubsanacion = true;
+                    try {
+                        const formData = new FormData();
+                        formData.append('catalogo_actuado_id', catalogo.id);
+                        formData.append('descripcion', this.formSubsanacion.descripcion || '');
+                        formData.append('adjunto', this.archivoSubsanacion);
+                        const { ok, status, data } = await window.apiFetch(`/api/expedientes/${this.expedienteId}/actuados`, {
+                            method: 'POST',
+                            body: formData,
+                        });
+                        if (ok || status === 201) {
+                            window.apiToast('exito', data?.message || 'Subsanación aceptada correctamente.');
+                            this.formSubsanacion = { descripcion: 'Subsanación presentada por el interesado y verificada por el operador.' };
+                            this.archivoSubsanacion = null;
+                            const input = document.getElementById('subs-adjunto');
+                            if (input) input.value = '';
+                            await this.recargarTrasAccion();
+                        } else {
+                            this.errorSubsanacion = data?.message || 'No se pudo aceptar la subsanación.';
+                            if (data?.errors) window.apiToast('error', this.errorSubsanacion, data.errors);
+                        }
+                    } catch (e) {
+                        this.errorSubsanacion = e.message || 'Error al aceptar la subsanación.';
+                    } finally {
+                        this.submittingSubsanacion = false;
+                    }
                 },
                 cerrarModalEnmiendaActuado() { this.modalEnmiendaActuadoOpen = false; },
                 async submitEnmiendaActuado() {

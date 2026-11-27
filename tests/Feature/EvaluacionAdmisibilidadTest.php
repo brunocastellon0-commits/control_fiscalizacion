@@ -317,11 +317,14 @@ it('emite ACT_OBSERVACION hacia EN_SUBSANACION con 3 días hábiles reales (téc
 
     Sanctum::actingAs($semilla['tecnico'], ['*']);
 
+    $detalle = 'Falta la firma del denunciante en el formato de hoja de ruta. Debe subsanar en 3 días hábiles.';
+
     $this->postJson('/api/expedientes/'.$expediente->id.'/evaluacion', [
         'requisitos' => [
             ['requisito_id' => $semilla['critico']->id, 'cumple' => true],
             ['requisito_id' => $semilla['noCritico']->id, 'cumple' => false],
         ],
+        'detalle_observacion' => $detalle,
     ])->assertStatus(201)
         ->assertJsonPath('resumen.resultado', 'ACT_OBSERVACION')
         ->assertJsonPath('resumen.requisitos_faltantes', 1);
@@ -338,7 +341,36 @@ it('emite ACT_OBSERVACION hacia EN_SUBSANACION con 3 días hábiles reales (téc
     $expediente->refresh();
     expect($expediente->estado_actual_id)->toBe($semilla['subsanacion']->id);
 
+    $actuadoObservacion = Actuado::where('expediente_id', $expediente->id)
+        ->where('catalogo_actuado_id', $semilla['catalogoObservacion']->id)
+        ->where('estado_nuevo_id', $semilla['subsanacion']->id)
+        ->first();
+
+    expect($actuadoObservacion)->not->toBeNull()
+        ->and($actuadoObservacion->contenido['detalle_observacion'] ?? null)->toBe($detalle);
+
     CarbonImmutable::setTestNow();
+});
+
+it('devuelve 422 sin detalle_observacion cuando el resultado es ACT_OBSERVACION', function () {
+    $semilla = evaluacionSemilla();
+
+    $expediente = evaluacionCrearExpediente($semilla['evaluacion']->id, $semilla['tecnico']->id, $semilla['reglamento']->id);
+    evaluacionAsignarBandeja($expediente, $semilla['tecnico'], $semilla['evaluacion']->id, $semilla['catalogoObservacion']->id);
+
+    Sanctum::actingAs($semilla['tecnico'], ['*']);
+
+    $this->postJson('/api/expedientes/'.$expediente->id.'/evaluacion', [
+        'requisitos' => [
+            ['requisito_id' => $semilla['critico']->id, 'cumple' => true],
+            ['requisito_id' => $semilla['noCritico']->id, 'cumple' => false],
+        ],
+    ])->assertStatus(422)
+        ->assertJsonValidationErrors('detalle_observacion');
+
+    expect(Actuado::where('expediente_id', $expediente->id)
+        ->where('catalogo_actuado_id', $semilla['catalogoObservacion']->id)
+        ->where('estado_nuevo_id', $semilla['subsanacion']->id)->exists())->toBeFalse();
 });
 
 it('emite ACT_OBSERVACION sin plazo cuando el reglamento no parametriza SUBSANACION', function () {
@@ -358,6 +390,7 @@ it('emite ACT_OBSERVACION sin plazo cuando el reglamento no parametriza SUBSANAC
             ['requisito_id' => $critico->id, 'cumple' => true],
             ['requisito_id' => $noCritico->id, 'cumple' => false],
         ],
+        'detalle_observacion' => 'Detalle de la observación para el reglamento sin plazo parametrizado.',
     ])->assertStatus(201)
         ->assertJsonPath('resumen.resultado', 'ACT_OBSERVACION');
 

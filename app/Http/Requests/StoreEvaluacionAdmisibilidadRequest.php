@@ -28,6 +28,10 @@ class StoreEvaluacionAdmisibilidadRequest extends FormRequest
             'requisitos' => ['required', 'array', 'min:1'],
             'requisitos.*.requisito_id' => ['required', 'integer', 'distinct', 'exists:catalogo_requisitos,id,activo,1'],
             'requisitos.*.cumple' => ['required', 'boolean'],
+            // Procedimiento de observación: texto libre que detalla lo observado.
+            // Se exige solo cuando el resultado es ACT_OBSERVACION (validado en
+            // EvaluacionAdmisibilidadService, único dueño de esa regla).
+            'detalle_observacion' => ['nullable', 'string', 'min:10', 'max:5000'],
         ];
     }
 

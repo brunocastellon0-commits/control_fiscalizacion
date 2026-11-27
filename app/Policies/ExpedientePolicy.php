@@ -181,6 +181,33 @@ class ExpedientePolicy
     }
 
     /**
+     * Formato de observación (procedimiento de observación): lo consulta el
+     * operador que tiene la causa asignada (RF-03), la Encargada y ADMIN.
+     * No se reutiliza `view` ni `descargarFichaSorteo` para no exponerlo a la
+     * Ventanilla ni a operadores sin banda.
+     */
+    public function verFormatoObservacion(Usuario $user, Expediente $expediente): bool
+    {
+        if (! $user->activo) {
+            return false;
+        }
+
+        $rol = $user->rol?->codigo ?? null;
+
+        if (in_array($rol, [Rol::CODIGO_ENCARGADA, Rol::CODIGO_ADMIN], true)) {
+            return true;
+        }
+
+        $esOperador = in_array($rol, [
+            Rol::CODIGO_TECNICO,
+            Rol::CODIGO_AUD_JURIDICO,
+            Rol::CODIGO_AUD_FINANCIERO,
+        ], true);
+
+        return $esOperador && $expediente->asignacionActiva?->usuario_id === $user->id;
+    }
+
+    /**
      * Consulta de catalogos de soporte (actuados, reglamentos, estados):
      * roles operativos, Encargada y ADMIN activos. La Ventanilla accede
      * únicamente a reglamentos, que necesita para aperturar causas.

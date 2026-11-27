@@ -53,6 +53,20 @@
                     </template>
                 </div>
 
+                <template x-if="pasoEditable()">
+                    <div class="space-y-1">
+                        <label for="detalle-observacion" class="block text-xs font-semibold text-grafito uppercase">
+                            Detalle de la observación
+                        </label>
+                        <textarea id="detalle-observacion" x-model="detalleObservacion" rows="3" maxlength="5000"
+                            placeholder="Explique detalladamente lo observado: requisitos faltantes, instrucciones al interesado y el plazo para subsanar."
+                            class="w-full border border-gris-claro rounded-lg text-sm px-3 py-2 text-grafito focus:border-verde-institucional focus:ring-verde-institucional focus:outline-none"></textarea>
+                        <p class="text-[11px] text-gris">
+                            Obligatorio cuando el resultado sea Observación. Se imprime en el formato de observación.
+                        </p>
+                    </div>
+                </template>
+
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pt-2 border-t border-gris-claro">
                     <p class="text-xs text-gris" x-text="pasoEditable()
                         ? 'Marque los requisitos que se cumplen. El sistema determinará el resultado según la configuración.'

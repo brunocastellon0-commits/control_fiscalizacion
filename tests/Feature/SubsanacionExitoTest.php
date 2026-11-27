@@ -17,7 +17,9 @@ use Database\Seeders\FeriadoSeeder;
 use Database\Seeders\ParametroPlazoSeeder;
 use Database\Seeders\ReglamentoSeeder;
 use Database\Seeders\RolSeeder;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -29,6 +31,8 @@ use Tests\TestCase;
  */
 function subsanacionExitoSemilla(TestCase $test): array
 {
+    Storage::fake('local');
+
     foreach ([
         RolSeeder::class,
         CatalogoEstadoSeeder::class,
@@ -127,6 +131,7 @@ function subsanacionExitoEmitirAceptacion(Expediente $expediente): mixed
     return test()->postJson("/api/expedientes/{$expediente->id}/actuados", [
         'catalogo_actuado_id' => $catalogo->id,
         'descripcion' => 'Subsanación presentada por el interesado y aceptada por el operador.',
+        'adjunto' => UploadedFile::fake()->create('subsancacion.pdf', 100, 'application/pdf'),
     ]);
 }
 
@@ -187,6 +192,9 @@ it('acepta la subsanación: cierra el reloj, retorna a evaluación y habilita la
     expect($plazoSubsanacion->actuado_cierre_id)->toBe($actuadoAceptacion->id)
         ->and($plazoSubsanacion->fuera_de_plazo)->toBeFalse();
 
+    expect($actuadoAceptacion->hash_actuado)->not->toBeNull()
+        ->and($actuadoAceptacion->adjuntos()->count())->toBe(1);
+
     // Decisión B1.4: al volver a evaluación NO se reabre un reloj EVALUACION
     // (el cerrado por la observación sigue cerrado y no nace uno nuevo).
     expect(Plazo::where('expediente_id', $expediente->id)
@@ -203,6 +211,41 @@ it('acepta la subsanación: cierra el reloj, retorna a evaluación y habilita la
     );
 
     expect($expediente->refresh()->estado_actual_id)->toBe($s['estados']['EN_PLANIFICACION']->id);
+});
+
+it('exige el adjunto PDF en la aceptación de subsanación (procedimiento de observación)', function () {
+    $s = subsanacionExitoSemilla($this);
+
+    $expediente = subsanacionExitoCrearExpediente(
+        $s['estados']['EN_SUBSANACION']->id,
+        $s['ac022']->id,
+        $s['tecnico']->id,
+    );
+
+    $disparador = subsanacionExitoActuadoBase($expediente, $s['tecnico'], $s['estados']['EN_SUBSANACION']->id);
+    subsanacionExitoAsignar($expediente, $s['tecnico'], $disparador);
+
+    $catalogo = CatalogoActuado::where('codigo', 'ACT_SUBSANACION_ACEPTADA')->firstOrFail();
+
+    Sanctum::actingAs($s['tecnico'], ['*']);
+
+    test()->postJson("/api/expedientes/{$expediente->id}/actuados", [
+        'catalogo_actuado_id' => $catalogo->id,
+        'descripcion' => 'Subsanación presentada por el interesado y verificada por el operador.',
+    ])->assertStatus(422)
+        ->assertJsonValidationErrors('adjunto');
+
+    test()->postJson("/api/expedientes/{$expediente->id}/actuados", [
+        'catalogo_actuado_id' => $catalogo->id,
+        'descripcion' => 'Subsanación presentada por el interesado y verificada por el operador.',
+        'adjunto' => UploadedFile::fake()->create('subsancacion.txt', 10, 'text/plain'),
+    ])->assertStatus(422)
+        ->assertJsonValidationErrors('adjunto');
+
+    expect($expediente->refresh()->estado_actual_id)->toBe($s['estados']['EN_SUBSANACION']->id)
+        ->and(Actuado::where('expediente_id', $expediente->id)
+            ->whereHas('tipoActuado', fn ($query) => $query->where('codigo', 'ACT_SUBSANACION_ACEPTADA'))
+            ->exists())->toBeFalse();
 });
 
 it('rechaza con 403 la aceptación sin pivot de rol o sin asignación activa', function () {

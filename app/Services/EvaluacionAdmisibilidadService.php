@@ -35,11 +35,13 @@ class EvaluacionAdmisibilidadService
      * negocio y desactiva relojes en caso de rechazo (ACT_RECHAZO).
      *
      * @param  array<int, array{requisito_id: int, cumple: bool}>  $requisitos
+     * @param  string|null  $detalleObservacion  Texto libre que detalla la observación; obligatorio cuando el
+     *                                           resultado es ACT_OBSERVACION y se guarda en `contenido` del actuado.
      * @return array{actuado: Actuado, evaluaciones: Collection, resumen: array}
      */
-    public function evaluar(Expediente $expediente, Usuario $operador, array $requisitos, ?string $ipOrigen = null): array
+    public function evaluar(Expediente $expediente, Usuario $operador, array $requisitos, ?string $ipOrigen = null, ?string $detalleObservacion = null): array
     {
-        return DB::transaction(function () use ($expediente, $operador, $requisitos, $ipOrigen) {
+        return DB::transaction(function () use ($expediente, $operador, $requisitos, $ipOrigen, $detalleObservacion) {
             // D-6g (AUD-0033): bloqueo pesimista del expediente antes de
             // validar EN_EVALUACION, para que dos evaluaciones concurrentes
             // no puedan pasar ambas la validación sobre el mismo estado.
@@ -61,12 +63,25 @@ class EvaluacionAdmisibilidadService
             $catalogoCodigo = $this->resolverCatalogo($faltantes);
             $catalogoActuado = CatalogoActuado::where('codigo', $catalogoCodigo)->firstOrFail();
 
+            // Procedimiento de observación: la descripción detallada es
+            // obligatoria solo cuando el resultado es observación (RN-03).
+            if ($catalogoCodigo === static::CODIGO_ACT_OBSERVACION && blank($detalleObservacion)) {
+                throw ValidationException::withMessages([
+                    'detalle_observacion' => 'Debe indicar el detalle de la observación.',
+                ]);
+            }
+
             $actuado = $this->actuadoService->registerActuado(
                 expediente: $expediente,
                 catalogoActuado: $catalogoActuado,
                 emisor: $operador,
                 descripcion: $this->resolverDescripcion($catalogoCodigo, $faltantes),
-                metadatos: ['tipo' => 'EVALUACION_ADMISIBILIDAD'],
+                metadatos: array_merge(
+                    ['tipo' => 'EVALUACION_ADMISIBILIDAD'],
+                    $catalogoCodigo === static::CODIGO_ACT_OBSERVACION
+                        ? ['detalle_observacion' => $detalleObservacion]
+                        : [],
+                ),
                 ipOrigen: $ipOrigen,
             );
 
